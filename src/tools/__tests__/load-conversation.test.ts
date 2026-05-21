@@ -1,4 +1,4 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     createMockConversation,
@@ -9,8 +9,8 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { loadConversation } from '../load-conversation.js'
 
-// Mock the Twist API
-const mockTwistApi = {
+// Mock the Comms API
+const mockCommsApi = {
     batch: jest.fn(),
     conversations: {
         getConversation: jest.fn(),
@@ -21,7 +21,7 @@ const mockTwistApi = {
     workspaceUsers: {
         getUserById: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { LOAD_CONVERSATION } = ToolNames
 
@@ -29,7 +29,7 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
         // Mock batch to return responses with .data property
-        mockTwistApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
+        mockCommsApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
             const results = []
             for (const arg of args) {
                 const result = await arg
@@ -49,9 +49,9 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
                 createMockConversationMessage({ id: TEST_IDS.MESSAGE_2 }),
             ]
 
-            mockTwistApi.conversations.getConversation.mockResolvedValue(mockConversation)
-            mockTwistApi.conversationMessages.getMessages.mockResolvedValue(mockMessages)
-            mockTwistApi.workspaceUsers.getUserById.mockImplementation((async (args: {
+            mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
+            mockCommsApi.conversationMessages.getMessages.mockResolvedValue(mockMessages)
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation((async (args: {
                 workspaceId: number
                 userId: number
             }) => {
@@ -83,14 +83,14 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
 
             const result = await loadConversation.execute(
                 { conversationId: TEST_IDS.CONVERSATION_1, limit: 50, includeParticipants: true },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.conversations.getConversation).toHaveBeenCalledWith(
+            expect(mockCommsApi.conversations.getConversation).toHaveBeenCalledWith(
                 TEST_IDS.CONVERSATION_1,
                 { batch: true },
             )
-            expect(mockTwistApi.conversationMessages.getMessages).toHaveBeenCalledWith(
+            expect(mockCommsApi.conversationMessages.getMessages).toHaveBeenCalledWith(
                 {
                     conversationId: TEST_IDS.CONVERSATION_1,
                     newerThan: undefined,
@@ -100,11 +100,11 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
                 { batch: true },
             )
             // Verify user info is fetched for each participant
-            expect(mockTwistApi.workspaceUsers.getUserById).toHaveBeenCalledWith(
+            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledWith(
                 { workspaceId: mockConversation.workspaceId, userId: TEST_IDS.USER_1 },
                 { batch: true },
             )
-            expect(mockTwistApi.workspaceUsers.getUserById).toHaveBeenCalledWith(
+            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledWith(
                 { workspaceId: mockConversation.workspaceId, userId: TEST_IDS.USER_2 },
                 { batch: true },
             )
@@ -139,9 +139,9 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
             const mockConversation = createMockConversation({
                 userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
             })
-            mockTwistApi.conversations.getConversation.mockResolvedValue(mockConversation)
-            mockTwistApi.conversationMessages.getMessages.mockResolvedValue([])
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+            mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
+            mockCommsApi.conversationMessages.getMessages.mockResolvedValue([])
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
                 id: TEST_IDS.USER_1,
                 name: 'Test User 1',
                 shortName: 'TU1',
@@ -159,7 +159,7 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
                     limit: 50,
                     includeParticipants: false,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -169,9 +169,9 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
 
         it('should filter messages by date range', async () => {
             const mockConversation = createMockConversation()
-            mockTwistApi.conversations.getConversation.mockResolvedValue(mockConversation)
-            mockTwistApi.conversationMessages.getMessages.mockResolvedValue([])
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+            mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
+            mockCommsApi.conversationMessages.getMessages.mockResolvedValue([])
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
                 id: TEST_IDS.USER_1,
                 name: 'Test User 1',
                 shortName: 'TU1',
@@ -191,11 +191,11 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
                     limit: 50,
                     includeParticipants: true,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             // Verify dates were converted to Date objects
-            expect(mockTwistApi.conversationMessages.getMessages).toHaveBeenCalledWith(
+            expect(mockCommsApi.conversationMessages.getMessages).toHaveBeenCalledWith(
                 expect.objectContaining({
                     newerThan: expect.any(Date),
                     olderThan: expect.any(Date),
@@ -208,9 +208,9 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
 
         it('should handle conversation with no messages', async () => {
             const mockConversation = createMockConversation()
-            mockTwistApi.conversations.getConversation.mockResolvedValue(mockConversation)
-            mockTwistApi.conversationMessages.getMessages.mockResolvedValue([])
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+            mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
+            mockCommsApi.conversationMessages.getMessages.mockResolvedValue([])
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
                 id: TEST_IDS.USER_1,
                 name: 'Test User 1',
                 shortName: 'TU1',
@@ -224,7 +224,7 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
 
             const result = await loadConversation.execute(
                 { conversationId: TEST_IDS.CONVERSATION_1, limit: 50, includeParticipants: true },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
@@ -234,7 +234,7 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
     describe('error handling', () => {
         it('should propagate conversation not found error', async () => {
             const apiError = new Error('Conversation not found')
-            mockTwistApi.conversations.getConversation.mockRejectedValue(apiError)
+            mockCommsApi.conversations.getConversation.mockRejectedValue(apiError)
 
             await expect(
                 loadConversation.execute(
@@ -243,7 +243,7 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
                         limit: 50,
                         includeParticipants: true,
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Conversation not found')
         })

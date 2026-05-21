@@ -1,4 +1,4 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     createMockUser,
@@ -10,12 +10,12 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { userInfo } from '../user-info.js'
 
-// Mock the Twist API
-const mockTwistApi = {
+// Mock the Comms API
+const mockCommsApi = {
     users: {
         getSessionUser: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { USER_INFO } = ToolNames
 
@@ -27,11 +27,11 @@ describe(`${USER_INFO} tool`, () => {
     it('should generate user info with all required fields', async () => {
         const mockUser = createMockUser()
 
-        mockTwistApi.users.getSessionUser.mockResolvedValue(mockUser)
+        mockCommsApi.users.getSessionUser.mockResolvedValue(mockUser)
 
-        const result = await userInfo.execute({}, mockTwistApi)
+        const result = await userInfo.execute({}, mockCommsApi)
 
-        expect(mockTwistApi.users.getSessionUser).toHaveBeenCalledWith()
+        expect(mockCommsApi.users.getSessionUser).toHaveBeenCalledWith()
 
         // Test text content contains expected information
         const textContent = extractTextContent(result)
@@ -63,9 +63,9 @@ describe(`${USER_INFO} tool`, () => {
             timezone: 'America/New_York',
         })
 
-        mockTwistApi.users.getSessionUser.mockResolvedValue(mockUser)
+        mockCommsApi.users.getSessionUser.mockResolvedValue(mockUser)
 
-        const result = await userInfo.execute({}, mockTwistApi)
+        const result = await userInfo.execute({}, mockCommsApi)
 
         const textContent = extractTextContent(result)
         expect(textContent).toContain('America/New_York')
@@ -79,9 +79,9 @@ describe(`${USER_INFO} tool`, () => {
             profession: undefined,
         })
 
-        mockTwistApi.users.getSessionUser.mockResolvedValue(mockUser)
+        mockCommsApi.users.getSessionUser.mockResolvedValue(mockUser)
 
-        const result = await userInfo.execute({}, mockTwistApi)
+        const result = await userInfo.execute({}, mockCommsApi)
 
         const textContent = extractTextContent(result)
         expect(textContent).not.toContain('Profession')
@@ -89,9 +89,9 @@ describe(`${USER_INFO} tool`, () => {
 
     it('should propagate API errors', async () => {
         const apiError = new Error(TEST_ERRORS.API_UNAUTHORIZED)
-        mockTwistApi.users.getSessionUser.mockRejectedValue(apiError)
+        mockCommsApi.users.getSessionUser.mockRejectedValue(apiError)
 
-        await expect(userInfo.execute({}, mockTwistApi)).rejects.toThrow(
+        await expect(userInfo.execute({}, mockCommsApi)).rejects.toThrow(
             TEST_ERRORS.API_UNAUTHORIZED,
         )
     })

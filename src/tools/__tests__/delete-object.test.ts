@@ -1,10 +1,10 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import { extractTextContent, TEST_IDS } from '../../utils/test-helpers.js'
 import { ToolNames } from '../../utils/tool-names.js'
 import { deleteObject } from '../delete-object.js'
 
-const mockTwistApi = {
+const mockCommsApi = {
     threads: {
         deleteThread: jest.fn(),
     },
@@ -14,7 +14,7 @@ const mockTwistApi = {
     conversationMessages: {
         deleteMessage: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { DELETE_OBJECT } = ToolNames
 
@@ -25,17 +25,17 @@ describe(`${DELETE_OBJECT} tool`, () => {
 
     describe('targetType: thread', () => {
         it('should delete a thread by ID', async () => {
-            ;(mockTwistApi.threads.deleteThread as jest.Mock).mockResolvedValue(undefined as never)
+            ;(mockCommsApi.threads.deleteThread as jest.Mock).mockResolvedValue(undefined as never)
 
             const result = await deleteObject.execute(
                 {
                     targetType: 'thread',
                     targetId: TEST_IDS.THREAD_1,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.deleteThread).toHaveBeenCalledWith(TEST_IDS.THREAD_1)
+            expect(mockCommsApi.threads.deleteThread).toHaveBeenCalledWith(TEST_IDS.THREAD_1)
             expect(extractTextContent(result)).toMatchSnapshot()
 
             const { structuredContent } = result
@@ -48,7 +48,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
         })
 
         it('should propagate API errors when deleting a thread', async () => {
-            ;(mockTwistApi.threads.deleteThread as jest.Mock).mockRejectedValue(
+            ;(mockCommsApi.threads.deleteThread as jest.Mock).mockRejectedValue(
                 new Error('Thread not found') as never,
             )
 
@@ -58,7 +58,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
                         targetType: 'thread',
                         targetId: TEST_IDS.THREAD_1,
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Thread not found')
         })
@@ -66,7 +66,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
 
     describe('targetType: comment', () => {
         it('should delete a comment by ID', async () => {
-            ;(mockTwistApi.comments.deleteComment as jest.Mock).mockResolvedValue(
+            ;(mockCommsApi.comments.deleteComment as jest.Mock).mockResolvedValue(
                 undefined as never,
             )
 
@@ -75,10 +75,10 @@ describe(`${DELETE_OBJECT} tool`, () => {
                     targetType: 'comment',
                     targetId: TEST_IDS.COMMENT_1,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.deleteComment).toHaveBeenCalledWith(TEST_IDS.COMMENT_1)
+            expect(mockCommsApi.comments.deleteComment).toHaveBeenCalledWith(TEST_IDS.COMMENT_1)
             expect(extractTextContent(result)).toMatchSnapshot()
 
             const { structuredContent } = result
@@ -91,7 +91,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
         })
 
         it('should propagate API errors when deleting a comment', async () => {
-            ;(mockTwistApi.comments.deleteComment as jest.Mock).mockRejectedValue(
+            ;(mockCommsApi.comments.deleteComment as jest.Mock).mockRejectedValue(
                 new Error('Comment not found') as never,
             )
 
@@ -101,7 +101,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
                         targetType: 'comment',
                         targetId: TEST_IDS.COMMENT_1,
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Comment not found')
         })
@@ -109,7 +109,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
 
     describe('targetType: message', () => {
         it('should delete a conversation message by ID', async () => {
-            ;(mockTwistApi.conversationMessages.deleteMessage as jest.Mock).mockResolvedValue(
+            ;(mockCommsApi.conversationMessages.deleteMessage as jest.Mock).mockResolvedValue(
                 undefined as never,
             )
 
@@ -118,10 +118,10 @@ describe(`${DELETE_OBJECT} tool`, () => {
                     targetType: 'message',
                     targetId: TEST_IDS.MESSAGE_1,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.conversationMessages.deleteMessage).toHaveBeenCalledWith(
+            expect(mockCommsApi.conversationMessages.deleteMessage).toHaveBeenCalledWith(
                 TEST_IDS.MESSAGE_1,
             )
             expect(extractTextContent(result)).toMatchSnapshot()
@@ -136,7 +136,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
         })
 
         it('should propagate API errors when deleting a message', async () => {
-            ;(mockTwistApi.conversationMessages.deleteMessage as jest.Mock).mockRejectedValue(
+            ;(mockCommsApi.conversationMessages.deleteMessage as jest.Mock).mockRejectedValue(
                 new Error('Message not found') as never,
             )
 
@@ -146,7 +146,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
                         targetType: 'message',
                         targetId: TEST_IDS.MESSAGE_1,
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Message not found')
         })
@@ -174,25 +174,25 @@ describe(`${DELETE_OBJECT} tool`, () => {
         it.each(routingCases)(
             'should only call $expectedMethod when targetType is $targetType',
             async ({ targetType, targetId }) => {
-                ;(mockTwistApi.threads.deleteThread as jest.Mock).mockResolvedValue(
+                ;(mockCommsApi.threads.deleteThread as jest.Mock).mockResolvedValue(
                     undefined as never,
                 )
-                ;(mockTwistApi.comments.deleteComment as jest.Mock).mockResolvedValue(
+                ;(mockCommsApi.comments.deleteComment as jest.Mock).mockResolvedValue(
                     undefined as never,
                 )
-                ;(mockTwistApi.conversationMessages.deleteMessage as jest.Mock).mockResolvedValue(
+                ;(mockCommsApi.conversationMessages.deleteMessage as jest.Mock).mockResolvedValue(
                     undefined as never,
                 )
 
-                await deleteObject.execute({ targetType, targetId }, mockTwistApi)
+                await deleteObject.execute({ targetType, targetId }, mockCommsApi)
 
-                expect(mockTwistApi.threads.deleteThread).toHaveBeenCalledTimes(
+                expect(mockCommsApi.threads.deleteThread).toHaveBeenCalledTimes(
                     targetType === 'thread' ? 1 : 0,
                 )
-                expect(mockTwistApi.comments.deleteComment).toHaveBeenCalledTimes(
+                expect(mockCommsApi.comments.deleteComment).toHaveBeenCalledTimes(
                     targetType === 'comment' ? 1 : 0,
                 )
-                expect(mockTwistApi.conversationMessages.deleteMessage).toHaveBeenCalledTimes(
+                expect(mockCommsApi.conversationMessages.deleteMessage).toHaveBeenCalledTimes(
                     targetType === 'message' ? 1 : 0,
                 )
             },

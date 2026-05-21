@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { type GetGroupsOutput, GetGroupsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -92,6 +92,6 @@ const getGroups = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof GetGroupsOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof GetGroupsOutputSchema.shape>
 
 export { getGroups, type GetGroupsStructured }

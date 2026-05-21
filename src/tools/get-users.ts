@@ -1,7 +1,7 @@
-import type { UserType } from '@doist/twist-sdk'
+import type { UserType } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { GetUsersOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -125,6 +125,6 @@ const getUsers = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof GetUsersOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof GetUsersOutputSchema.shape>
 
 export { getUsers, type GetUsersStructured }

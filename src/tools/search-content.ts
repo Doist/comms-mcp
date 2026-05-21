@@ -1,7 +1,7 @@
-import { type SearchResultType, getFullTwistURL } from '@doist/twist-sdk'
+import { type SearchResultType, getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { SearchContentOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -204,7 +204,7 @@ const searchContent = {
             results: results.map((r) => {
                 let url: string
                 if (r.type === 'thread' && r.threadId !== undefined) {
-                    url = getFullTwistURL({
+                    url = getFullCommsURL({
                         workspaceId,
                         threadId: r.threadId,
                         channelId: r.channelId,
@@ -214,19 +214,19 @@ const searchContent = {
                     r.threadId !== undefined &&
                     r.channelId !== undefined
                 ) {
-                    url = getFullTwistURL({
+                    url = getFullCommsURL({
                         workspaceId,
                         threadId: r.threadId,
                         channelId: r.channelId,
                         commentId: r.id,
                     })
                 } else if (r.type === 'conversation' && r.conversationId !== undefined) {
-                    url = getFullTwistURL({
+                    url = getFullCommsURL({
                         workspaceId,
                         conversationId: r.conversationId,
                     })
                 } else if (r.type === 'message' && r.conversationId !== undefined) {
-                    url = getFullTwistURL({
+                    url = getFullCommsURL({
                         workspaceId,
                         conversationId: r.conversationId,
                         messageId: r.id,
@@ -252,6 +252,6 @@ const searchContent = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof SearchContentOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof SearchContentOutputSchema.shape>
 
 export { searchContent, type SearchContentStructured }

@@ -1,6 +1,6 @@
-import type { TwistApi, WorkspacePlan } from '@doist/twist-sdk'
+import type { CommsApi, WorkspacePlan } from '@doist/comms-sdk'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { GetWorkspacesOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getChannelUrl, getConversationUrl, getWorkspaceUrl } from '../utils/url-helpers.js'
@@ -36,7 +36,7 @@ type GetWorkspacesStructured = Record<string, unknown> & {
 }
 
 async function generateWorkspacesList(
-    client: TwistApi,
+    client: CommsApi,
 ): Promise<{ textContent: string; structuredContent: GetWorkspacesStructured }> {
     const workspaces = await client.workspaces.getWorkspaces()
 
@@ -244,6 +244,6 @@ const getWorkspaces = {
             structuredContent: result.structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof GetWorkspacesOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof GetWorkspacesOutputSchema.shape>
 
 export { getWorkspaces, type GetWorkspacesStructured }

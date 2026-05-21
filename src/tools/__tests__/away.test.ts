@@ -1,4 +1,4 @@
-import { AWAY_MODE_TYPES, type AwayModeType, type TwistApi } from '@doist/twist-sdk'
+import { AWAY_MODE_TYPES, type AwayModeType, type CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     createMockUser,
@@ -9,12 +9,12 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { away } from '../away.js'
 
-const mockTwistApi = {
+const mockCommsApi = {
     users: {
         getSessionUser: jest.fn(),
         update: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { AWAY } = ToolNames
 
@@ -32,11 +32,11 @@ describe(`${AWAY} tool`, () => {
                     dateTo: '2025-01-20',
                 },
             })
-            mockTwistApi.users.getSessionUser.mockResolvedValue(mockUser)
+            mockCommsApi.users.getSessionUser.mockResolvedValue(mockUser)
 
-            const result = await away.execute({ action: 'get' }, mockTwistApi)
+            const result = await away.execute({ action: 'get' }, mockCommsApi)
 
-            expect(mockTwistApi.users.getSessionUser).toHaveBeenCalledWith()
+            expect(mockCommsApi.users.getSessionUser).toHaveBeenCalledWith()
 
             const textContent = extractTextContent(result)
             expect(textContent).toContain('**Status:** Away')
@@ -61,9 +61,9 @@ describe(`${AWAY} tool`, () => {
 
         it('should return not away when user has no away mode', async () => {
             const mockUser = createMockUser({ awayMode: undefined })
-            mockTwistApi.users.getSessionUser.mockResolvedValue(mockUser)
+            mockCommsApi.users.getSessionUser.mockResolvedValue(mockUser)
 
-            const result = await away.execute({ action: 'get' }, mockTwistApi)
+            const result = await away.execute({ action: 'get' }, mockCommsApi)
 
             const textContent = extractTextContent(result)
             expect(textContent).toContain('**Status:** Not away')
@@ -81,7 +81,7 @@ describe(`${AWAY} tool`, () => {
 
     describe('set action', () => {
         it('should set away mode with explicit from date', async () => {
-            mockTwistApi.users.update.mockResolvedValue(createMockUser())
+            mockCommsApi.users.update.mockResolvedValue(createMockUser())
 
             const result = await away.execute(
                 {
@@ -90,10 +90,10 @@ describe(`${AWAY} tool`, () => {
                     from: '2025-03-01',
                     until: '2025-03-15',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.users.update).toHaveBeenCalledWith({
+            expect(mockCommsApi.users.update).toHaveBeenCalledWith({
                 awayMode: {
                     type: 'vacation',
                     dateFrom: '2025-03-01',
@@ -117,7 +117,7 @@ describe(`${AWAY} tool`, () => {
         })
 
         it('should default from date to today when not provided', async () => {
-            mockTwistApi.users.update.mockResolvedValue(createMockUser())
+            mockCommsApi.users.update.mockResolvedValue(createMockUser())
 
             // Mock the date to ensure consistent test results
             jest.useFakeTimers()
@@ -129,12 +129,12 @@ describe(`${AWAY} tool`, () => {
                     type: 'sickleave',
                     until: '2025-06-20',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             jest.useRealTimers()
 
-            expect(mockTwistApi.users.update).toHaveBeenCalledWith({
+            expect(mockCommsApi.users.update).toHaveBeenCalledWith({
                 awayMode: {
                     type: 'sickleave',
                     dateFrom: '2025-06-15',
@@ -150,7 +150,7 @@ describe(`${AWAY} tool`, () => {
             await expect(
                 away.execute(
                     { action: 'set', until: '2025-03-15' } as Parameters<typeof away.execute>[0],
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('The "type" parameter is required when action is "set".')
         })
@@ -159,13 +159,13 @@ describe(`${AWAY} tool`, () => {
             await expect(
                 away.execute(
                     { action: 'set', type: 'vacation' } as Parameters<typeof away.execute>[0],
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('The "until" parameter is required when action is "set".')
         })
 
         it('should support all away mode types', async () => {
-            mockTwistApi.users.update.mockResolvedValue(createMockUser())
+            mockCommsApi.users.update.mockResolvedValue(createMockUser())
 
             const expectedLabels: Record<AwayModeType, string> = {
                 parental: 'Parental leave',
@@ -182,7 +182,7 @@ describe(`${AWAY} tool`, () => {
                         from: '2025-01-01',
                         until: '2025-01-10',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 )
 
                 const textContent = extractTextContent(result)
@@ -193,11 +193,11 @@ describe(`${AWAY} tool`, () => {
 
     describe('clear action', () => {
         it('should clear away mode', async () => {
-            mockTwistApi.users.update.mockResolvedValue(createMockUser())
+            mockCommsApi.users.update.mockResolvedValue(createMockUser())
 
-            const result = await away.execute({ action: 'clear' }, mockTwistApi)
+            const result = await away.execute({ action: 'clear' }, mockCommsApi)
 
-            expect(mockTwistApi.users.update).toHaveBeenCalledWith({
+            expect(mockCommsApi.users.update).toHaveBeenCalledWith({
                 awayMode: '' as never,
             })
 
@@ -218,17 +218,17 @@ describe(`${AWAY} tool`, () => {
 
     describe('error handling', () => {
         it('should propagate API errors on get', async () => {
-            mockTwistApi.users.getSessionUser.mockRejectedValue(
+            mockCommsApi.users.getSessionUser.mockRejectedValue(
                 new Error(TEST_ERRORS.API_UNAUTHORIZED),
             )
 
-            await expect(away.execute({ action: 'get' }, mockTwistApi)).rejects.toThrow(
+            await expect(away.execute({ action: 'get' }, mockCommsApi)).rejects.toThrow(
                 TEST_ERRORS.API_UNAUTHORIZED,
             )
         })
 
         it('should propagate API errors on set', async () => {
-            mockTwistApi.users.update.mockRejectedValue(new Error(TEST_ERRORS.API_RATE_LIMIT))
+            mockCommsApi.users.update.mockRejectedValue(new Error(TEST_ERRORS.API_RATE_LIMIT))
 
             await expect(
                 away.execute(
@@ -238,15 +238,15 @@ describe(`${AWAY} tool`, () => {
                         from: '2025-01-01',
                         until: '2025-01-10',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow(TEST_ERRORS.API_RATE_LIMIT)
         })
 
         it('should propagate API errors on clear', async () => {
-            mockTwistApi.users.update.mockRejectedValue(new Error(TEST_ERRORS.API_UNAUTHORIZED))
+            mockCommsApi.users.update.mockRejectedValue(new Error(TEST_ERRORS.API_UNAUTHORIZED))
 
-            await expect(away.execute({ action: 'clear' }, mockTwistApi)).rejects.toThrow(
+            await expect(away.execute({ action: 'clear' }, mockCommsApi)).rejects.toThrow(
                 TEST_ERRORS.API_UNAUTHORIZED,
             )
         })

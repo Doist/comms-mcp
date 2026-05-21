@@ -1,7 +1,7 @@
-import { AWAY_MODE_TYPES, type AwayModeType, type TwistApi } from '@doist/twist-sdk'
+import { AWAY_MODE_TYPES, type AwayModeType, type CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { AWAY_ACTIONS, type AwayOutput, AwayOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -38,7 +38,7 @@ function getTodayDate(): string {
 }
 
 async function executeGet(
-    client: TwistApi,
+    client: CommsApi,
 ): Promise<{ textContent: string; structuredContent: AwayOutput }> {
     const user = await client.users.getSessionUser()
     const awayMode = user.awayMode ?? undefined
@@ -74,7 +74,7 @@ async function executeGet(
 }
 
 async function executeSet(
-    client: TwistApi,
+    client: CommsApi,
     awayType: AwayModeType,
     dateFrom: string,
     dateTo: string,
@@ -105,7 +105,7 @@ async function executeSet(
 }
 
 async function executeClear(
-    client: TwistApi,
+    client: CommsApi,
 ): Promise<{ textContent: string; structuredContent: AwayOutput }> {
     await client.users.update({ awayMode: '' as never })
 
@@ -154,6 +154,6 @@ const away = {
             }
         }
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof AwayOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof AwayOutputSchema.shape>
 
 export { away }

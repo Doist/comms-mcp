@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { MarkDoneOutputSchema } from '../utils/output-schemas.js'
 import { type MarkDoneType, MarkDoneTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -291,6 +291,6 @@ const markDone = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof MarkDoneOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof MarkDoneOutputSchema.shape>
 
 export { markDone, type MarkDoneStructured }

@@ -1,4 +1,4 @@
-import type { Group, TwistApi } from '@doist/twist-sdk'
+import type { Group, CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     extractStructuredContent,
@@ -9,13 +9,13 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { getGroups } from '../get-groups.js'
 
-const mockTwistApi = {
+const mockCommsApi = {
     groups: {
         getGroups: jest.fn(),
         getGroup: jest.fn(),
     },
     batch: jest.fn(),
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { GET_GROUPS } = ToolNames
 
@@ -32,7 +32,7 @@ const createMockGroup = (overrides: Partial<Group> = {}): Group => ({
 describe(`${GET_GROUPS} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockTwistApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
+        mockCommsApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
             const results = []
             for (const arg of args) {
                 const result = await arg
@@ -54,15 +54,15 @@ describe(`${GET_GROUPS} tool`, () => {
                 }),
             ]
 
-            mockTwistApi.groups.getGroups.mockResolvedValue(mockGroups)
+            mockCommsApi.groups.getGroups.mockResolvedValue(mockGroups)
 
             const result = await getGroups.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.groups.getGroups).toHaveBeenCalledWith(TEST_IDS.WORKSPACE_1)
-            expect(mockTwistApi.batch).not.toHaveBeenCalled()
+            expect(mockCommsApi.groups.getGroups).toHaveBeenCalledWith(TEST_IDS.WORKSPACE_1)
+            expect(mockCommsApi.batch).not.toHaveBeenCalled()
 
             const textContent = extractTextContent(result)
             expect(textContent).toContain(`**Workspace ID:** ${TEST_IDS.WORKSPACE_1}`)
@@ -97,11 +97,11 @@ describe(`${GET_GROUPS} tool`, () => {
         })
 
         it('should handle empty groupIds array by fetching all groups', async () => {
-            mockTwistApi.groups.getGroups.mockResolvedValue([createMockGroup()])
+            mockCommsApi.groups.getGroups.mockResolvedValue([createMockGroup()])
 
             const result = await getGroups.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, groupIds: [] },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const structuredContent = extractStructuredContent(result)
@@ -111,7 +111,7 @@ describe(`${GET_GROUPS} tool`, () => {
 
     describe('filtering groups', () => {
         it('should filter groups by ID', async () => {
-            mockTwistApi.groups.getGroup.mockImplementation(async (id: number) => {
+            mockCommsApi.groups.getGroup.mockImplementation(async (id: number) => {
                 if (id === 100) {
                     return createMockGroup({ id: 100, name: 'Product Automation' })
                 }
@@ -123,17 +123,17 @@ describe(`${GET_GROUPS} tool`, () => {
 
             const result = await getGroups.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, groupIds: [100, 300] },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.groups.getGroups).not.toHaveBeenCalled()
-            expect(mockTwistApi.groups.getGroup).toHaveBeenNthCalledWith(1, 100, {
+            expect(mockCommsApi.groups.getGroups).not.toHaveBeenCalled()
+            expect(mockCommsApi.groups.getGroup).toHaveBeenNthCalledWith(1, 100, {
                 batch: true,
             })
-            expect(mockTwistApi.groups.getGroup).toHaveBeenNthCalledWith(2, 300, {
+            expect(mockCommsApi.groups.getGroup).toHaveBeenNthCalledWith(2, 300, {
                 batch: true,
             })
-            expect(mockTwistApi.batch).toHaveBeenCalledTimes(1)
+            expect(mockCommsApi.batch).toHaveBeenCalledTimes(1)
 
             const textContent = extractTextContent(result)
             expect(textContent).toContain('**Total Groups:** 2')
@@ -153,11 +153,11 @@ describe(`${GET_GROUPS} tool`, () => {
                 createMockGroup({ id: 300, name: 'Automation QA' }),
             ]
 
-            mockTwistApi.groups.getGroups.mockResolvedValue(mockGroups)
+            mockCommsApi.groups.getGroups.mockResolvedValue(mockGroups)
 
             const result = await getGroups.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'AUTOMATION' },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -173,7 +173,7 @@ describe(`${GET_GROUPS} tool`, () => {
         })
 
         it('should combine ID and search filters', async () => {
-            mockTwistApi.groups.getGroup.mockImplementation(async (id: number) => {
+            mockCommsApi.groups.getGroup.mockImplementation(async (id: number) => {
                 if (id === 100) {
                     return createMockGroup({ id: 100, name: 'Product Automation' })
                 }
@@ -185,11 +185,11 @@ describe(`${GET_GROUPS} tool`, () => {
 
             const result = await getGroups.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, groupIds: [100, 300], searchText: 'auto' },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.groups.getGroups).not.toHaveBeenCalled()
-            expect(mockTwistApi.batch).toHaveBeenCalledTimes(1)
+            expect(mockCommsApi.groups.getGroups).not.toHaveBeenCalled()
+            expect(mockCommsApi.batch).toHaveBeenCalledTimes(1)
 
             const textContent = extractTextContent(result)
             expect(textContent).toContain('**Total Groups:** 2 (1 matching search)')
@@ -204,11 +204,11 @@ describe(`${GET_GROUPS} tool`, () => {
         })
 
         it('should handle no matching groups', async () => {
-            mockTwistApi.groups.getGroups.mockResolvedValue([createMockGroup()])
+            mockCommsApi.groups.getGroups.mockResolvedValue([createMockGroup()])
 
             const result = await getGroups.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'nonexistent' },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -224,11 +224,11 @@ describe(`${GET_GROUPS} tool`, () => {
 
     describe('edge cases', () => {
         it('should handle empty group list', async () => {
-            mockTwistApi.groups.getGroups.mockResolvedValue([])
+            mockCommsApi.groups.getGroups.mockResolvedValue([])
 
             const result = await getGroups.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -243,10 +243,10 @@ describe(`${GET_GROUPS} tool`, () => {
     describe('error handling', () => {
         it('should propagate API errors', async () => {
             const apiError = new Error(TEST_ERRORS.API_UNAUTHORIZED)
-            mockTwistApi.groups.getGroups.mockRejectedValue(apiError)
+            mockCommsApi.groups.getGroups.mockRejectedValue(apiError)
 
             await expect(
-                getGroups.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockTwistApi),
+                getGroups.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockCommsApi),
             ).rejects.toThrow(TEST_ERRORS.API_UNAUTHORIZED)
         })
     })

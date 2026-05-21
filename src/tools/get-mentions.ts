@@ -1,7 +1,7 @@
-import { type SearchResultType, getFullTwistURL } from '@doist/twist-sdk'
+import { type SearchResultType, getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { GetMentionsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -179,7 +179,7 @@ const getMentions = {
             results: results.map((r) => {
                 let url: string
                 if (r.type === 'thread' && r.threadId !== undefined) {
-                    url = getFullTwistURL({
+                    url = getFullCommsURL({
                         workspaceId,
                         threadId: r.threadId,
                         channelId: r.channelId,
@@ -189,19 +189,19 @@ const getMentions = {
                     r.threadId !== undefined &&
                     r.channelId !== undefined
                 ) {
-                    url = getFullTwistURL({
+                    url = getFullCommsURL({
                         workspaceId,
                         threadId: r.threadId,
                         channelId: r.channelId,
                         commentId: r.id,
                     })
                 } else if (r.type === 'conversation' && r.conversationId !== undefined) {
-                    url = getFullTwistURL({
+                    url = getFullCommsURL({
                         workspaceId,
                         conversationId: r.conversationId,
                     })
                 } else if (r.type === 'message' && r.conversationId !== undefined) {
-                    url = getFullTwistURL({
+                    url = getFullCommsURL({
                         workspaceId,
                         conversationId: r.conversationId,
                         messageId: r.id,
@@ -226,6 +226,6 @@ const getMentions = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof GetMentionsOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof GetMentionsOutputSchema.shape>
 
 export { getMentions, type GetMentionsStructured }

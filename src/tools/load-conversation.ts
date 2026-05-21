@@ -1,7 +1,7 @@
-import { getFullTwistURL, type WorkspaceUser } from '@doist/twist-sdk'
+import { getFullCommsURL, type WorkspaceUser } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -141,7 +141,7 @@ const loadConversation = {
                 lastActive: conversation.lastActive.toISOString(),
                 conversationUrl:
                     conversation.url ??
-                    getFullTwistURL({
+                    getFullCommsURL({
                         workspaceId: conversation.workspaceId,
                         conversationId: conversation.id,
                     }),
@@ -155,7 +155,7 @@ const loadConversation = {
                 posted: m.posted.toISOString(),
                 messageUrl:
                     m.url ??
-                    getFullTwistURL({
+                    getFullCommsURL({
                         workspaceId: m.workspaceId,
                         conversationId: m.conversationId,
                         messageId: m.id,
@@ -169,6 +169,6 @@ const loadConversation = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof LoadConversationOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof LoadConversationOutputSchema.shape>
 
 export { loadConversation, type LoadConversationStructured }

@@ -7,7 +7,7 @@ exports[`update-object tool targetType: comment should update a comment content 
 **Thread ID:** 12345
 **Channel ID:** 67890
 **Last Edited:** 2025-02-03T12:34:56.000Z
-**URL:** https://twist.com/a/11111/ch/67890/t/12345/c/54321
+**URL:** https://comms.todoist.com/a/11111/ch/67890/t/12345/c/54321
 
 ## Content
 
@@ -21,7 +21,7 @@ exports[`update-object tool targetType: message should update a conversation mes
 **Conversation ID:** 33333
 **Workspace ID:** 11111
 **Last Edited:** 2025-02-03T12:34:56.000Z
-**URL:** https://twist.com/a/11111/msg/33333/m/98765
+**URL:** https://comms.todoist.com/a/11111/msg/33333/m/98765
 
 ## Content
 
@@ -35,7 +35,7 @@ exports[`update-object tool targetType: thread should update a thread title and 
 **Thread ID:** 12345
 **Channel ID:** 67890
 **Last Edited:** 2025-02-03T12:34:56.000Z
-**URL:** https://twist.com/a/11111/ch/67890/t/12345/
+**URL:** https://comms.todoist.com/a/11111/ch/67890/t/12345/
 
 ## Content
 
@@ -48,7 +48,7 @@ exports[`update-object tool targetType: thread should update only the thread con
 **Title:** Test Thread
 **Thread ID:** 12345
 **Channel ID:** 67890
-**URL:** https://twist.com/a/11111/ch/67890/t/12345/
+**URL:** https://comms.todoist.com/a/11111/ch/67890/t/12345/
 
 ## Content
 
@@ -61,7 +61,7 @@ exports[`update-object tool targetType: thread should update only the thread tit
 **Title:** New Title Only
 **Thread ID:** 12345
 **Channel ID:** 67890
-**URL:** https://twist.com/a/11111/ch/67890/t/12345/
+**URL:** https://comms.todoist.com/a/11111/ch/67890/t/12345/
 
 ## Content
 

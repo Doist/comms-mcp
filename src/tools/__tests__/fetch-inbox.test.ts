@@ -1,11 +1,11 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import { extractTextContent, TEST_IDS } from '../../utils/test-helpers.js'
 import { ToolNames } from '../../utils/tool-names.js'
 import { fetchInbox } from '../fetch-inbox.js'
 
-// Mock the Twist API
-const mockTwistApi = {
+// Mock the Comms API
+const mockCommsApi = {
     batch: jest.fn(),
     inbox: {
         getInbox: jest.fn(),
@@ -24,7 +24,7 @@ const mockTwistApi = {
     workspaceUsers: {
         getUserById: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { FETCH_INBOX } = ToolNames
 
@@ -32,7 +32,7 @@ describe(`${FETCH_INBOX} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
         // Mock batch to return responses with .data property
-        mockTwistApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
+        mockCommsApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
             const results = []
             for (const arg of args) {
                 const result = await arg
@@ -44,7 +44,7 @@ describe(`${FETCH_INBOX} tool`, () => {
 
     describe('fetching inbox successfully', () => {
         it('should fetch inbox with threads', async () => {
-            mockTwistApi.inbox.getInbox.mockResolvedValue([
+            mockCommsApi.inbox.getInbox.mockResolvedValue([
                 {
                     id: TEST_IDS.THREAD_1,
                     title: 'Test Thread 1',
@@ -62,7 +62,7 @@ describe(`${FETCH_INBOX} tool`, () => {
                     isArchived: false,
                     inInbox: true,
                     closed: false,
-                    url: `https://twist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
+                    url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
                 },
                 {
                     id: TEST_IDS.THREAD_2,
@@ -81,11 +81,11 @@ describe(`${FETCH_INBOX} tool`, () => {
                     isArchived: false,
                     inInbox: true,
                     closed: false,
-                    url: `https://twist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_2}/`,
+                    url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_2}/`,
                 },
             ])
-            mockTwistApi.inbox.getCount.mockResolvedValue(5)
-            mockTwistApi.threads.getUnread.mockResolvedValue([
+            mockCommsApi.inbox.getCount.mockResolvedValue(5)
+            mockCommsApi.threads.getUnread.mockResolvedValue([
                 {
                     threadId: TEST_IDS.THREAD_1,
                     channelId: TEST_IDS.CHANNEL_1,
@@ -93,8 +93,8 @@ describe(`${FETCH_INBOX} tool`, () => {
                     directMention: false,
                 },
             ])
-            mockTwistApi.conversations.getUnread.mockResolvedValue([])
-            mockTwistApi.channels.getChannel.mockResolvedValue({
+            mockCommsApi.conversations.getUnread.mockResolvedValue([])
+            mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: TEST_IDS.CHANNEL_1,
                 name: 'Test Channel',
                 workspaceId: TEST_IDS.WORKSPACE_1,
@@ -108,10 +108,10 @@ describe(`${FETCH_INBOX} tool`, () => {
 
             const result = await fetchInbox.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.inbox.getInbox).toHaveBeenCalledWith(
+            expect(mockCommsApi.inbox.getInbox).toHaveBeenCalledWith(
                 {
                     workspaceId: TEST_IDS.WORKSPACE_1,
                     since: undefined,
@@ -121,20 +121,20 @@ describe(`${FETCH_INBOX} tool`, () => {
                 },
                 { batch: true },
             )
-            expect(mockTwistApi.inbox.getCount).toHaveBeenCalledWith(TEST_IDS.WORKSPACE_1, {
+            expect(mockCommsApi.inbox.getCount).toHaveBeenCalledWith(TEST_IDS.WORKSPACE_1, {
                 batch: true,
             })
-            expect(mockTwistApi.threads.getUnread).toHaveBeenCalledWith(TEST_IDS.WORKSPACE_1, {
+            expect(mockCommsApi.threads.getUnread).toHaveBeenCalledWith(TEST_IDS.WORKSPACE_1, {
                 batch: true,
             })
-            expect(mockTwistApi.conversations.getUnread).toHaveBeenCalledWith(
+            expect(mockCommsApi.conversations.getUnread).toHaveBeenCalledWith(
                 TEST_IDS.WORKSPACE_1,
                 {
                     batch: true,
                 },
             )
             // Verify channel info is fetched for each thread
-            expect(mockTwistApi.channels.getChannel).toHaveBeenCalledWith(TEST_IDS.CHANNEL_1, {
+            expect(mockCommsApi.channels.getChannel).toHaveBeenCalledWith(TEST_IDS.CHANNEL_1, {
                 batch: true,
             })
 
@@ -157,14 +157,14 @@ describe(`${FETCH_INBOX} tool`, () => {
             if (threads?.[0] && threads[1]) {
                 expect(threads[0].id).toBe(TEST_IDS.THREAD_1)
                 expect(threads[0].channelName).toBe('Test Channel')
-                expect(threads[0].threadUrl).toContain('twist.com')
+                expect(threads[0].threadUrl).toContain('comms.todoist.com')
                 expect(threads[0].isUnread).toBe(true)
                 expect(threads[1].isStarred).toBe(true)
             }
         })
 
         it('should filter only unread items when requested', async () => {
-            mockTwistApi.inbox.getInbox.mockResolvedValue([
+            mockCommsApi.inbox.getInbox.mockResolvedValue([
                 {
                     id: TEST_IDS.THREAD_1,
                     title: 'Unread Thread',
@@ -182,7 +182,7 @@ describe(`${FETCH_INBOX} tool`, () => {
                     isArchived: false,
                     inInbox: true,
                     closed: false,
-                    url: `https://twist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
+                    url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
                 },
                 {
                     id: TEST_IDS.THREAD_2,
@@ -201,11 +201,11 @@ describe(`${FETCH_INBOX} tool`, () => {
                     isArchived: false,
                     inInbox: true,
                     closed: false,
-                    url: `https://twist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_2}/`,
+                    url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_2}/`,
                 },
             ])
-            mockTwistApi.inbox.getCount.mockResolvedValue(1)
-            mockTwistApi.threads.getUnread.mockResolvedValue([
+            mockCommsApi.inbox.getCount.mockResolvedValue(1)
+            mockCommsApi.threads.getUnread.mockResolvedValue([
                 {
                     threadId: TEST_IDS.THREAD_1,
                     channelId: TEST_IDS.CHANNEL_1,
@@ -213,8 +213,8 @@ describe(`${FETCH_INBOX} tool`, () => {
                     directMention: false,
                 },
             ])
-            mockTwistApi.conversations.getUnread.mockResolvedValue([])
-            mockTwistApi.channels.getChannel.mockResolvedValue({
+            mockCommsApi.conversations.getUnread.mockResolvedValue([])
+            mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: TEST_IDS.CHANNEL_1,
                 name: 'Test Channel',
                 workspaceId: TEST_IDS.WORKSPACE_1,
@@ -228,7 +228,7 @@ describe(`${FETCH_INBOX} tool`, () => {
 
             const result = await fetchInbox.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: true },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
@@ -237,24 +237,24 @@ describe(`${FETCH_INBOX} tool`, () => {
         })
 
         it('should handle empty inbox', async () => {
-            mockTwistApi.inbox.getInbox.mockResolvedValue([])
-            mockTwistApi.inbox.getCount.mockResolvedValue(0)
-            mockTwistApi.threads.getUnread.mockResolvedValue([])
-            mockTwistApi.conversations.getUnread.mockResolvedValue([])
+            mockCommsApi.inbox.getInbox.mockResolvedValue([])
+            mockCommsApi.inbox.getCount.mockResolvedValue(0)
+            mockCommsApi.threads.getUnread.mockResolvedValue([])
+            mockCommsApi.conversations.getUnread.mockResolvedValue([])
 
             const result = await fetchInbox.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
         })
 
         it('should filter by date range', async () => {
-            mockTwistApi.inbox.getInbox.mockResolvedValue([])
-            mockTwistApi.inbox.getCount.mockResolvedValue(0)
-            mockTwistApi.threads.getUnread.mockResolvedValue([])
-            mockTwistApi.conversations.getUnread.mockResolvedValue([])
+            mockCommsApi.inbox.getInbox.mockResolvedValue([])
+            mockCommsApi.inbox.getCount.mockResolvedValue(0)
+            mockCommsApi.threads.getUnread.mockResolvedValue([])
+            mockCommsApi.conversations.getUnread.mockResolvedValue([])
 
             const result = await fetchInbox.execute(
                 {
@@ -264,11 +264,11 @@ describe(`${FETCH_INBOX} tool`, () => {
                     limit: 50,
                     onlyUnread: false,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             // Verify dates were converted to Date objects
-            expect(mockTwistApi.inbox.getInbox).toHaveBeenCalledWith(
+            expect(mockCommsApi.inbox.getInbox).toHaveBeenCalledWith(
                 expect.objectContaining({
                     since: expect.any(Date),
                     until: expect.any(Date),
@@ -280,10 +280,10 @@ describe(`${FETCH_INBOX} tool`, () => {
         })
 
         it('should fetch inbox with unread conversations', async () => {
-            mockTwistApi.inbox.getInbox.mockResolvedValue([])
-            mockTwistApi.inbox.getCount.mockResolvedValue(0)
-            mockTwistApi.threads.getUnread.mockResolvedValue([])
-            mockTwistApi.conversations.getUnread.mockResolvedValue([
+            mockCommsApi.inbox.getInbox.mockResolvedValue([])
+            mockCommsApi.inbox.getCount.mockResolvedValue(0)
+            mockCommsApi.threads.getUnread.mockResolvedValue([])
+            mockCommsApi.conversations.getUnread.mockResolvedValue([
                 {
                     conversationId: TEST_IDS.CONVERSATION_1,
                     objIndex: 5,
@@ -295,7 +295,7 @@ describe(`${FETCH_INBOX} tool`, () => {
                     directMention: true,
                 },
             ])
-            mockTwistApi.conversations.getConversation.mockImplementation((id: number) => {
+            mockCommsApi.conversations.getConversation.mockImplementation((id: number) => {
                 if (id === TEST_IDS.CONVERSATION_1) {
                     return Promise.resolve({
                         id: TEST_IDS.CONVERSATION_1,
@@ -309,7 +309,7 @@ describe(`${FETCH_INBOX} tool`, () => {
                         archived: false,
                         created: new Date(),
                         creator: TEST_IDS.USER_1,
-                        url: `https://twist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
+                        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
                     }) as never
                 }
                 return Promise.resolve({
@@ -325,10 +325,10 @@ describe(`${FETCH_INBOX} tool`, () => {
                     archived: false,
                     created: new Date(),
                     creator: TEST_IDS.USER_1,
-                    url: `https://twist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_2}/`,
+                    url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_2}/`,
                 }) as never
             })
-            mockTwistApi.workspaceUsers.getUserById.mockImplementation(
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
                 (args: { workspaceId: number; userId: number }) => {
                     if (args.userId === TEST_IDS.USER_1) {
                         return Promise.resolve({
@@ -369,7 +369,7 @@ describe(`${FETCH_INBOX} tool`, () => {
 
             const result = await fetchInbox.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
@@ -390,13 +390,13 @@ describe(`${FETCH_INBOX} tool`, () => {
                 expect(conversations[0].id).toBe(TEST_IDS.CONVERSATION_1)
                 expect(conversations[0].participantNames).toEqual(['Alice', 'Bob'])
                 expect(conversations[0].isUnread).toBe(true)
-                expect(conversations[0].conversationUrl).toContain('twist.com')
+                expect(conversations[0].conversationUrl).toContain('comms.todoist.com')
                 expect(conversations[1].title).toBe('Project Discussion')
             }
         })
 
         it('should not display conversations when none are unread', async () => {
-            mockTwistApi.inbox.getInbox.mockResolvedValue([
+            mockCommsApi.inbox.getInbox.mockResolvedValue([
                 {
                     id: TEST_IDS.THREAD_1,
                     title: 'Test Thread',
@@ -414,11 +414,11 @@ describe(`${FETCH_INBOX} tool`, () => {
                     isArchived: false,
                     inInbox: true,
                     closed: false,
-                    url: `https://twist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
+                    url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
                 },
             ])
-            mockTwistApi.inbox.getCount.mockResolvedValue(1)
-            mockTwistApi.threads.getUnread.mockResolvedValue([
+            mockCommsApi.inbox.getCount.mockResolvedValue(1)
+            mockCommsApi.threads.getUnread.mockResolvedValue([
                 {
                     threadId: TEST_IDS.THREAD_1,
                     channelId: TEST_IDS.CHANNEL_1,
@@ -426,8 +426,8 @@ describe(`${FETCH_INBOX} tool`, () => {
                     directMention: false,
                 },
             ])
-            mockTwistApi.conversations.getUnread.mockResolvedValue([])
-            mockTwistApi.channels.getChannel.mockResolvedValue({
+            mockCommsApi.conversations.getUnread.mockResolvedValue([])
+            mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: TEST_IDS.CHANNEL_1,
                 name: 'Test Channel',
                 workspaceId: TEST_IDS.WORKSPACE_1,
@@ -441,7 +441,7 @@ describe(`${FETCH_INBOX} tool`, () => {
 
             const result = await fetchInbox.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
@@ -483,16 +483,16 @@ describe(`${FETCH_INBOX} tool`, () => {
                     isArchived,
                     inInbox: true,
                     closed: isArchived,
-                    url: `https://twist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${id}/`,
+                    url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${id}/`,
                 }
             }
 
             function mockArchiveFilterInbox(threads: Array<ReturnType<typeof createThread>>) {
-                mockTwistApi.inbox.getInbox.mockResolvedValue(threads)
-                mockTwistApi.inbox.getCount.mockResolvedValue(0)
-                mockTwistApi.threads.getUnread.mockResolvedValue([])
-                mockTwistApi.conversations.getUnread.mockResolvedValue([])
-                mockTwistApi.channels.getChannel.mockResolvedValue({
+                mockCommsApi.inbox.getInbox.mockResolvedValue(threads)
+                mockCommsApi.inbox.getCount.mockResolvedValue(0)
+                mockCommsApi.threads.getUnread.mockResolvedValue([])
+                mockCommsApi.conversations.getUnread.mockResolvedValue([])
+                mockCommsApi.channels.getChannel.mockResolvedValue({
                     id: TEST_IDS.CHANNEL_1,
                     name: 'Test Channel',
                     workspaceId: TEST_IDS.WORKSPACE_1,
@@ -517,10 +517,10 @@ describe(`${FETCH_INBOX} tool`, () => {
 
                 const result = await fetchInbox.execute(
                     { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
-                    mockTwistApi,
+                    mockCommsApi,
                 )
 
-                expect(mockTwistApi.inbox.getInbox).toHaveBeenCalledWith(
+                expect(mockCommsApi.inbox.getInbox).toHaveBeenCalledWith(
                     expect.objectContaining({ archiveFilter: 'active' }),
                     { batch: true },
                 )
@@ -553,10 +553,10 @@ describe(`${FETCH_INBOX} tool`, () => {
                         onlyUnread: false,
                         archiveFilter: 'archived',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 )
 
-                expect(mockTwistApi.inbox.getInbox).toHaveBeenCalledWith(
+                expect(mockCommsApi.inbox.getInbox).toHaveBeenCalledWith(
                     expect.objectContaining({ archiveFilter: 'archived' }),
                     { batch: true },
                 )
@@ -594,10 +594,10 @@ describe(`${FETCH_INBOX} tool`, () => {
                         onlyUnread: false,
                         archiveFilter: 'all',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 )
 
-                expect(mockTwistApi.inbox.getInbox).toHaveBeenCalledWith(
+                expect(mockCommsApi.inbox.getInbox).toHaveBeenCalledWith(
                     expect.objectContaining({ archiveFilter: 'all' }),
                     { batch: true },
                 )
@@ -622,8 +622,8 @@ describe(`${FETCH_INBOX} tool`, () => {
     })
 
     describe('missing URL fallback', () => {
-        it('should construct threadUrl via getFullTwistURL when SDK omits url field', async () => {
-            mockTwistApi.inbox.getInbox.mockResolvedValue([
+        it('should construct threadUrl via getFullCommsURL when SDK omits url field', async () => {
+            mockCommsApi.inbox.getInbox.mockResolvedValue([
                 {
                     id: TEST_IDS.THREAD_1,
                     title: 'Thread Without URL',
@@ -644,8 +644,8 @@ describe(`${FETCH_INBOX} tool`, () => {
                     // url intentionally omitted to simulate batch-builder validation failure
                 },
             ])
-            mockTwistApi.inbox.getCount.mockResolvedValue(1)
-            mockTwistApi.threads.getUnread.mockResolvedValue([
+            mockCommsApi.inbox.getCount.mockResolvedValue(1)
+            mockCommsApi.threads.getUnread.mockResolvedValue([
                 {
                     threadId: TEST_IDS.THREAD_1,
                     channelId: TEST_IDS.CHANNEL_1,
@@ -653,8 +653,8 @@ describe(`${FETCH_INBOX} tool`, () => {
                     directMention: false,
                 },
             ])
-            mockTwistApi.conversations.getUnread.mockResolvedValue([])
-            mockTwistApi.channels.getChannel.mockResolvedValue({
+            mockCommsApi.conversations.getUnread.mockResolvedValue([])
+            mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: TEST_IDS.CHANNEL_1,
                 name: 'Test Channel',
                 workspaceId: TEST_IDS.WORKSPACE_1,
@@ -668,7 +668,7 @@ describe(`${FETCH_INBOX} tool`, () => {
 
             const result = await fetchInbox.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const { structuredContent } = result
@@ -676,22 +676,22 @@ describe(`${FETCH_INBOX} tool`, () => {
             const threadUrl = structuredContent?.threads?.[0]?.threadUrl
             expect(threadUrl).toBeDefined()
             expect(typeof threadUrl).toBe('string')
-            expect(threadUrl).toContain('twist.com')
+            expect(threadUrl).toContain('comms.todoist.com')
             expect(threadUrl).toContain(String(TEST_IDS.THREAD_1))
         })
 
-        it('should construct conversationUrl via getFullTwistURL when SDK omits url field', async () => {
-            mockTwistApi.inbox.getInbox.mockResolvedValue([])
-            mockTwistApi.inbox.getCount.mockResolvedValue(0)
-            mockTwistApi.threads.getUnread.mockResolvedValue([])
-            mockTwistApi.conversations.getUnread.mockResolvedValue([
+        it('should construct conversationUrl via getFullCommsURL when SDK omits url field', async () => {
+            mockCommsApi.inbox.getInbox.mockResolvedValue([])
+            mockCommsApi.inbox.getCount.mockResolvedValue(0)
+            mockCommsApi.threads.getUnread.mockResolvedValue([])
+            mockCommsApi.conversations.getUnread.mockResolvedValue([
                 {
                     conversationId: TEST_IDS.CONVERSATION_1,
                     objIndex: 5,
                     directMention: false,
                 },
             ])
-            mockTwistApi.conversations.getConversation.mockResolvedValue({
+            mockCommsApi.conversations.getConversation.mockResolvedValue({
                 id: TEST_IDS.CONVERSATION_1,
                 workspaceId: TEST_IDS.WORKSPACE_1,
                 userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
@@ -705,7 +705,7 @@ describe(`${FETCH_INBOX} tool`, () => {
                 creator: TEST_IDS.USER_1,
                 // url intentionally omitted
             } as never)
-            mockTwistApi.workspaceUsers.getUserById.mockImplementation(
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
                 (args: { workspaceId: number; userId: number }) => {
                     if (args.userId === TEST_IDS.USER_1) {
                         return Promise.resolve({
@@ -734,7 +734,7 @@ describe(`${FETCH_INBOX} tool`, () => {
 
             const result = await fetchInbox.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const { structuredContent } = result
@@ -742,7 +742,7 @@ describe(`${FETCH_INBOX} tool`, () => {
             const conversationUrl = structuredContent?.conversations?.[0]?.conversationUrl
             expect(conversationUrl).toBeDefined()
             expect(typeof conversationUrl).toBe('string')
-            expect(conversationUrl).toContain('twist.com')
+            expect(conversationUrl).toContain('comms.todoist.com')
             expect(conversationUrl).toContain(String(TEST_IDS.CONVERSATION_1))
         })
     })
@@ -750,12 +750,12 @@ describe(`${FETCH_INBOX} tool`, () => {
     describe('error handling', () => {
         it('should propagate API errors', async () => {
             const apiError = new Error('API Error: Unauthorized')
-            mockTwistApi.inbox.getInbox.mockRejectedValue(apiError)
+            mockCommsApi.inbox.getInbox.mockRejectedValue(apiError)
 
             await expect(
                 fetchInbox.execute(
                     { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('API Error: Unauthorized')
         })

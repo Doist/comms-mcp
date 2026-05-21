@@ -1,4 +1,4 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     extractStructuredContent,
@@ -9,14 +9,14 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { getUsers } from '../get-users.js'
 
-// Mock the Twist API
-const mockTwistApi = {
+// Mock the Comms API
+const mockCommsApi = {
     workspaceUsers: {
         getWorkspaceUsers: jest.fn(),
         getUserById: jest.fn(),
     },
     batch: jest.fn(),
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { GET_USERS } = ToolNames
 
@@ -37,7 +37,7 @@ describe(`${GET_USERS} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
         // Mock batch to return responses with .data property
-        mockTwistApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
+        mockCommsApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
             const results = []
             for (const arg of args) {
                 const result = await arg
@@ -67,14 +67,14 @@ describe(`${GET_USERS} tool`, () => {
                 }),
             ]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledWith({
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledWith({
                 workspaceId: TEST_IDS.WORKSPACE_1,
             })
 
@@ -115,14 +115,14 @@ describe(`${GET_USERS} tool`, () => {
         it('should handle empty userIds array (fetch all)', async () => {
             const mockUsers = [createMockWorkspaceUser()]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [] },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledWith({
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledWith({
                 workspaceId: TEST_IDS.WORKSPACE_1,
             })
 
@@ -133,7 +133,7 @@ describe(`${GET_USERS} tool`, () => {
 
     describe('fetching specific users', () => {
         it('should batch fetch specific users by ID', async () => {
-            mockTwistApi.workspaceUsers.getUserById.mockImplementation(
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
                 async (args: { workspaceId: number; userId: number }) => {
                     if (args.userId === TEST_IDS.USER_1) {
                         return createMockWorkspaceUser()
@@ -155,11 +155,11 @@ describe(`${GET_USERS} tool`, () => {
                     workspaceId: TEST_IDS.WORKSPACE_1,
                     userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.batch).toHaveBeenCalled()
-            expect(mockTwistApi.workspaceUsers.getWorkspaceUsers).not.toHaveBeenCalled()
+            expect(mockCommsApi.batch).toHaveBeenCalled()
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).not.toHaveBeenCalled()
 
             const textContent = extractTextContent(result)
             expect(textContent).toContain('**Total Users:** 2')
@@ -172,14 +172,14 @@ describe(`${GET_USERS} tool`, () => {
         })
 
         it('should handle single user ID', async () => {
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue(createMockWorkspaceUser())
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(createMockWorkspaceUser())
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [TEST_IDS.USER_1] },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.batch).toHaveBeenCalled()
+            expect(mockCommsApi.batch).toHaveBeenCalled()
 
             const structuredContent = extractStructuredContent(result)
             expect(structuredContent.users).toHaveLength(1)
@@ -203,11 +203,11 @@ describe(`${GET_USERS} tool`, () => {
                 }),
             ]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'alice' },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -232,11 +232,11 @@ describe(`${GET_USERS} tool`, () => {
                 }),
             ]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'COMPANY' },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -248,11 +248,11 @@ describe(`${GET_USERS} tool`, () => {
         it('should handle no search matches', async () => {
             const mockUsers = [createMockWorkspaceUser()]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'nonexistent' },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -278,11 +278,11 @@ describe(`${GET_USERS} tool`, () => {
                 }),
             ]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -295,11 +295,11 @@ describe(`${GET_USERS} tool`, () => {
         it('should handle users without email', async () => {
             const mockUsers = [createMockWorkspaceUser({ email: undefined })]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -313,21 +313,21 @@ describe(`${GET_USERS} tool`, () => {
     describe('error handling', () => {
         it('should propagate API errors', async () => {
             const apiError = new Error(TEST_ERRORS.API_UNAUTHORIZED)
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockRejectedValue(apiError)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockRejectedValue(apiError)
 
             await expect(
-                getUsers.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockTwistApi),
+                getUsers.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockCommsApi),
             ).rejects.toThrow(TEST_ERRORS.API_UNAUTHORIZED)
         })
     })
 
     describe('edge cases', () => {
         it('should handle empty user list', async () => {
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue([])
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue([])
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)

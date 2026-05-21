@@ -1,7 +1,7 @@
-import type { Channel, TwistApi } from '@doist/twist-sdk'
+import type { Channel, CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { ListChannelsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getChannelUrl } from '../utils/url-helpers.js'
@@ -37,7 +37,7 @@ type ListChannelsStructured = Record<string, unknown> & {
 }
 
 async function generateChannelsList(
-    client: TwistApi,
+    client: CommsApi,
     workspaceId: number,
     includeArchived: boolean,
 ): Promise<{ textContent: string; structuredContent: ListChannelsStructured }> {
@@ -157,6 +157,6 @@ const listChannels = {
             structuredContent: result.structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof ListChannelsOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof ListChannelsOutputSchema.shape>
 
 export { listChannels, type ListChannelsStructured }

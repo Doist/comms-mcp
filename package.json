@@ -1,12 +1,12 @@
 {
-    "name": "@doist/twist-ai",
-    "version": "5.4.0",
+    "name": "@doist/comms-mcp",
+    "version": "0.1.0",
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
-    "mcpName": "net.twist/mcp",
+    "mcpName": "com.doist/comms-mcp",
     "bin": {
-        "twist-ai": "dist/main.js"
+        "comms-mcp": "dist/main.js"
     },
     "files": [
         "dist",
@@ -15,17 +15,17 @@
         "README.md"
     ],
     "license": "MIT",
-    "description": "A collection of tools for Twist using AI",
+    "description": "MCP server and importable AI tools for the Doist Comms API",
     "author": "Doist",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Doist/twist-ai.git"
+        "url": "git+https://github.com/Doist/comms-mcp.git"
     },
     "keywords": [
-        "twist",
+        "comms",
+        "doist",
         "ai",
         "mcp",
-        "doist",
         "collaboration",
         "model-context-protocol"
     ],
@@ -45,7 +45,7 @@
         "prepublishOnly": "npm run build && npm test"
     },
     "dependencies": {
-        "@doist/twist-sdk": "2.6.0",
+        "@doist/comms-sdk": "^0.2.0",
         "dotenv": "17.4.2",
         "zod": "4.1.13"
     },

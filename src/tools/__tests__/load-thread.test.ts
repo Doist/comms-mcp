@@ -1,4 +1,4 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     createMockComment,
@@ -9,8 +9,8 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { loadThread } from '../load-thread.js'
 
-// Mock the Twist API
-const mockTwistApi = {
+// Mock the Comms API
+const mockCommsApi = {
     batch: jest.fn(),
     threads: {
         getThread: jest.fn(),
@@ -24,7 +24,7 @@ const mockTwistApi = {
     workspaceUsers: {
         getUserById: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { LOAD_THREAD } = ToolNames
 
@@ -32,7 +32,7 @@ describe(`${LOAD_THREAD} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
         // Mock batch to return responses with .data property
-        mockTwistApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
+        mockCommsApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
             const results = []
             for (const arg of args) {
                 const result = await arg
@@ -52,9 +52,9 @@ describe(`${LOAD_THREAD} tool`, () => {
                 createMockComment({ id: TEST_IDS.COMMENT_2, creator: TEST_IDS.USER_2 }),
             ]
 
-            mockTwistApi.threads.getThread.mockResolvedValue(mockThread)
-            mockTwistApi.comments.getComments.mockResolvedValue(mockComments)
-            mockTwistApi.channels.getChannel.mockResolvedValue({
+            mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
+            mockCommsApi.comments.getComments.mockResolvedValue(mockComments)
+            mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: mockThread.channelId,
                 name: 'Test Channel',
                 workspaceId: TEST_IDS.WORKSPACE_1,
@@ -65,7 +65,7 @@ describe(`${LOAD_THREAD} tool`, () => {
                 creator: TEST_IDS.USER_1,
                 version: 1,
             })
-            mockTwistApi.workspaceUsers.getUserById.mockImplementation((async (args: {
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation((async (args: {
                 workspaceId: number
                 userId: number
             }) => {
@@ -97,13 +97,13 @@ describe(`${LOAD_THREAD} tool`, () => {
 
             const result = await loadThread.execute(
                 { threadId: TEST_IDS.THREAD_1, limit: 50, includeParticipants: true },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.getThread).toHaveBeenCalledWith(TEST_IDS.THREAD_1, {
+            expect(mockCommsApi.threads.getThread).toHaveBeenCalledWith(TEST_IDS.THREAD_1, {
                 batch: true,
             })
-            expect(mockTwistApi.comments.getComments).toHaveBeenCalledWith(
+            expect(mockCommsApi.comments.getComments).toHaveBeenCalledWith(
                 {
                     threadId: TEST_IDS.THREAD_1,
                     from: undefined,
@@ -150,9 +150,9 @@ describe(`${LOAD_THREAD} tool`, () => {
             const mockThread = createMockThread({
                 participants: [TEST_IDS.USER_1, TEST_IDS.USER_2],
             })
-            mockTwistApi.threads.getThread.mockResolvedValue(mockThread)
-            mockTwistApi.comments.getComments.mockResolvedValue([])
-            mockTwistApi.channels.getChannel.mockResolvedValue({
+            mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
+            mockCommsApi.comments.getComments.mockResolvedValue([])
+            mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: mockThread.channelId,
                 name: 'Test Channel',
                 workspaceId: TEST_IDS.WORKSPACE_1,
@@ -163,7 +163,7 @@ describe(`${LOAD_THREAD} tool`, () => {
                 creator: TEST_IDS.USER_1,
                 version: 1,
             })
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
                 id: TEST_IDS.USER_1,
                 name: 'Test User 1',
                 shortName: 'TU1',
@@ -181,7 +181,7 @@ describe(`${LOAD_THREAD} tool`, () => {
                     limit: 50,
                     includeParticipants: false,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -191,9 +191,9 @@ describe(`${LOAD_THREAD} tool`, () => {
 
         it('should filter comments by date', async () => {
             const mockThread = createMockThread()
-            mockTwistApi.threads.getThread.mockResolvedValue(mockThread)
-            mockTwistApi.comments.getComments.mockResolvedValue([])
-            mockTwistApi.channels.getChannel.mockResolvedValue({
+            mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
+            mockCommsApi.comments.getComments.mockResolvedValue([])
+            mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: mockThread.channelId,
                 name: 'Test Channel',
                 workspaceId: TEST_IDS.WORKSPACE_1,
@@ -204,7 +204,7 @@ describe(`${LOAD_THREAD} tool`, () => {
                 creator: TEST_IDS.USER_1,
                 version: 1,
             })
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
                 id: TEST_IDS.USER_1,
                 name: 'Test User 1',
                 shortName: 'TU1',
@@ -223,11 +223,11 @@ describe(`${LOAD_THREAD} tool`, () => {
                     limit: 50,
                     includeParticipants: true,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             // Verify date was converted to Date object
-            expect(mockTwistApi.comments.getComments).toHaveBeenCalledWith(
+            expect(mockCommsApi.comments.getComments).toHaveBeenCalledWith(
                 expect.objectContaining({
                     from: expect.any(Date),
                 }),
@@ -239,9 +239,9 @@ describe(`${LOAD_THREAD} tool`, () => {
 
         it('should handle thread with no comments', async () => {
             const mockThread = createMockThread()
-            mockTwistApi.threads.getThread.mockResolvedValue(mockThread)
-            mockTwistApi.comments.getComments.mockResolvedValue([])
-            mockTwistApi.channels.getChannel.mockResolvedValue({
+            mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
+            mockCommsApi.comments.getComments.mockResolvedValue([])
+            mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: mockThread.channelId,
                 name: 'Test Channel',
                 workspaceId: TEST_IDS.WORKSPACE_1,
@@ -252,7 +252,7 @@ describe(`${LOAD_THREAD} tool`, () => {
                 creator: TEST_IDS.USER_1,
                 version: 1,
             })
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
                 id: TEST_IDS.USER_1,
                 name: 'Test User 1',
                 shortName: 'TU1',
@@ -266,7 +266,7 @@ describe(`${LOAD_THREAD} tool`, () => {
 
             const result = await loadThread.execute(
                 { threadId: TEST_IDS.THREAD_1, limit: 50, includeParticipants: true },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
@@ -276,12 +276,12 @@ describe(`${LOAD_THREAD} tool`, () => {
     describe('error handling', () => {
         it('should propagate thread not found error', async () => {
             const apiError = new Error('Thread not found')
-            mockTwistApi.threads.getThread.mockRejectedValue(apiError)
+            mockCommsApi.threads.getThread.mockRejectedValue(apiError)
 
             await expect(
                 loadThread.execute(
                     { threadId: TEST_IDS.THREAD_1, limit: 50, includeParticipants: true },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Thread not found')
         })

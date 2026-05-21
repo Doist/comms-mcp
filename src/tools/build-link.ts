@@ -1,7 +1,7 @@
-import { getCommentURL, getFullTwistURL, getMessageURL } from '@doist/twist-sdk'
+import { getCommentURL, getFullCommsURL, getMessageURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { BuildLinkOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -27,7 +27,7 @@ const ArgsSchema = {
         .boolean()
         .optional()
         .default(true)
-        .describe('Whether to return a full URL (with https://twist.com) or relative path.'),
+        .describe('Whether to return a full URL (with https://comms.todoist.com) or relative path.'),
 }
 
 type BuildLinkStructured = {
@@ -47,7 +47,7 @@ type BuildLinkStructured = {
 const buildLink = {
     name: ToolNames.BUILD_LINK,
     description:
-        'Build valid Twist URLs for threads, comments, conversations, or messages. Provide workspace_id and either (conversation_id + optional message_id) OR (thread_id + optional channel_id + optional comment_id).',
+        'Build valid Comms URLs for threads, comments, conversations, or messages. Provide workspace_id and either (conversation_id + optional message_id) OR (thread_id + optional channel_id + optional comment_id).',
     parameters: ArgsSchema,
     outputSchema: BuildLinkOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
@@ -64,14 +64,14 @@ const buildLink = {
                 // Message link
                 linkType = 'message'
                 const params = { workspaceId, conversationId, messageId }
-                url = fullUrl ? getFullTwistURL(params) : getMessageURL(params)
+                url = fullUrl ? getFullCommsURL(params) : getMessageURL(params)
             } else {
                 // Conversation link
                 linkType = 'conversation'
                 const params = { workspaceId, conversationId }
                 url = fullUrl
-                    ? getFullTwistURL(params)
-                    : getFullTwistURL(params).replace('https://twist.com', '')
+                    ? getFullCommsURL(params)
+                    : getFullCommsURL(params).replace('https://comms.todoist.com', '')
             }
         } else if (threadId !== undefined) {
             if (commentId !== undefined) {
@@ -81,7 +81,7 @@ const buildLink = {
                     throw new Error('channelId is required when building a comment link')
                 }
                 const params = { workspaceId, channelId, threadId, commentId }
-                url = fullUrl ? getFullTwistURL(params) : getCommentURL(params)
+                url = fullUrl ? getFullCommsURL(params) : getCommentURL(params)
             } else {
                 // Thread link
                 linkType = 'thread'
@@ -89,8 +89,8 @@ const buildLink = {
                     ? { workspaceId, channelId, threadId }
                     : { workspaceId, threadId }
                 url = fullUrl
-                    ? getFullTwistURL(params)
-                    : getFullTwistURL(params).replace('https://twist.com', '')
+                    ? getFullCommsURL(params)
+                    : getFullCommsURL(params).replace('https://comms.todoist.com', '')
             }
         } else {
             throw new Error('Must provide either conversationId OR threadId to build a link')
@@ -115,6 +115,6 @@ const buildLink = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof BuildLinkOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof BuildLinkOutputSchema.shape>
 
 export { buildLink, type BuildLinkStructured }

@@ -4,11 +4,11 @@ import type {
     InboxThread,
     UnreadConversation,
     WorkspaceUser,
-} from '@doist/twist-sdk'
-import { ARCHIVE_FILTER_VALUES, getFullTwistURL } from '@doist/twist-sdk'
+} from '@doist/comms-sdk'
+import { ARCHIVE_FILTER_VALUES, getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { FetchInboxOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -76,7 +76,7 @@ type FetchInboxStructured = {
  * Helper function to load conversation details with participant information
  */
 async function loadConversationDetails(
-    client: Parameters<TwistTool<typeof ArgsSchema>['execute']>[1],
+    client: Parameters<CommsTool<typeof ArgsSchema>['execute']>[1],
     conversationIds: number[],
 ): Promise<
     Array<{
@@ -293,7 +293,7 @@ const fetchInbox = {
                 isStarred: t.starred,
                 threadUrl:
                     t.url ??
-                    getFullTwistURL({ workspaceId, channelId: t.channelId, threadId: t.id }),
+                    getFullCommsURL({ workspaceId, channelId: t.channelId, threadId: t.id }),
             })),
             conversations: conversationsWithDetails.map((cd) => {
                 const { conversation, participants } = cd
@@ -309,7 +309,7 @@ const fetchInbox = {
                     isUnread: cd.isUnread,
                     conversationUrl:
                         conversation.url ??
-                        getFullTwistURL({
+                        getFullCommsURL({
                             workspaceId: conversation.workspaceId,
                             conversationId: conversation.id,
                         }),
@@ -327,6 +327,6 @@ const fetchInbox = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof FetchInboxOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof FetchInboxOutputSchema.shape>
 
 export { fetchInbox, type FetchInboxStructured }

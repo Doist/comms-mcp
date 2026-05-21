@@ -1,7 +1,7 @@
-import { getFullTwistURL } from '@doist/twist-sdk'
+import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { LoadThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -187,7 +187,7 @@ const loadThread = {
                         : undefined,
                 threadUrl:
                     thread.url ??
-                    getFullTwistURL({
+                    getFullCommsURL({
                         workspaceId: thread.workspaceId,
                         channelId: thread.channelId,
                         threadId: thread.id,
@@ -202,7 +202,7 @@ const loadThread = {
                 posted: c.posted.toISOString(),
                 commentUrl:
                     c.url ??
-                    getFullTwistURL({
+                    getFullCommsURL({
                         workspaceId: c.workspaceId,
                         channelId: c.channelId,
                         threadId: c.threadId,
@@ -217,6 +217,6 @@ const loadThread = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof LoadThreadOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof LoadThreadOutputSchema.shape>
 
 export { loadThread, type LoadThreadStructured }

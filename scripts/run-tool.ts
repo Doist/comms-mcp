@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Run any Twist tool directly without going through MCP.
+ * Run any Comms tool directly without going through MCP.
  *
  * Usage:
  *   npx tsx scripts/run-tool.ts <tool-name> '<json-args>'
@@ -12,10 +12,10 @@
  *   npx tsx scripts/run-tool.ts search-content '{"query":"project update"}'
  *   npx tsx scripts/run-tool.ts fetch-inbox '{"workspaceId":12345}'
  *
- * Requires TWIST_API_KEY in .env file (and optionally TWIST_BASE_URL).
+ * Requires COMMS_API_KEY in .env file (and optionally COMMS_BASE_URL).
  */
 import { readFileSync } from 'node:fs'
-import { TwistApi } from '@doist/twist-sdk'
+import { CommsApi } from '@doist/comms-sdk'
 import { config } from 'dotenv'
 import { away } from '../src/tools/away.js'
 import { buildLink } from '../src/tools/build-link.js'
@@ -43,7 +43,7 @@ type ExecutableTool = {
     execute: (
         // oxlint-disable-next-line @typescript-eslint/no-explicit-any -- tools have varying parameter schemas
         args: any,
-        client: TwistApi,
+        client: CommsApi,
     ) => Promise<{
         content?: Array<{ type: string; text: string }>
         structuredContent?: unknown
@@ -139,14 +139,14 @@ async function main() {
         process.exit(1)
     }
 
-    const apiKey = process.env.TWIST_API_KEY
+    const apiKey = process.env.COMMS_API_KEY
     if (!apiKey) {
-        console.error('TWIST_API_KEY not found in environment or .env file')
+        console.error('COMMS_API_KEY not found in environment or .env file')
         process.exit(1)
     }
 
-    const baseUrl = process.env.TWIST_BASE_URL
-    const client = new TwistApi(apiKey, { baseUrl })
+    const baseUrl = process.env.COMMS_BASE_URL
+    const client = new CommsApi(apiKey, { baseUrl })
 
     console.log(`Running ${toolName} with args:`)
     console.log(JSON.stringify(parsedArgs, null, 2))

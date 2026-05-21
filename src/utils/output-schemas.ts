@@ -13,7 +13,7 @@ import {
     UserSchema,
     WorkspaceSchema,
     WorkspaceUserSchema,
-} from '@doist/twist-sdk'
+} from '@doist/comms-sdk'
 import { z } from 'zod'
 
 // Re-export SDK schemas for direct use
@@ -437,7 +437,7 @@ export const DeleteMessageOutputSchema = z.object({
 /**
  * Schema for delete-object tool output.
  *
- * The Twist SDK delete endpoints return no body, so the structured payload simply
+ * The Comms SDK delete endpoints return no body, so the structured payload simply
  * confirms which object was deleted. The `type` discriminator selects which
  * id field is populated:
  *  - `delete_thread_result`  → threadId

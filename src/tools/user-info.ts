@@ -1,6 +1,6 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import type { CommsTool } from '../comms-tool.js'
 import { UserInfoOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -17,7 +17,7 @@ type UserInfoStructured = Record<string, unknown> & {
 }
 
 async function generateUserInfo(
-    client: TwistApi,
+    client: CommsApi,
 ): Promise<{ textContent: string; structuredContent: UserInfoStructured }> {
     const user = await client.users.getSessionUser()
 
@@ -73,6 +73,6 @@ const userInfo = {
             structuredContent: result.structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof UserInfoOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof UserInfoOutputSchema.shape>
 
 export { userInfo, type UserInfoStructured }

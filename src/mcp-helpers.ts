@@ -1,8 +1,8 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import type { McpServer, ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
-import type { TwistTool } from './twist-tool.js'
+import type { CommsTool } from './comms-tool.js'
 import { formatToolTitle } from './utils/required-tool-annotations.js'
 import { removeNullFields } from './utils/sanitize-data.js'
 
@@ -81,15 +81,15 @@ function getMcpAnnotations(tool: { name: string; annotations: ToolAnnotations })
 }
 
 /**
- * Register a Twist tool in an MCP server.
+ * Register a Comms tool in an MCP server.
  * @param tool - The tool to register.
  * @param server - The server to register the tool on.
- * @param client - The Twist API client to use to execute the tool.
+ * @param client - The Comms API client to use to execute the tool.
  */
 function registerTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape = z.ZodRawShape>(
-    tool: TwistTool<Params, Output>,
+    tool: CommsTool<Params, Output>,
     server: McpServer,
-    client: TwistApi,
+    client: CommsApi,
 ) {
     // @ts-expect-error I give up
     const cb: ToolCallback<Params> = async (args: z.infer<z.ZodObject<Params>>, _context) => {
