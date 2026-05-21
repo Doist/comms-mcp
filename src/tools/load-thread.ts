@@ -6,7 +6,7 @@ import { LoadThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
 const ArgsSchema = {
-    threadId: z.number().describe('The thread ID to load.'),
+    threadId: z.string().describe('The thread ID to load.'),
     newerThanDate: z
         .string()
         .optional()
@@ -33,10 +33,10 @@ const ArgsSchema = {
 type LoadThreadStructured = {
     type: 'thread_data'
     thread: {
-        id: number
+        id: string
         title: string
         content: string
-        channelId: number
+        channelId: string
         channelName?: string
         workspaceId: number
         creator: number
@@ -50,11 +50,11 @@ type LoadThreadStructured = {
         threadUrl: string
     }
     comments: Array<{
-        id: number
+        id: string
         content: string
         creator: number
         creatorName?: string
-        threadId: number
+        threadId: string
         posted: string
         commentUrl: string
     }>
@@ -69,23 +69,18 @@ const loadThread = {
     outputSchema: LoadThreadOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     async execute(args, client) {
-        const { threadId, newerThanDate, limit, includeParticipants } = args
+        const { threadId, newerThanDate, olderThanDate, limit, includeParticipants } = args
 
-        // Fetch thread metadata and comments in parallel using batch
-        const [threadResponse, commentsResponse] = await client.batch(
-            client.threads.getThread(threadId, { batch: true }),
-            client.comments.getComments(
-                {
-                    threadId,
-                    from: newerThanDate ? new Date(newerThanDate) : undefined,
-                    limit,
-                },
-                { batch: true },
-            ),
-        )
-
-        const thread = threadResponse.data
-        const comments = commentsResponse.data
+        // Fetch thread metadata and comments in parallel
+        const [thread, comments] = await Promise.all([
+            client.threads.getThread(threadId),
+            client.comments.getComments({
+                threadId,
+                newerThan: newerThanDate ? new Date(newerThanDate) : undefined,
+                olderThan: olderThanDate ? new Date(olderThanDate) : undefined,
+                limit,
+            }),
+        ])
 
         // Collect all unique user IDs
         const userIds = new Set<number>([thread.creator])
@@ -98,27 +93,19 @@ const loadThread = {
             }
         }
 
-        // Fetch channel and all user info in a single batch call
+        // Fetch channel and all user info in parallel
         const uniqueUserIds = Array.from(userIds)
-        const [channelResponse, ...userResponses] = await client.batch(
-            client.channels.getChannel(thread.channelId, { batch: true }),
+        const [channel, ...users] = await Promise.all([
+            client.channels.getChannel(thread.channelId),
             ...uniqueUserIds.map((id) =>
-                client.workspaceUsers.getUserById(
-                    { workspaceId: thread.workspaceId, userId: id },
-                    { batch: true },
-                ),
+                client.workspaceUsers.getUserById({ workspaceId: thread.workspaceId, userId: id }),
             ),
-        )
+        ])
 
-        const channel = channelResponse.data
-        const users = userResponses.map((res) => res.data)
-        const userLookup = users.reduce(
-            (acc, user) => {
-                acc[user.id] = user.name
-                return acc
-            },
-            {} as Record<number, string>,
-        )
+        const userLookup = users.reduce<Record<number, string>>((acc, user) => {
+            acc[user.id] = user.fullName
+            return acc
+        }, {})
 
         // Build text content
         const creatorName = userLookup[thread.creator]

@@ -7,7 +7,7 @@ import { ToolNames } from '../utils/tool-names.js'
 const ArgsSchema = {
     workspaceId: z.number().describe('The workspace ID to get groups from.'),
     groupIds: z
-        .array(z.number())
+        .array(z.string())
         .optional()
         .describe(
             'Optional array of specific group IDs to fetch. If not provided or empty array, fetches all workspace groups.',
@@ -33,15 +33,15 @@ const getGroups = {
         const requestedGroupIds =
             groupIds && groupIds.length > 0 ? [...new Set(groupIds)] : undefined
         const groups = requestedGroupIds
-            ? await (async () => {
-                  const groupRequests = requestedGroupIds.map((groupId) =>
-                      client.groups.getGroup(groupId, { batch: true }),
+            ? (
+                  await Promise.all(
+                      requestedGroupIds.map((id) =>
+                          client.groups.getGroup({ id, workspaceId }).catch(() => null),
+                      ),
                   )
-                  const groupResponses = await client.batch(...groupRequests)
-                  return groupResponses
-                      .map((response) => response.data)
-                      .filter((group) => group.workspaceId === workspaceId)
-              })()
+              )
+                  .filter((g): g is NonNullable<typeof g> => g !== null)
+                  .filter((group) => group.workspaceId === workspaceId)
             : await client.groups.getGroups(workspaceId)
         const totalGroups = groups.length
 

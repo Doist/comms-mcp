@@ -107,15 +107,14 @@ describe(`${GET_MENTIONS} tool`, () => {
         })
         mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
             id: TEST_IDS.USER_1,
-            name: 'Test User 1',
+            fullName: 'Test User 1',
             shortName: 'TU1',
             email: 'user1@test.com',
             userType: 'USER' as const,
-            bot: false,
             removed: false,
             timezone: 'UTC',
             version: 1,
-        })
+        } as never)
         mockCommsApi.channels.getChannel.mockResolvedValue({
             id: TEST_IDS.CHANNEL_1,
             name: 'Test Channel',
@@ -177,15 +176,14 @@ describe(`${GET_MENTIONS} tool`, () => {
         })
         mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
             id: TEST_IDS.USER_1,
-            name: 'Test User 1',
+            fullName: 'Test User 1',
             shortName: 'TU1',
             email: 'user1@test.com',
             userType: 'USER' as const,
-            bot: false,
             removed: false,
             timezone: 'UTC',
             version: 1,
-        })
+        } as never)
         mockCommsApi.channels.getChannel.mockResolvedValue({
             id: TEST_IDS.CHANNEL_1,
             name: 'Test Channel',

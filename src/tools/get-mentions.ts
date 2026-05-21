@@ -7,7 +7,7 @@ import { ToolNames } from '../utils/tool-names.js'
 
 const ArgsSchema = {
     workspaceId: z.number().describe('The workspace ID to search in.'),
-    channelIds: z.array(z.number()).optional().describe('Filter by channel IDs.'),
+    channelIds: z.array(z.string()).optional().describe('Filter by channel IDs.'),
     authorIds: z.array(z.number()).optional().describe('Filter by author user IDs.'),
     dateFrom: z.string().optional().describe('Start date for filtering (YYYY-MM-DD).'),
     dateTo: z.string().optional().describe('End date for filtering (YYYY-MM-DD).'),
@@ -32,9 +32,9 @@ type GetMentionsStructured = {
         creatorId: number
         creatorName?: string
         created: string
-        threadId?: number
-        conversationId?: number
-        channelId?: number
+        threadId?: string
+        conversationId?: string
+        channelId?: string
         channelName?: string
         workspaceId: number
         url: string
@@ -81,47 +81,44 @@ const getMentions = {
         const responseCursor = response.nextCursorMark
 
         let userLookup: Record<number, string> = {}
-        let channelLookup: Record<number, string> = {}
+        let channelLookup: Record<string, string> = {}
 
         if (results.length > 0) {
             const userIds = new Set<number>()
-            const channelIds = new Set<number>()
+            const channelIdSet = new Set<string>()
             for (const result of results) {
                 userIds.add(result.creatorId)
                 if (result.channelId) {
-                    channelIds.add(result.channelId)
+                    channelIdSet.add(result.channelId)
                 }
             }
 
             const uniqueUserIds = Array.from(userIds)
-            const uniqueChannelIds = Array.from(channelIds)
-            const batchResponses = await client.batch(
-                ...uniqueUserIds.map((id) =>
-                    client.workspaceUsers.getUserById({ workspaceId, userId: id }, { batch: true }),
+            const uniqueChannelIds = Array.from(channelIdSet)
+            const [users, channels] = await Promise.all([
+                Promise.all(
+                    uniqueUserIds.map((id) =>
+                        client.workspaceUsers
+                            .getUserById({ workspaceId, userId: id })
+                            .catch(() => null),
+                    ),
                 ),
-                ...uniqueChannelIds.map((id) => client.channels.getChannel(id, { batch: true })),
-            )
+                Promise.all(
+                    uniqueChannelIds.map((id) =>
+                        client.channels.getChannel(id).catch(() => null),
+                    ),
+                ),
+            ])
 
-            const userResponses = batchResponses.slice(0, uniqueUserIds.length)
-            const channelResponses = batchResponses.slice(uniqueUserIds.length)
+            userLookup = users.reduce<Record<number, string>>((acc, user) => {
+                if (user) acc[user.id] = user.fullName
+                return acc
+            }, {})
 
-            const users = userResponses.map((res) => res.data)
-            userLookup = users.reduce(
-                (acc, user) => {
-                    acc[user.id] = user.name
-                    return acc
-                },
-                {} as Record<number, string>,
-            )
-
-            const channels = channelResponses.map((res) => res.data)
-            channelLookup = channels.reduce(
-                (acc, channel) => {
-                    acc[channel.id] = channel.name
-                    return acc
-                },
-                {} as Record<number, string>,
-            )
+            channelLookup = channels.reduce<Record<string, string>>((acc, channel) => {
+                if (channel) acc[channel.id] = channel.name
+                return acc
+            }, {})
         }
 
         const lines: string[] = [`# Mentions in Workspace ${workspaceId}`, '']

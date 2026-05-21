@@ -3,11 +3,11 @@
 exports[`update-object tool targetType: comment should update a comment content 1`] = `
 "# Comment Updated
 
-**Comment ID:** 54321
-**Thread ID:** 12345
-**Channel ID:** 67890
+**Comment ID:** comment-id-1
+**Thread ID:** thread-id-1
+**Channel ID:** channel-id-1
 **Last Edited:** 2025-02-03T12:34:56.000Z
-**URL:** https://comms.todoist.com/a/11111/ch/67890/t/12345/c/54321
+**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/c/comment-id-1
 
 ## Content
 
@@ -17,11 +17,11 @@ Updated comment content"
 exports[`update-object tool targetType: message should update a conversation message content 1`] = `
 "# Message Updated
 
-**Message ID:** 98765
-**Conversation ID:** 33333
+**Message ID:** msg-id-1
+**Conversation ID:** conv-id-1
 **Workspace ID:** 11111
 **Last Edited:** 2025-02-03T12:34:56.000Z
-**URL:** https://comms.todoist.com/a/11111/msg/33333/m/98765
+**URL:** https://comms.todoist.com/a/11111/msg/conv-id-1/m/msg-id-1
 
 ## Content
 
@@ -32,10 +32,10 @@ exports[`update-object tool targetType: thread should update a thread title and 
 "# Thread Updated
 
 **Title:** Updated Title
-**Thread ID:** 12345
-**Channel ID:** 67890
+**Thread ID:** thread-id-1
+**Channel ID:** channel-id-1
 **Last Edited:** 2025-02-03T12:34:56.000Z
-**URL:** https://comms.todoist.com/a/11111/ch/67890/t/12345/
+**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 
@@ -46,9 +46,9 @@ exports[`update-object tool targetType: thread should update only the thread con
 "# Thread Updated
 
 **Title:** Test Thread
-**Thread ID:** 12345
-**Channel ID:** 67890
-**URL:** https://comms.todoist.com/a/11111/ch/67890/t/12345/
+**Thread ID:** thread-id-1
+**Channel ID:** channel-id-1
+**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 
@@ -59,9 +59,9 @@ exports[`update-object tool targetType: thread should update only the thread tit
 "# Thread Updated
 
 **Title:** New Title Only
-**Thread ID:** 12345
-**Channel ID:** 67890
-**URL:** https://comms.todoist.com/a/11111/ch/67890/t/12345/
+**Thread ID:** thread-id-1
+**Channel ID:** channel-id-1
+**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 

@@ -17,7 +17,7 @@ const ArgsSchema = {
         'The type of object to update: thread, comment, or message.',
     ),
     targetId: z
-        .number()
+        .string()
         .describe('The ID of the thread, comment, or conversation message to update.'),
     content: z
         .string()

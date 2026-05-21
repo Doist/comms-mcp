@@ -4,10 +4,10 @@ exports[`create-thread tool creating threads should create a thread in a channel
 "# Thread Created
 
 **Title:** New Discussion
-**Thread ID:** 12345
-**Channel ID:** 67890
+**Thread ID:** thread-id-1
+**Channel ID:** channel-id-1
 **Created:** 2024-01-01T00:00:00.000Z
-**URL:** https://comms.todoist.com/a/11111/ch/67890/t/12345/
+**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 
@@ -20,10 +20,10 @@ exports[`create-thread tool creating threads should create a thread with recipie
 "# Thread Created
 
 **Title:** Notify Users
-**Thread ID:** 12345
-**Channel ID:** 67890
+**Thread ID:** thread-id-1
+**Channel ID:** channel-id-1
 **Created:** 2024-01-01T00:00:00.000Z
-**URL:** https://comms.todoist.com/a/11111/ch/67890/t/12345/
+**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 

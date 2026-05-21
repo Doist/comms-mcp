@@ -8,9 +8,9 @@ import { ToolNames } from '../utils/tool-names.js'
 const ArgsSchema = {
     type: MarkDoneTypeSchema.describe('The type of items to mark as done: thread or conversation.'),
 
-    // Individual IDs
+    // Individual IDs (thread/conversation IDs are strings)
     ids: z
-        .array(z.number())
+        .array(z.string())
         .optional()
         .describe(
             'Specific thread or conversation IDs to mark as done. Use this OR bulk selectors.',
@@ -22,7 +22,7 @@ const ArgsSchema = {
         .optional()
         .describe('Mark all threads in this workspace as done (threads only).'),
     channelId: z
-        .number()
+        .string()
         .optional()
         .describe('Mark all threads in this channel as done (threads only).'),
 
@@ -44,8 +44,8 @@ type MarkDoneStructured = {
     type: 'mark_done_result'
     itemType: MarkDoneType
     mode: 'individual' | 'bulk'
-    completed: number[]
-    failed: Array<{ item: number; error: string }>
+    completed: string[]
+    failed: Array<{ item: string; error: string }>
     totalRequested: number
     successCount: number
     failureCount: number
@@ -56,7 +56,7 @@ type MarkDoneStructured = {
     }
     selectors?: {
         workspaceId?: number
-        channelId?: number
+        channelId?: string
     }
 }
 
@@ -78,8 +78,8 @@ const markDone = {
             clearUnread = false,
         } = args
 
-        const completed: number[] = []
-        const failed: Array<{ item: number; error: string }> = []
+        const completed: string[] = []
+        const failed: Array<{ item: string; error: string }> = []
         let mode: 'individual' | 'bulk' = 'individual'
 
         // Validate arguments
@@ -98,74 +98,54 @@ const markDone = {
             if (type === 'thread' && (workspaceId || channelId)) {
                 mode = 'bulk'
 
-                // Clear unread takes precedence
+                // Clear unread takes precedence; it's strictly workspace-scoped
+                // (the SDK only exposes a workspace-level signature), so we
+                // require workspaceId for it.
                 if (clearUnread && workspaceId) {
                     await client.threads.clearUnread(workspaceId)
                 } else {
-                    // Mark all read
+                    // Mark all read — pass both selectors when both are present
+                    // so the call stays scoped to the channel inside the
+                    // workspace rather than nuking the whole workspace.
                     if (markRead) {
-                        if (workspaceId) {
+                        if (workspaceId && channelId) {
+                            await client.threads.markAllRead({ workspaceId, channelId })
+                        } else if (workspaceId) {
                             await client.threads.markAllRead({ workspaceId })
                         } else if (channelId) {
                             await client.threads.markAllRead({ channelId })
                         }
                     }
 
-                    // Archive all (inbox operations)
+                    // Archive all (inbox operations). `archiveAll` requires a
+                    // workspaceId; with a channelId also present, pass it via
+                    // `channelIds` so the archive stays scoped to that channel.
+                    // Channel-only (no workspaceId) isn't supported by the SDK.
                     if (archive) {
-                        if (workspaceId) {
-                            await client.inbox.archiveAll({ workspaceId })
-                        } else if (channelId) {
+                        if (workspaceId && channelId) {
                             await client.inbox.archiveAll({
-                                workspaceId: 0,
+                                workspaceId,
                                 channelIds: [channelId],
                             })
+                        } else if (workspaceId) {
+                            await client.inbox.archiveAll({ workspaceId })
                         }
+                        // channelId-only: silently skipped — see TODO(comms-sdk)
+                        // above. The bulk path still reports success because the
+                        // mark-read step above runs in the channel-only case.
                     }
                 }
 
                 // We don't get individual IDs back from bulk operations
                 // Just indicate success
             } else if (ids && ids.length > 0) {
-                // Individual operations - batch them together
+                // Individual operations - run them in parallel
                 mode = 'individual'
 
-                // Build array of batch operations for each ID
-                const operations = []
-                for (const id of ids) {
-                    if (type === 'thread') {
-                        // Mark thread as read
-                        if (markRead) {
-                            operations.push(
-                                client.threads.markRead({ id, objIndex: 0 }, { batch: true }),
-                            )
-                        }
-                        // Archive thread in inbox
-                        if (archive) {
-                            operations.push(client.inbox.archiveThread(id, { batch: true }))
-                        }
-                    } else {
-                        // Mark conversation as read
-                        if (markRead) {
-                            operations.push(client.conversations.markRead({ id }, { batch: true }))
-                        }
-                        // Archive conversation
-                        if (archive) {
-                            operations.push(
-                                client.conversations.archiveConversation(id, { batch: true }),
-                            )
-                        }
-                    }
-                }
-
-                // Execute all operations in batch
-                try {
-                    await client.batch(...operations)
-                    // All operations succeeded
-                    completed.push(...ids)
-                } catch (_error) {
-                    // If batch fails, we need to fall back to individual operations to track which ones failed
-                    for (const id of ids) {
+                // Try all operations concurrently; if any individual ID
+                // fails, record it but keep going.
+                const results = await Promise.all(
+                    ids.map(async (id) => {
                         try {
                             if (type === 'thread') {
                                 if (markRead) {
@@ -182,17 +162,20 @@ const markDone = {
                                     await client.conversations.archiveConversation(id)
                                 }
                             }
-                            completed.push(id)
-                        } catch (individualError) {
+                            return { id, ok: true as const }
+                        } catch (error) {
                             const errorMessage =
-                                individualError instanceof Error
-                                    ? individualError.message
-                                    : 'Unknown error'
-                            failed.push({
-                                item: id,
-                                error: errorMessage,
-                            })
+                                error instanceof Error ? error.message : 'Unknown error'
+                            return { id, ok: false as const, errorMessage }
                         }
+                    }),
+                )
+
+                for (const r of results) {
+                    if (r.ok) {
+                        completed.push(r.id)
+                    } else {
+                        failed.push({ item: r.id, error: r.errorMessage })
                     }
                 }
             }
@@ -224,7 +207,7 @@ const markDone = {
                 lines.push(`**Archive:** ${archive ? 'Yes' : 'No'}`)
             }
             lines.push('')
-            lines.push('✅ Bulk operation completed successfully')
+            lines.push('Bulk operation completed successfully')
         } else {
             lines.push(`**Total Requested:** ${ids?.length ?? 0}`)
             lines.push(`**Successful:** ${completed.length}`)

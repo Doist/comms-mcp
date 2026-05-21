@@ -47,9 +47,9 @@ type FetchInboxStructured = {
     type: 'inbox_data'
     workspaceId: number
     threads: Array<{
-        id: number
+        id: string
         title: string
-        channelId: number
+        channelId: string
         channelName?: string
         creator: number
         isUnread: boolean
@@ -58,7 +58,7 @@ type FetchInboxStructured = {
         threadUrl: string
     }>
     conversations: Array<{
-        id: number
+        id: string
         title: string
         userIds: number[]
         participantNames: string[]
@@ -77,7 +77,7 @@ type FetchInboxStructured = {
  */
 async function loadConversationDetails(
     client: Parameters<CommsTool<typeof ArgsSchema>['execute']>[1],
-    conversationIds: number[],
+    conversationIds: string[],
 ): Promise<
     Array<{
         conversation: Conversation
@@ -88,12 +88,10 @@ async function loadConversationDetails(
         return []
     }
 
-    // Batch load all conversation metadata
-    const conversationCalls = conversationIds.map((id) =>
-        client.conversations.getConversation(id, { batch: true }),
+    // Load all conversation metadata in parallel
+    const conversations = await Promise.all(
+        conversationIds.map((id) => client.conversations.getConversation(id)),
     )
-    const conversationResponses = await client.batch(...conversationCalls)
-    const conversations = conversationResponses.map((res) => res.data)
 
     // Collect all unique user IDs from all conversations
     const allUserIds = new Set<number>()
@@ -103,23 +101,21 @@ async function loadConversationDetails(
         }
     }
 
-    // Batch load all user info
+    // Load all user info in parallel
     const workspaceId = conversations[0]?.workspaceId
     if (!workspaceId) {
         return conversations.map((conversation) => ({ conversation, participants: [] }))
     }
 
-    const userCalls = Array.from(allUserIds).map((userId) =>
-        client.workspaceUsers.getUserById({ workspaceId, userId }, { batch: true }),
+    const users = await Promise.all(
+        Array.from(allUserIds).map((userId) =>
+            client.workspaceUsers.getUserById({ workspaceId, userId }),
+        ),
     )
-    const userResponses = await client.batch(...userCalls)
-    const userMap = userResponses.reduce(
-        (acc, res) => {
-            acc[res.data.id] = res.data
-            return acc
-        },
-        {} as Record<number, WorkspaceUser>,
-    )
+    const userMap = users.reduce<Record<number, WorkspaceUser>>((acc, user) => {
+        acc[user.id] = user
+        return acc
+    }, {})
 
     // Map conversations to include their participants
     return conversations.map((conversation) => ({
@@ -142,46 +138,38 @@ const fetchInbox = {
         const archiveFilter = args.archiveFilter ?? 'active'
 
         // Call all 4 endpoints in parallel for complete inbox picture
-        const [
-            inboxThreadsResponse,
-            unreadCountResponse,
-            unreadThreadsDataResponse,
-            unreadConversationsDataResponse,
-        ] = await client.batch(
-            client.inbox.getInbox(
-                {
+        const [inboxThreads, unreadCount, unreadThreadsData, unreadConversationsData] =
+            await Promise.all([
+                client.inbox.getInbox({
                     workspaceId,
-                    since: sinceDate ? new Date(sinceDate) : undefined,
-                    until: untilDate ? new Date(untilDate) : undefined,
+                    newerThan: sinceDate ? new Date(sinceDate) : undefined,
+                    olderThan: untilDate ? new Date(untilDate) : undefined,
                     limit,
                     archiveFilter,
-                },
-                { batch: true },
-            ),
-            client.inbox.getCount(workspaceId, { batch: true }),
-            client.threads.getUnread(workspaceId, { batch: true }),
-            client.conversations.getUnread(workspaceId, { batch: true }),
-        )
+                }),
+                client.inbox.getCount(workspaceId),
+                client.threads.getUnread(workspaceId),
+                client.conversations.getUnread(workspaceId),
+            ])
 
         // Filter by unread if requested
-        let threads = inboxThreadsResponse.data.map((thread) => ({
+        let threads = inboxThreads.map((thread) => ({
             ...thread,
-            isUnread: unreadThreadsDataResponse.data.some((ut) => ut.threadId === thread.id),
+            isUnread: unreadThreadsData.data.some((ut) => ut.threadId === thread.id),
             isArchived: thread.isArchived,
         }))
 
         const unreadThreads = threads.filter((t) => t.isUnread)
-        const unreadThreadsOriginal = inboxThreadsResponse.data.filter((thread) =>
-            unreadThreadsDataResponse.data.some((ut) => ut.threadId === thread.id),
+        const unreadThreadsOriginal = inboxThreads.filter((thread) =>
+            unreadThreadsData.data.some((ut) => ut.threadId === thread.id),
         )
-        const unreadCount = unreadCountResponse.data
 
         if (onlyUnread) {
             threads = unreadThreads
         }
 
         // Load unread conversations if any exist
-        const unreadConversationsOriginal = unreadConversationsDataResponse.data
+        const unreadConversationsOriginal = unreadConversationsData.data
         const unreadConversationIds = unreadConversationsOriginal.map((uc) => uc.conversationId)
 
         let conversationsWithDetails: Array<{
@@ -217,17 +205,20 @@ const fetchInbox = {
         lines.push(`## Threads (${threads.length})`)
         lines.push('')
 
-        const channelCalls = threads.map((thread) =>
-            client.channels.getChannel(thread.channelId, { batch: true }),
+        // Dedupe channel IDs so we hit `channels.getChannel` once per channel
+        // even when the inbox page is dominated by threads from the same channel.
+        const uniqueChannelIds = Array.from(new Set(threads.map((t) => t.channelId)))
+        const channelResponses = await Promise.all(
+            uniqueChannelIds.map((channelId) =>
+                client.channels.getChannel(channelId).catch(() => null),
+            ),
         )
-        const channelResponses = await client.batch(...channelCalls)
-        const channelInfo: Record<Channel['id'], Channel> = channelResponses.reduce(
-            (acc, res) => {
-                acc[res.data.id] = res.data
-                return acc
-            },
-            {} as Record<Channel['id'], Channel>,
-        )
+        const channelInfo: Record<Channel['id'], Channel> = channelResponses.reduce<
+            Record<Channel['id'], Channel>
+        >((acc, channel) => {
+            if (channel) acc[channel.id] = channel
+            return acc
+        }, {})
 
         if (threads.length === 0) {
             lines.push('_No threads in inbox_')
@@ -240,8 +231,8 @@ const fetchInbox = {
                     thread.title = `[${channel.name}] ${thread.title}`
                 }
                 const archivedBadge = thread.isArchived ? ' [archived]' : ''
-                const unreadBadge = thread.isUnread ? ' 🔵' : ''
-                const starBadge = thread.starred ? ' ⭐' : ''
+                const unreadBadge = thread.isUnread ? ' [unread]' : ''
+                const starBadge = thread.isSaved ? ' [saved]' : ''
                 lines.push(
                     `- ${thread.title}${archivedBadge}${unreadBadge}${starBadge}${channelDetails} (ID: ${thread.id})`,
                 )
@@ -257,12 +248,12 @@ const fetchInbox = {
             for (const convDetail of conversationsWithDetails) {
                 const { conversation, participants } = convDetail
                 // Build a human-readable title from participant names
-                const participantNames = participants.map((p) => p.name).join(', ')
+                const participantNames = participants.map((p) => p.fullName).join(', ')
                 const conversationTitle =
                     conversation.title ||
                     `DM with ${participantNames}` ||
                     `Conversation ${conversation.id}`
-                const unreadBadge = convDetail.isUnread ? ' 🔵' : ''
+                const unreadBadge = convDetail.isUnread ? ' [unread]' : ''
 
                 lines.push(`- ${conversationTitle}${unreadBadge} (ID: ${conversation.id})`)
             }
@@ -290,14 +281,14 @@ const fetchInbox = {
                 creator: t.creator,
                 isUnread: t.isUnread,
                 isArchived: t.isArchived,
-                isStarred: t.starred,
+                isStarred: Boolean(t.isSaved),
                 threadUrl:
                     t.url ??
                     getFullCommsURL({ workspaceId, channelId: t.channelId, threadId: t.id }),
             })),
             conversations: conversationsWithDetails.map((cd) => {
                 const { conversation, participants } = cd
-                const participantNames = participants.map((p) => p.name)
+                const participantNames = participants.map((p) => p.fullName)
                 return {
                     id: conversation.id,
                     title:

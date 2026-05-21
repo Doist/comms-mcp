@@ -14,13 +14,12 @@ const mockCommsApi = {
         getGroups: jest.fn(),
         getGroup: jest.fn(),
     },
-    batch: jest.fn(),
 } as unknown as jest.Mocked<CommsApi>
 
 const { GET_GROUPS } = ToolNames
 
 const createMockGroup = (overrides: Partial<Group> = {}): Group => ({
-    id: 100,
+    id: TEST_IDS.GROUP_1,
     name: 'Product Automation',
     description: 'Automation recipients',
     workspaceId: TEST_IDS.WORKSPACE_1,
@@ -32,14 +31,6 @@ const createMockGroup = (overrides: Partial<Group> = {}): Group => ({
 describe(`${GET_GROUPS} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockCommsApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
-            const results = []
-            for (const arg of args) {
-                const result = await arg
-                results.push({ data: result })
-            }
-            return results as never
-        })
     })
 
     describe('fetching groups', () => {
@@ -47,7 +38,7 @@ describe(`${GET_GROUPS} tool`, () => {
             const mockGroups = [
                 createMockGroup(),
                 createMockGroup({
-                    id: 200,
+                    id: TEST_IDS.GROUP_2,
                     name: 'Engineering',
                     description: null,
                     userIds: [TEST_IDS.USER_3],
@@ -62,7 +53,7 @@ describe(`${GET_GROUPS} tool`, () => {
             )
 
             expect(mockCommsApi.groups.getGroups).toHaveBeenCalledWith(TEST_IDS.WORKSPACE_1)
-            expect(mockCommsApi.batch).not.toHaveBeenCalled()
+            expect(mockCommsApi.groups.getGroup).not.toHaveBeenCalled()
 
             const textContent = extractTextContent(result)
             expect(textContent).toContain(`**Workspace ID:** ${TEST_IDS.WORKSPACE_1}`)
@@ -80,12 +71,12 @@ describe(`${GET_GROUPS} tool`, () => {
                 filteredGroups: 2,
                 groups: expect.arrayContaining([
                     expect.objectContaining({
-                        id: 100,
+                        id: TEST_IDS.GROUP_1,
                         name: 'Product Automation',
                         memberCount: 2,
                     }),
                     expect.objectContaining({
-                        id: 200,
+                        id: TEST_IDS.GROUP_2,
                         name: 'Engineering',
                         memberCount: 1,
                     }),
@@ -110,36 +101,38 @@ describe(`${GET_GROUPS} tool`, () => {
     })
 
     describe('filtering groups', () => {
-        it('should filter groups by ID', async () => {
-            mockCommsApi.groups.getGroup.mockImplementation(async (id: number) => {
-                if (id === 100) {
-                    return createMockGroup({ id: 100, name: 'Product Automation' })
-                }
-                if (id === 300) {
-                    return createMockGroup({ id: 300, name: 'Marketing' })
-                }
-                throw new Error('Group not found')
-            })
+        it('should fetch specific groups by ID', async () => {
+            const otherGroupId = 'group-id-marketing'
+            mockCommsApi.groups.getGroup.mockImplementation(
+                async (args: { id: string; workspaceId: number }) => {
+                    if (args.id === TEST_IDS.GROUP_1) {
+                        return createMockGroup({
+                            id: TEST_IDS.GROUP_1,
+                            name: 'Product Automation',
+                        })
+                    }
+                    if (args.id === otherGroupId) {
+                        return createMockGroup({ id: otherGroupId, name: 'Marketing' })
+                    }
+                    throw new Error('Group not found')
+                },
+            )
 
             const result = await getGroups.execute(
-                { workspaceId: TEST_IDS.WORKSPACE_1, groupIds: [100, 300] },
+                {
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    groupIds: [TEST_IDS.GROUP_1, otherGroupId],
+                },
                 mockCommsApi,
             )
 
             expect(mockCommsApi.groups.getGroups).not.toHaveBeenCalled()
-            expect(mockCommsApi.groups.getGroup).toHaveBeenNthCalledWith(1, 100, {
-                batch: true,
-            })
-            expect(mockCommsApi.groups.getGroup).toHaveBeenNthCalledWith(2, 300, {
-                batch: true,
-            })
-            expect(mockCommsApi.batch).toHaveBeenCalledTimes(1)
+            expect(mockCommsApi.groups.getGroup).toHaveBeenCalledTimes(2)
 
             const textContent = extractTextContent(result)
             expect(textContent).toContain('**Total Groups:** 2')
             expect(textContent).toContain('## Product Automation')
             expect(textContent).toContain('## Marketing')
-            expect(textContent).not.toContain('## Engineering')
 
             const structuredContent = extractStructuredContent(result)
             expect(structuredContent.totalGroups).toBe(2)
@@ -148,9 +141,9 @@ describe(`${GET_GROUPS} tool`, () => {
 
         it('should filter groups by name search case-insensitively', async () => {
             const mockGroups = [
-                createMockGroup({ id: 100, name: 'Product Automation' }),
-                createMockGroup({ id: 200, name: 'Engineering' }),
-                createMockGroup({ id: 300, name: 'Automation QA' }),
+                createMockGroup({ id: TEST_IDS.GROUP_1, name: 'Product Automation' }),
+                createMockGroup({ id: TEST_IDS.GROUP_2, name: 'Engineering' }),
+                createMockGroup({ id: 'group-id-3', name: 'Automation QA' }),
             ]
 
             mockCommsApi.groups.getGroups.mockResolvedValue(mockGroups)
@@ -173,28 +166,36 @@ describe(`${GET_GROUPS} tool`, () => {
         })
 
         it('should combine ID and search filters', async () => {
-            mockCommsApi.groups.getGroup.mockImplementation(async (id: number) => {
-                if (id === 100) {
-                    return createMockGroup({ id: 100, name: 'Product Automation' })
-                }
-                if (id === 300) {
-                    return createMockGroup({ id: 300, name: 'Marketing' })
-                }
-                throw new Error('Group not found')
-            })
+            const otherGroupId = 'group-id-marketing'
+            mockCommsApi.groups.getGroup.mockImplementation(
+                async (args: { id: string; workspaceId: number }) => {
+                    if (args.id === TEST_IDS.GROUP_1) {
+                        return createMockGroup({
+                            id: TEST_IDS.GROUP_1,
+                            name: 'Product Automation',
+                        })
+                    }
+                    if (args.id === otherGroupId) {
+                        return createMockGroup({ id: otherGroupId, name: 'Marketing' })
+                    }
+                    throw new Error('Group not found')
+                },
+            )
 
             const result = await getGroups.execute(
-                { workspaceId: TEST_IDS.WORKSPACE_1, groupIds: [100, 300], searchText: 'auto' },
+                {
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    groupIds: [TEST_IDS.GROUP_1, otherGroupId],
+                    searchText: 'auto',
+                },
                 mockCommsApi,
             )
 
             expect(mockCommsApi.groups.getGroups).not.toHaveBeenCalled()
-            expect(mockCommsApi.batch).toHaveBeenCalledTimes(1)
 
             const textContent = extractTextContent(result)
             expect(textContent).toContain('**Total Groups:** 2 (1 matching search)')
             expect(textContent).toContain('## Product Automation')
-            expect(textContent).not.toContain('## Engineering Automation')
             expect(textContent).not.toContain('## Marketing')
 
             const structuredContent = extractStructuredContent(result)

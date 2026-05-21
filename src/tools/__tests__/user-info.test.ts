@@ -39,8 +39,6 @@ describe(`${USER_INFO} tool`, () => {
         expect(textContent).toContain('Test User')
         expect(textContent).toContain('test@example.com')
         expect(textContent).toContain('UTC')
-        expect(textContent).toContain(`Default Workspace:** ${TEST_IDS.WORKSPACE_1}`)
-        expect(textContent).toContain('**Bot:** No')
         expect(textContent).toContain('**Language:** en')
 
         // Test structured content
@@ -51,9 +49,9 @@ describe(`${USER_INFO} tool`, () => {
                 userId: TEST_IDS.USER_1,
                 email: 'test@example.com',
                 name: 'Test User',
+                shortName: 'Test',
                 timezone: 'UTC',
-                defaultWorkspace: TEST_IDS.WORKSPACE_1,
-                bot: false,
+                lang: 'en',
             }),
         )
     })
@@ -72,19 +70,6 @@ describe(`${USER_INFO} tool`, () => {
 
         const structuredContent = extractStructuredContent(result)
         expect(structuredContent.timezone).toBe('America/New_York')
-    })
-
-    it('should handle users without profession', async () => {
-        const mockUser = createMockUser({
-            profession: undefined,
-        })
-
-        mockCommsApi.users.getSessionUser.mockResolvedValue(mockUser)
-
-        const result = await userInfo.execute({}, mockCommsApi)
-
-        const textContent = extractTextContent(result)
-        expect(textContent).not.toContain('Profession')
     })
 
     it('should propagate API errors', async () => {

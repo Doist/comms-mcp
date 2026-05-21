@@ -17,7 +17,7 @@ const ArgsSchema = {
 }
 
 type ChannelData = {
-    id: number
+    id: string
     name: string
     description?: string
     public: boolean
@@ -44,11 +44,11 @@ async function generateChannelsList(
     // By default only fetch active channels; optionally include archived ones too
     let channels: Channel[]
     if (includeArchived) {
-        const [activeResponse, archivedResponse] = await client.batch(
-            client.channels.getChannels({ workspaceId }, { batch: true }),
-            client.channels.getChannels({ workspaceId, archived: true }, { batch: true }),
-        )
-        channels = [...activeResponse.data, ...archivedResponse.data]
+        const [active, archived] = await Promise.all([
+            client.channels.getChannels({ workspaceId }),
+            client.channels.getChannels({ workspaceId, archived: true }),
+        ])
+        channels = [...active, ...archived]
     } else {
         channels = await client.channels.getChannels({ workspaceId })
     }
@@ -65,27 +65,28 @@ async function generateChannelsList(
         }
     }
 
-    // Collect unique creator IDs and batch-fetch their names
+    // Collect unique creator IDs and fetch their names
     const creatorIds = new Set<number>()
     for (const channel of channels) {
         creatorIds.add(channel.creator)
     }
 
+    // Look up creator names in parallel, tolerating individual failures so a
+    // single deleted/inaccessible creator doesn't fail the whole list — the
+    // fallback path (creator ID without a name) is exercised by the text output.
     const creatorLookup: Record<number, string> = {}
     if (creatorIds.size > 0) {
-        const userRequests = Array.from(creatorIds).map((userId) =>
-            client.workspaceUsers.getUserById({ workspaceId, userId }, { batch: true }),
-        )
-        const userResponses = await client.batch(...userRequests)
-
         const creatorIdArray = Array.from(creatorIds)
+        const users = await Promise.all(
+            creatorIdArray.map((userId) =>
+                client.workspaceUsers.getUserById({ workspaceId, userId }).catch(() => null),
+            ),
+        )
         for (let i = 0; i < creatorIdArray.length; i++) {
             const creatorId = creatorIdArray[i]
-            if (creatorId !== undefined) {
-                const user = userResponses[i]?.data
-                if (user) {
-                    creatorLookup[creatorId] = user.name
-                }
+            const user = users[i]
+            if (creatorId !== undefined && user) {
+                creatorLookup[creatorId] = user.fullName
             }
         }
     }

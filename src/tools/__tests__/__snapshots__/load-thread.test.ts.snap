@@ -3,7 +3,7 @@
 exports[`load-thread tool loading threads successfully should filter comments by date 1`] = `
 "# Thread: Test Thread
 
-**Thread ID:** 12345
+**Thread ID:** thread-id-1
 **Channel:** Test Channel
 **Workspace ID:** 11111
 **Creator:** Test User 1 (22222)
@@ -26,7 +26,7 @@ Test User 1 (22222)"
 exports[`load-thread tool loading threads successfully should handle thread with no comments 1`] = `
 "# Thread: Test Thread
 
-**Thread ID:** 12345
+**Thread ID:** thread-id-1
 **Channel:** Test Channel
 **Workspace ID:** 11111
 **Creator:** Test User 1 (22222)
@@ -49,7 +49,7 @@ Test User 1 (22222)"
 exports[`load-thread tool loading threads successfully should load thread with comments and participants 1`] = `
 "# Thread: Test Thread
 
-**Thread ID:** 12345
+**Thread ID:** thread-id-1
 **Channel:** Test Channel
 **Workspace ID:** 11111
 **Creator:** Test User 1 (22222)
@@ -64,12 +64,12 @@ Test thread content
 
 ## Comments (2)
 
-### Comment 54321
+### Comment comment-id-1
 **Creator:** Test User 1 (22222) | **Posted:** 2024-01-01T00:00:00.000Z
 
 Test comment content
 
-### Comment 54322
+### Comment comment-id-2
 **Creator:** Test User 2 (44444) | **Posted:** 2024-01-01T00:00:00.000Z
 
 Test comment content
@@ -82,7 +82,7 @@ Test User 1 (22222), Test User 2 (44444)"
 exports[`load-thread tool loading threads successfully should load thread without participants when includeParticipants is false 1`] = `
 "# Thread: Test Thread
 
-**Thread ID:** 12345
+**Thread ID:** thread-id-1
 **Channel:** Test Channel
 **Workspace ID:** 11111
 **Creator:** Test User 1 (22222)

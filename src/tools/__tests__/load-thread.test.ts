@@ -11,7 +11,6 @@ import { loadThread } from '../load-thread.js'
 
 // Mock the Comms API
 const mockCommsApi = {
-    batch: jest.fn(),
     threads: {
         getThread: jest.fn(),
     },
@@ -28,18 +27,32 @@ const mockCommsApi = {
 
 const { LOAD_THREAD } = ToolNames
 
+const makeChannel = () => ({
+    id: TEST_IDS.CHANNEL_1,
+    name: 'Test Channel',
+    workspaceId: TEST_IDS.WORKSPACE_1,
+    created: new Date(),
+    archived: false,
+    public: true,
+    color: 0,
+    creator: TEST_IDS.USER_1,
+    version: 1,
+})
+
+const makeUser = (id: number, name: string) => ({
+    id,
+    fullName: name,
+    shortName: name.split(' ')[0] ?? name,
+    email: `${name.toLowerCase().replace(/\s/g, '')}@test.com`,
+    userType: 'USER' as const,
+    removed: false,
+    timezone: 'UTC',
+    version: 1,
+})
+
 describe(`${LOAD_THREAD} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        // Mock batch to return responses with .data property
-        mockCommsApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
-            const results = []
-            for (const arg of args) {
-                const result = await arg
-                results.push({ data: result })
-            }
-            return results as never
-        })
     })
 
     describe('loading threads successfully', () => {
@@ -54,45 +67,15 @@ describe(`${LOAD_THREAD} tool`, () => {
 
             mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
             mockCommsApi.comments.getComments.mockResolvedValue(mockComments)
-            mockCommsApi.channels.getChannel.mockResolvedValue({
-                id: mockThread.channelId,
-                name: 'Test Channel',
-                workspaceId: TEST_IDS.WORKSPACE_1,
-                created: new Date(),
-                archived: false,
-                public: true,
-                color: 0,
-                creator: TEST_IDS.USER_1,
-                version: 1,
-            })
+            mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
             mockCommsApi.workspaceUsers.getUserById.mockImplementation((async (args: {
                 workspaceId: number
                 userId: number
             }) => {
                 if (args.userId === TEST_IDS.USER_1) {
-                    return {
-                        id: TEST_IDS.USER_1,
-                        name: 'Test User 1',
-                        shortName: 'TU1',
-                        email: 'user1@test.com',
-                        userType: 'USER' as const,
-                        bot: false,
-                        removed: false,
-                        timezone: 'UTC',
-                        version: 1,
-                    }
+                    return makeUser(TEST_IDS.USER_1, 'Test User 1')
                 }
-                return {
-                    id: TEST_IDS.USER_2,
-                    name: 'Test User 2',
-                    shortName: 'TU2',
-                    email: 'user2@test.com',
-                    userType: 'USER' as const,
-                    bot: false,
-                    removed: false,
-                    timezone: 'UTC',
-                    version: 1,
-                }
+                return makeUser(TEST_IDS.USER_2, 'Test User 2')
             }) as never)
 
             const result = await loadThread.execute(
@@ -100,21 +83,16 @@ describe(`${LOAD_THREAD} tool`, () => {
                 mockCommsApi,
             )
 
-            expect(mockCommsApi.threads.getThread).toHaveBeenCalledWith(TEST_IDS.THREAD_1, {
-                batch: true,
+            expect(mockCommsApi.threads.getThread).toHaveBeenCalledWith(TEST_IDS.THREAD_1)
+            expect(mockCommsApi.comments.getComments).toHaveBeenCalledWith({
+                threadId: TEST_IDS.THREAD_1,
+                newerThan: undefined,
+                olderThan: undefined,
+                limit: 50,
             })
-            expect(mockCommsApi.comments.getComments).toHaveBeenCalledWith(
-                {
-                    threadId: TEST_IDS.THREAD_1,
-                    from: undefined,
-                    limit: 50,
-                },
-                { batch: true },
-            )
 
             expect(extractTextContent(result)).toMatchSnapshot()
 
-            // Verify structured content
             const { structuredContent } = result
             expect(structuredContent).toEqual(
                 expect.objectContaining({
@@ -152,28 +130,10 @@ describe(`${LOAD_THREAD} tool`, () => {
             })
             mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
             mockCommsApi.comments.getComments.mockResolvedValue([])
-            mockCommsApi.channels.getChannel.mockResolvedValue({
-                id: mockThread.channelId,
-                name: 'Test Channel',
-                workspaceId: TEST_IDS.WORKSPACE_1,
-                created: new Date(),
-                archived: false,
-                public: true,
-                color: 0,
-                creator: TEST_IDS.USER_1,
-                version: 1,
-            })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                name: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                bot: false,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            })
+            mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            )
 
             const result = await loadThread.execute(
                 {
@@ -193,28 +153,10 @@ describe(`${LOAD_THREAD} tool`, () => {
             const mockThread = createMockThread()
             mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
             mockCommsApi.comments.getComments.mockResolvedValue([])
-            mockCommsApi.channels.getChannel.mockResolvedValue({
-                id: mockThread.channelId,
-                name: 'Test Channel',
-                workspaceId: TEST_IDS.WORKSPACE_1,
-                created: new Date(),
-                archived: false,
-                public: true,
-                color: 0,
-                creator: TEST_IDS.USER_1,
-                version: 1,
-            })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                name: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                bot: false,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            })
+            mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            )
 
             const result = await loadThread.execute(
                 {
@@ -226,12 +168,10 @@ describe(`${LOAD_THREAD} tool`, () => {
                 mockCommsApi,
             )
 
-            // Verify date was converted to Date object
             expect(mockCommsApi.comments.getComments).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    from: expect.any(Date),
+                    newerThan: expect.any(Date),
                 }),
-                { batch: true },
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
@@ -241,28 +181,10 @@ describe(`${LOAD_THREAD} tool`, () => {
             const mockThread = createMockThread()
             mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
             mockCommsApi.comments.getComments.mockResolvedValue([])
-            mockCommsApi.channels.getChannel.mockResolvedValue({
-                id: mockThread.channelId,
-                name: 'Test Channel',
-                workspaceId: TEST_IDS.WORKSPACE_1,
-                created: new Date(),
-                archived: false,
-                public: true,
-                color: 0,
-                creator: TEST_IDS.USER_1,
-                version: 1,
-            })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                name: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                bot: false,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            })
+            mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            )
 
             const result = await loadThread.execute(
                 { threadId: TEST_IDS.THREAD_1, limit: 50, includeParticipants: true },

@@ -32,7 +32,12 @@ export {
     WorkspaceUserSchema,
 }
 
-// Custom schemas for tool-specific structured outputs
+// Custom schemas for tool-specific structured outputs.
+//
+// ID typing in the Comms API:
+//   - channel/thread/comment/conversation/message/group IDs are opaque
+//     base58-encoded UUIDv7 strings.
+//   - workspaceId and userId are numeric.
 
 /**
  * Schema for load-thread tool output
@@ -40,10 +45,10 @@ export {
 export const LoadThreadOutputSchema = z.object({
     type: z.literal('thread_data'),
     thread: z.object({
-        id: z.number(),
+        id: z.string(),
         title: z.string(),
         content: z.string(),
-        channelId: z.number(),
+        channelId: z.string(),
         channelName: z.string().optional(),
         workspaceId: z.number(),
         creator: z.number(),
@@ -58,11 +63,11 @@ export const LoadThreadOutputSchema = z.object({
     }),
     comments: z.array(
         z.object({
-            id: z.number(),
+            id: z.string(),
             content: z.string(),
             creator: z.number(),
             creatorName: z.string().optional(),
-            threadId: z.number(),
+            threadId: z.string(),
             posted: z.string(),
             commentUrl: z.string(),
         }),
@@ -76,7 +81,7 @@ export const LoadThreadOutputSchema = z.object({
 export const LoadConversationOutputSchema = z.object({
     type: z.literal('conversation_data'),
     conversation: z.object({
-        id: z.number(),
+        id: z.string(),
         workspaceId: z.number(),
         userIds: z.array(z.number()),
         archived: z.boolean(),
@@ -86,11 +91,11 @@ export const LoadConversationOutputSchema = z.object({
     }),
     messages: z.array(
         z.object({
-            id: z.number(),
+            id: z.string(),
             content: z.string(),
             creatorId: z.number(),
             creatorName: z.string().optional(),
-            conversationId: z.number(),
+            conversationId: z.string(),
             posted: z.string(),
             messageUrl: z.string(),
         }),
@@ -106,9 +111,9 @@ export const FetchInboxOutputSchema = z.object({
     workspaceId: z.number(),
     threads: z.array(
         z.object({
-            id: z.number(),
+            id: z.string(),
             title: z.string(),
-            channelId: z.number(),
+            channelId: z.string(),
             channelName: z.string().optional(),
             creator: z.number(),
             isUnread: z.boolean(),
@@ -119,7 +124,7 @@ export const FetchInboxOutputSchema = z.object({
     ),
     conversations: z.array(
         z.object({
-            id: z.number(),
+            id: z.string(),
             title: z.string(),
             userIds: z.array(z.number()),
             participantNames: z.array(z.string()),
@@ -149,9 +154,9 @@ export const SearchContentOutputSchema = z.object({
             creatorId: z.number(),
             creatorName: z.string().optional(),
             created: z.string(),
-            threadId: z.number().optional(),
-            conversationId: z.number().optional(),
-            channelId: z.number().optional(),
+            threadId: z.string().optional(),
+            conversationId: z.string().optional(),
+            channelId: z.string().optional(),
             channelName: z.string().optional(),
             workspaceId: z.number(),
             url: z.string(),
@@ -176,9 +181,9 @@ export const GetMentionsOutputSchema = z.object({
             creatorId: z.number(),
             creatorName: z.string().optional(),
             created: z.string(),
-            threadId: z.number().optional(),
-            conversationId: z.number().optional(),
-            channelId: z.number().optional(),
+            threadId: z.string().optional(),
+            conversationId: z.string().optional(),
+            channelId: z.string().optional(),
             channelName: z.string().optional(),
             workspaceId: z.number(),
             url: z.string(),
@@ -202,13 +207,10 @@ export const GetWorkspacesOutputSchema = z.object({
             creatorName: z.string().optional(),
             created: z.string(),
             url: z.url(),
-            defaultChannel: z.number().optional(),
-            defaultChannelName: z.string().optional(),
-            defaultChannelUrl: z.url().optional(),
-            defaultConversation: z.number().optional(),
+            defaultConversation: z.string().optional(),
             defaultConversationTitle: z.string().optional(),
             defaultConversationUrl: z.url().optional(),
-            plan: z.string().optional(), // WorkspacePlan is a string union
+            plan: z.string().optional(),
             avatarId: z.string().optional(),
             avatarUrls: z
                 .object({
@@ -234,8 +236,7 @@ export const GetUsersOutputSchema = z.object({
             name: z.string(),
             shortName: z.string(),
             email: z.string().optional(),
-            userType: z.string(), // UserType is a string type
-            bot: z.boolean(),
+            userType: z.string(),
             removed: z.boolean(),
             timezone: z.string(),
         }),
@@ -252,7 +253,7 @@ export const GetGroupsOutputSchema = z.object({
     workspaceId: z.number(),
     groups: z.array(
         z.object({
-            id: z.number(),
+            id: z.string(),
             name: z.string(),
             workspaceId: z.number(),
             memberCount: z.number(),
@@ -266,7 +267,11 @@ export const AWAY_ACTIONS = ['get', 'set', 'clear'] as const
 export type AwayAction = (typeof AWAY_ACTIONS)[number]
 
 /**
- * Schema for away tool output
+ * Schema for away tool output.
+ *
+ * Away mode is not part of the Comms session-user payload — the structured
+ * output keeps the field for forwards-compat but the SDK currently doesn't
+ * surface away state, so `isAway` is always false and `awayMode` is omitted.
  */
 export const AwayOutputSchema = z.object({
     type: z.literal('away_status'),
@@ -282,16 +287,19 @@ export const AwayOutputSchema = z.object({
 })
 
 /**
- * Schema for user-info tool output
+ * Schema for user-info tool output.
+ *
+ * Comms users no longer carry `bot` or `defaultWorkspace`; both are dropped
+ * from the structured output. `name` mirrors `User.fullName`.
  */
 export const UserInfoOutputSchema = z.object({
     type: z.literal('user_info'),
     userId: z.number(),
     name: z.string(),
+    shortName: z.string(),
     email: z.string(),
     timezone: z.string(),
-    bot: z.boolean(),
-    defaultWorkspace: z.number().nullable(),
+    lang: z.string(),
 })
 
 /**
@@ -303,11 +311,11 @@ export const BuildLinkOutputSchema = z.object({
     linkType: z.enum(['conversation', 'message', 'thread', 'comment']),
     params: z.object({
         workspaceId: z.number(),
-        conversationId: z.number().optional(),
-        messageId: z.union([z.number(), z.string()]).optional(),
-        channelId: z.number().optional(),
-        threadId: z.number().optional(),
-        commentId: z.union([z.number(), z.string()]).optional(),
+        conversationId: z.string().optional(),
+        messageId: z.string().optional(),
+        channelId: z.string().optional(),
+        threadId: z.string().optional(),
+        commentId: z.string().optional(),
     }),
 })
 
@@ -317,16 +325,16 @@ export const BuildLinkOutputSchema = z.object({
 export const CreateThreadOutputSchema = z.object({
     type: z.literal('create_thread_result'),
     success: z.boolean(),
-    threadId: z.number(),
+    threadId: z.string(),
     title: z.string(),
-    channelId: z.number(),
+    channelId: z.string(),
     workspaceId: z.number(),
     content: z.string(),
     creator: z.number(),
     created: z.string(),
     threadUrl: z.string(),
     recipients: z.array(z.number()).optional(),
-    groups: z.array(z.number()).optional(),
+    groups: z.array(z.string()).optional(),
 })
 
 /**
@@ -335,9 +343,9 @@ export const CreateThreadOutputSchema = z.object({
 export const UpdateThreadOutputSchema = z.object({
     type: z.literal('update_thread_result'),
     success: z.boolean(),
-    threadId: z.number(),
+    threadId: z.string(),
     title: z.string(),
-    channelId: z.number(),
+    channelId: z.string(),
     workspaceId: z.number(),
     content: z.string(),
     threadUrl: z.string(),
@@ -350,9 +358,9 @@ export const UpdateThreadOutputSchema = z.object({
 export const UpdateCommentOutputSchema = z.object({
     type: z.literal('update_comment_result'),
     success: z.boolean(),
-    commentId: z.number(),
-    threadId: z.number(),
-    channelId: z.number(),
+    commentId: z.string(),
+    threadId: z.string(),
+    channelId: z.string(),
     workspaceId: z.number(),
     content: z.string(),
     commentUrl: z.string(),
@@ -365,8 +373,8 @@ export const UpdateCommentOutputSchema = z.object({
 export const UpdateMessageOutputSchema = z.object({
     type: z.literal('update_message_result'),
     success: z.boolean(),
-    messageId: z.number(),
-    conversationId: z.number(),
+    messageId: z.string(),
+    conversationId: z.string(),
     workspaceId: z.number(),
     content: z.string(),
     messageUrl: z.string(),
@@ -391,16 +399,16 @@ export const UpdateObjectOutputSchema = z.object({
     workspaceId: z.number(),
     lastEdited: z.string().nullable().optional(),
     // thread fields
-    threadId: z.number().optional(),
+    threadId: z.string().optional(),
     title: z.string().optional(),
-    channelId: z.number().optional(),
+    channelId: z.string().optional(),
     threadUrl: z.string().optional(),
     // comment fields
-    commentId: z.number().optional(),
+    commentId: z.string().optional(),
     commentUrl: z.string().optional(),
     // message fields
-    messageId: z.number().optional(),
-    conversationId: z.number().optional(),
+    messageId: z.string().optional(),
+    conversationId: z.string().optional(),
     messageUrl: z.string().optional(),
 })
 
@@ -411,7 +419,7 @@ export const DeleteThreadOutputSchema = z.object({
     type: z.literal('delete_thread_result'),
     success: z.boolean(),
     targetType: z.literal('thread'),
-    threadId: z.number(),
+    threadId: z.string(),
 })
 
 /**
@@ -421,7 +429,7 @@ export const DeleteCommentOutputSchema = z.object({
     type: z.literal('delete_comment_result'),
     success: z.boolean(),
     targetType: z.literal('comment'),
-    commentId: z.number(),
+    commentId: z.string(),
 })
 
 /**
@@ -431,7 +439,7 @@ export const DeleteMessageOutputSchema = z.object({
     type: z.literal('delete_message_result'),
     success: z.boolean(),
     targetType: z.literal('message'),
-    messageId: z.number(),
+    messageId: z.string(),
 })
 
 /**
@@ -448,9 +456,9 @@ export const DeleteObjectOutputSchema = z.object({
     type: z.enum(['delete_thread_result', 'delete_comment_result', 'delete_message_result']),
     success: z.boolean(),
     targetType: z.enum(['thread', 'comment', 'message']),
-    threadId: z.number().optional(),
-    commentId: z.number().optional(),
-    messageId: z.number().optional(),
+    threadId: z.string().optional(),
+    commentId: z.string().optional(),
+    messageId: z.string().optional(),
 })
 
 /**
@@ -460,14 +468,14 @@ export const ReplyOutputSchema = z.object({
     type: z.literal('reply_result'),
     success: z.boolean(),
     targetType: z.enum(['thread', 'conversation']),
-    targetId: z.number(),
-    replyId: z.number(),
+    targetId: z.string(),
+    replyId: z.string(),
     content: z.string(),
     created: z.string(),
     replyUrl: z.string(),
     recipients: z.array(z.number()).optional(),
     notifyAudience: z.enum(NOTIFY_AUDIENCES).optional(),
-    groups: z.array(z.number()).optional(),
+    groups: z.array(z.string()).optional(),
 })
 
 /**
@@ -478,7 +486,7 @@ export const ReactOutputSchema = z.object({
     success: z.boolean(),
     operation: z.enum(['add', 'remove']),
     targetType: z.enum(['thread', 'comment', 'message']),
-    targetId: z.number(),
+    targetId: z.string(),
     emoji: z.string(),
     targetUrl: z.string(),
 })
@@ -490,10 +498,10 @@ export const MarkDoneOutputSchema = z.object({
     type: z.literal('mark_done_result'),
     itemType: z.enum(['thread', 'conversation']),
     mode: z.enum(['individual', 'bulk']),
-    completed: z.array(z.number()),
+    completed: z.array(z.string()),
     failed: z.array(
         z.object({
-            item: z.number(),
+            item: z.string(),
             error: z.string(),
         }),
     ),
@@ -508,7 +516,7 @@ export const MarkDoneOutputSchema = z.object({
     selectors: z
         .object({
             workspaceId: z.number().optional(),
-            channelId: z.number().optional(),
+            channelId: z.string().optional(),
         })
         .optional(),
 })
@@ -521,7 +529,7 @@ export const ListChannelsOutputSchema = z.object({
     workspaceId: z.number(),
     channels: z.array(
         z.object({
-            id: z.number(),
+            id: z.string(),
             name: z.string(),
             description: z.string().optional(),
             public: z.boolean(),

@@ -10,10 +10,10 @@ type UserInfoStructured = Record<string, unknown> & {
     type: 'user_info'
     userId: number
     name: string
+    shortName: string
     email: string
     timezone: string
-    bot: boolean
-    defaultWorkspace: number | null
+    lang: string
 }
 
 async function generateUserInfo(
@@ -25,34 +25,23 @@ async function generateUserInfo(
         '# User Information',
         '',
         `**User ID:** ${user.id}`,
-        `**Name:** ${user.name}`,
+        `**Name:** ${user.fullName}`,
+        `**Short Name:** ${user.shortName}`,
         `**Email:** ${user.email}`,
         `**Timezone:** ${user.timezone}`,
-        `**Bot:** ${user.bot ? 'Yes' : 'No'}`,
         `**Language:** ${user.lang}`,
     ]
-
-    if (user.defaultWorkspace) {
-        lines.push(`**Default Workspace:** ${user.defaultWorkspace}`)
-    }
-
-    if (user.awayMode) {
-        lines.push('', '## Away Mode')
-        lines.push(`**Type:** ${user.awayMode.type}`)
-        lines.push(`**From:** ${user.awayMode.dateFrom}`)
-        lines.push(`**To:** ${user.awayMode.dateTo}`)
-    }
 
     const textContent = lines.join('\n')
 
     const structuredContent: UserInfoStructured = {
         type: 'user_info',
         userId: user.id,
-        name: user.name,
+        name: user.fullName,
+        shortName: user.shortName,
         email: user.email,
         timezone: user.timezone,
-        bot: user.bot,
-        defaultWorkspace: user.defaultWorkspace ?? null,
+        lang: user.lang,
     }
 
     return { textContent, structuredContent }
@@ -61,7 +50,7 @@ async function generateUserInfo(
 const userInfo = {
     name: ToolNames.USER_INFO,
     description:
-        'Get comprehensive user information including user ID, name, email, timezone, bot status, default workspace, and away mode status.',
+        'Get information about the authenticated Comms user: user ID, full name, short name, email, timezone, and language.',
     parameters: ArgsSchema,
     outputSchema: UserInfoOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },

@@ -10,7 +10,7 @@ const ArgsSchema = {
     targetType: ReactionTargetTypeSchema.describe(
         'The type of object to react to: thread, comment, or message.',
     ),
-    targetId: z.number().describe('The ID of the thread, comment, or message to react to.'),
+    targetId: z.string().describe('The ID of the thread, comment, or message to react to.'),
     emoji: z.string().min(1).describe('The emoji to react with (e.g., "👍", "❤️", "🎉").'),
     operation: z
         .enum(['add', 'remove'])
@@ -23,7 +23,7 @@ type ReactStructured = {
     success: boolean
     operation: 'add' | 'remove'
     targetType: ReactionTargetType
-    targetId: number
+    targetId: string
     emoji: string
     targetUrl: string
 }
@@ -74,9 +74,9 @@ const react = {
 
         // Map targetType to the appropriate API parameter
         const apiParams: {
-            threadId?: number
-            commentId?: number
-            messageId?: number
+            threadId?: string
+            commentId?: string
+            messageId?: string
             reaction: string
         } = { reaction: emoji }
 
@@ -90,9 +90,9 @@ const react = {
 
         // Perform the reaction operation
         if (operation === 'add') {
-            await client.reactions.add(apiParams)
+            await client.reactions.add({ ...apiParams, reaction: emoji })
         } else {
-            await client.reactions.remove(apiParams)
+            await client.reactions.remove({ ...apiParams, reaction: emoji })
         }
 
         const lines: string[] = [

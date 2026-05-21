@@ -8,19 +8,17 @@ import { ToolNames } from '../utils/tool-names.js'
 const ArgsSchema = {
     workspaceId: z.number().describe('The workspace ID.'),
     conversationId: z
-        .number()
+        .string()
         .optional()
         .describe('The conversation ID (for direct message links).'),
     messageId: z
-        .number()
-        .or(z.string())
+        .string()
         .optional()
         .describe('The message ID (for specific message links within a conversation).'),
-    channelId: z.number().optional().describe('The channel ID (for thread links in channels).'),
-    threadId: z.number().optional().describe('The thread ID (for thread/comment links).'),
+    channelId: z.string().optional().describe('The channel ID (for thread links in channels).'),
+    threadId: z.string().optional().describe('The thread ID (for thread/comment links).'),
     commentId: z
-        .number()
-        .or(z.string())
+        .string()
         .optional()
         .describe('The comment ID (for specific comment links within a thread).'),
     fullUrl: z
@@ -36,11 +34,11 @@ type BuildLinkStructured = {
     linkType: 'conversation' | 'message' | 'thread' | 'comment'
     params: {
         workspaceId: number
-        conversationId?: number
-        messageId?: number | string
-        channelId?: number
-        threadId?: number
-        commentId?: number | string
+        conversationId?: string
+        messageId?: string
+        channelId?: string
+        threadId?: string
+        commentId?: string
     }
 }
 

@@ -25,7 +25,6 @@ type UserData = {
     shortName: string
     email?: string
     userType: UserType
-    bot: boolean
     removed: boolean
     timezone: string
 }
@@ -52,16 +51,11 @@ const getUsers = {
         const users =
             !userIds || userIds.length === 0
                 ? await client.workspaceUsers.getWorkspaceUsers({ workspaceId })
-                : await (async () => {
-                      const userRequests = userIds.map((userId) =>
-                          client.workspaceUsers.getUserById(
-                              { workspaceId, userId },
-                              { batch: true },
-                          ),
-                      )
-                      const userResponses = await client.batch(...userRequests)
-                      return userResponses.map((response) => response.data)
-                  })()
+                : await Promise.all(
+                      userIds.map((userId) =>
+                          client.workspaceUsers.getUserById({ workspaceId, userId }),
+                      ),
+                  )
 
         const totalUsers = users.length
 
@@ -70,7 +64,7 @@ const getUsers = {
         if (searchText) {
             const searchLower = searchText.toLowerCase()
             filteredUsers = users.filter((user) => {
-                const nameMatch = user.name.toLowerCase().includes(searchLower)
+                const nameMatch = user.fullName.toLowerCase().includes(searchLower)
                 const emailMatch = user.email?.toLowerCase().includes(searchLower) || false
                 return nameMatch || emailMatch
             })
@@ -89,7 +83,7 @@ const getUsers = {
             lines.push('No users found.')
         } else {
             for (const user of filteredUsers) {
-                lines.push(`## ${user.name}${user.bot ? ' 🤖' : ''}`)
+                lines.push(`## ${user.fullName}`)
                 lines.push(`**ID:** ${user.id}`)
                 if (user.email) {
                     lines.push(`**Email:** ${user.email}`)
@@ -108,11 +102,10 @@ const getUsers = {
             workspaceId,
             users: filteredUsers.map((user) => ({
                 id: user.id,
-                name: user.name,
+                name: user.fullName,
                 shortName: user.shortName,
                 ...(user.email && { email: user.email }),
                 userType: user.userType,
-                bot: user.bot,
                 removed: user.removed,
                 timezone: user.timezone,
             })),

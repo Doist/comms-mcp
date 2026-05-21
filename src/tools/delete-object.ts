@@ -17,7 +17,7 @@ const ArgsSchema = {
         'The type of object to delete: thread, comment, or message.',
     ),
     targetId: z
-        .number()
+        .string()
         .describe('The ID of the thread, comment, or conversation message to delete.'),
 }
 

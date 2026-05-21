@@ -1,9 +1,17 @@
-import { AWAY_MODE_TYPES, type AwayModeType, type CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
 import type { CommsTool } from '../comms-tool.js'
 import { AWAY_ACTIONS, type AwayOutput, AwayOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
+
+// The Comms SDK does not expose an away-mode endpoint, and the Comms user
+// payload does not carry away state. `get` therefore honestly reports
+// `isAway: false`, while `set` and `clear` reject so the LLM doesn't
+// silently succeed and mislead the user. Wire up the real implementation
+// when an away endpoint lands.
+
+const AWAY_MODE_TYPES = ['vacation', 'parental', 'sickleave', 'other'] as const
+type AwayModeType = (typeof AWAY_MODE_TYPES)[number]
 
 const ArgsSchema = {
     action: z.enum(AWAY_ACTIONS).describe('The action to perform.'),
@@ -18,102 +26,21 @@ const ArgsSchema = {
     until: z.string().optional().describe('End date (YYYY-MM-DD). Required when action is "set".'),
 }
 
-const AWAY_TYPE_LABELS: Record<AwayModeType, string> = {
-    vacation: 'Vacation',
-    parental: 'Parental leave',
-    sickleave: 'Sick leave',
-    other: 'Away',
-}
+const NOT_AWAY_MESSAGE =
+    '# Away Status\n\n**Status:** Not away\n\n_Away mode is not currently exposed by the Comms SDK; this tool only reports the absence of away state._'
 
-function formatAwayType(type: AwayModeType): string {
-    return AWAY_TYPE_LABELS[type]
-}
+const UNSUPPORTED_MUTATION =
+    'Away mode is not currently supported by the Comms SDK — `set` and `clear` are unavailable. Reading via `get` will report the user as not away.'
 
-function getTodayDate(): string {
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-}
-
-async function executeGet(
-    client: CommsApi,
-): Promise<{ textContent: string; structuredContent: AwayOutput }> {
-    const user = await client.users.getSessionUser()
-    const awayMode = user.awayMode ?? undefined
-
-    const lines: string[] = ['# Away Status']
-    if (awayMode) {
-        lines.push(
-            '',
-            `**Status:** Away`,
-            `**Type:** ${formatAwayType(awayMode.type as AwayModeType)}`,
-            `**From:** ${awayMode.dateFrom}`,
-            `**To:** ${awayMode.dateTo}`,
-        )
-    } else {
-        lines.push('', '**Status:** Not away')
-    }
-
+function getNotAwayOutput(): {
+    textContent: string
+    structuredContent: AwayOutput
+} {
     return {
-        textContent: lines.join('\n'),
+        textContent: NOT_AWAY_MESSAGE,
         structuredContent: {
             type: 'away_status',
             action: 'get',
-            isAway: awayMode !== undefined,
-            awayMode: awayMode
-                ? {
-                      type: awayMode.type,
-                      dateFrom: awayMode.dateFrom,
-                      dateTo: awayMode.dateTo,
-                  }
-                : undefined,
-        },
-    }
-}
-
-async function executeSet(
-    client: CommsApi,
-    awayType: AwayModeType,
-    dateFrom: string,
-    dateTo: string,
-): Promise<{ textContent: string; structuredContent: AwayOutput }> {
-    await client.users.update({
-        awayMode: { type: awayType, dateFrom, dateTo },
-    })
-
-    return {
-        textContent: [
-            '# Away Status Set',
-            '',
-            `**Type:** ${formatAwayType(awayType)}`,
-            `**From:** ${dateFrom}`,
-            `**To:** ${dateTo}`,
-        ].join('\n'),
-        structuredContent: {
-            type: 'away_status',
-            action: 'set',
-            isAway: true,
-            awayMode: {
-                type: awayType,
-                dateFrom,
-                dateTo,
-            },
-        },
-    }
-}
-
-async function executeClear(
-    client: CommsApi,
-): Promise<{ textContent: string; structuredContent: AwayOutput }> {
-    await client.users.update({ awayMode: '' as never })
-
-    return {
-        textContent: '# Away Status Cleared\n\n**Status:** Not away',
-        structuredContent: {
-            type: 'away_status',
-            action: 'clear',
             isAway: false,
             awayMode: undefined,
         },
@@ -123,7 +50,7 @@ async function executeClear(
 const away = {
     name: ToolNames.AWAY,
     description:
-        "Manage the current user's away status. Supports getting, setting, and clearing away mode with types: parental, vacation, sickleave, other.",
+        "Manage the current user's away status. NOTE: the Comms SDK does not currently expose an away-mode endpoint, so only `action: \"get\"` is supported (and it always reports the user as not away). `set` and `clear` will fail with a clear error.",
     parameters: ArgsSchema,
     outputSchema: AwayOutputSchema.shape,
     annotations: {
@@ -131,29 +58,13 @@ const away = {
         destructiveHint: false,
         idempotentHint: true,
     },
-    async execute(args, client) {
-        switch (args.action) {
-            case 'get': {
-                const result = await executeGet(client)
-                return getToolOutput(result)
-            }
-            case 'set': {
-                if (!args.type) {
-                    throw new Error('The "type" parameter is required when action is "set".')
-                }
-                if (!args.until) {
-                    throw new Error('The "until" parameter is required when action is "set".')
-                }
-                const dateFrom = args.from ?? getTodayDate()
-                const result = await executeSet(client, args.type, dateFrom, args.until)
-                return getToolOutput(result)
-            }
-            case 'clear': {
-                const result = await executeClear(client)
-                return getToolOutput(result)
-            }
+    async execute(args, _client) {
+        if (args.action === 'set' || args.action === 'clear') {
+            throw new Error(UNSUPPORTED_MUTATION)
         }
+
+        return getToolOutput(getNotAwayOutput())
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof AwayOutputSchema.shape>
 
-export { away }
+export { away, type AwayModeType }

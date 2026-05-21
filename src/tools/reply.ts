@@ -10,7 +10,7 @@ const ArgsSchema = {
     targetType: ReplyTargetTypeSchema.describe(
         'The type of object to reply to: thread (posts a comment) or conversation (posts a message).',
     ),
-    targetId: z.number().describe('The ID of the thread or conversation to reply to.'),
+    targetId: z.string().describe('The ID of the thread or conversation to reply to.'),
     content: z.string().min(1).describe('The content of the reply.'),
     recipients: z
         .array(z.number())
@@ -19,7 +19,7 @@ const ArgsSchema = {
             'Optional array of user IDs to notify (only for thread replies). If omitted with no groups and no notifyAudience, thread replies default to notifying everyone who has interacted with the thread.',
         ),
     groups: z
-        .array(z.number())
+        .array(z.string())
         .optional()
         .describe(
             'Optional array of group IDs to notify (only for thread replies). Use get-groups to discover group IDs before passing them here.',
@@ -57,7 +57,7 @@ const reply = {
                   (recipients === undefined && !groupsToNotify ? 'thread' : undefined))
                 : undefined
 
-        let replyId: number
+        let replyId: string
         let created: Date
         let replyUrl: string
 
