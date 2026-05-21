@@ -1,7 +1,11 @@
 import { CommsApi } from '@doist/comms-sdk'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { registerTool } from './mcp-helpers.js'
-import { away } from './tools/away.js'
+// `away` is intentionally not registered on the MCP server — the Comms SDK
+// doesn't expose an away-mode endpoint, so advertising a tool whose entire
+// surface throws would only invite the model to keep trying it. The symbol
+// stays exported from src/index.ts for importable-tools consumers; wire it
+// back in here once a real endpoint lands.
 import { buildLink } from './tools/build-link.js'
 import { createThread } from './tools/create-thread.js'
 import { deleteObject } from './tools/delete-object.js'
@@ -41,7 +45,6 @@ You have access to comprehensive Comms management tools for team communication a
 - **get-mentions**: Use to fetch threads, comments, and messages that mention the current user. Prefer this over search-content when no keyword query is needed (search-content requires a non-empty query). Supports filtering by channel, author, and date range, and exposes a cursor for pagination.
 - **update-object**: Use to edit something you previously sent. Pass targetType ("thread", "comment", or "message"), targetId, and the new content. For threads you may also pass title (and may pass title without content). title is only valid for threads.
 - **delete-object**: Use to permanently delete a thread, comment, or conversation message. Pass targetType ("thread", "comment", or "message") and targetId. Deletion is irreversible — confirm with the user before invoking. Deleting a thread also removes all of its comments. Only the object's creator or a workspace admin can delete; the Comms API will reject the call otherwise.
-- **away**: The Comms SDK does not currently expose an away-mode endpoint. Only \`action: "get"\` is supported and it always reports the user as not away; \`set\` and \`clear\` will fail. Avoid suggesting away-mode workflows until this lands upstream.
 
 ### Best Practices:
 
@@ -75,7 +78,6 @@ function getMcpServer({ commsApiKey, baseUrl }: { commsApiKey: string; baseUrl?:
 
     // Register tools
     registerTool(userInfo, server, comms)
-    registerTool(away, server, comms)
     registerTool(getWorkspaces, server, comms)
     registerTool(getUsers, server, comms)
     registerTool(getGroups, server, comms)

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
 import type { CommsTool } from '../comms-tool.js'
+import { limitedAll } from '../utils/concurrency.js'
 import { MarkDoneOutputSchema } from '../utils/output-schemas.js'
 import { type MarkDoneType, MarkDoneTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -93,6 +94,16 @@ const markDone = {
             )
         }
 
+        // Reject channel-only bulk archive up front: the SDK's `inbox.archiveAll`
+        // requires a workspaceId, so without one we'd silently drop the archive
+        // step while reporting success — exactly the "lie about state" failure
+        // mode this tool must avoid.
+        if (type === 'thread' && archive && channelId && !workspaceId) {
+            throw new Error(
+                'Archiving by channelId requires workspaceId. Pass both, or pass individual `ids` instead.',
+            )
+        }
+
         try {
             // Bulk operations (threads only)
             if (type === 'thread' && (workspaceId || channelId)) {
@@ -120,19 +131,18 @@ const markDone = {
                     // Archive all (inbox operations). `archiveAll` requires a
                     // workspaceId; with a channelId also present, pass it via
                     // `channelIds` so the archive stays scoped to that channel.
-                    // Channel-only (no workspaceId) isn't supported by the SDK.
-                    if (archive) {
-                        if (workspaceId && channelId) {
+                    // The channel-only case is rejected up front in the
+                    // validation above so this branch is reachable only with
+                    // a workspaceId.
+                    if (archive && workspaceId) {
+                        if (channelId) {
                             await client.inbox.archiveAll({
                                 workspaceId,
                                 channelIds: [channelId],
                             })
-                        } else if (workspaceId) {
+                        } else {
                             await client.inbox.archiveAll({ workspaceId })
                         }
-                        // channelId-only: silently skipped — see TODO(comms-sdk)
-                        // above. The bulk path still reports success because the
-                        // mark-read step above runs in the channel-only case.
                     }
                 }
 
@@ -142,34 +152,34 @@ const markDone = {
                 // Individual operations - run them in parallel
                 mode = 'individual'
 
-                // Try all operations concurrently; if any individual ID
-                // fails, record it but keep going.
-                const results = await Promise.all(
-                    ids.map(async (id) => {
-                        try {
-                            if (type === 'thread') {
-                                if (markRead) {
-                                    await client.threads.markRead({ id, objIndex: 0 })
-                                }
-                                if (archive) {
-                                    await client.inbox.archiveThread(id)
-                                }
-                            } else {
-                                if (markRead) {
-                                    await client.conversations.markRead({ id })
-                                }
-                                if (archive) {
-                                    await client.conversations.archiveConversation(id)
-                                }
+                // Try all operations with bounded concurrency; if any
+                // individual ID fails, record it but keep going. The `ids`
+                // list is user-supplied so it can be large — `limitedAll`
+                // keeps the burst inside the socket pool / rate limiter.
+                const results = await limitedAll(ids, async (id) => {
+                    try {
+                        if (type === 'thread') {
+                            if (markRead) {
+                                await client.threads.markRead({ id, objIndex: 0 })
                             }
-                            return { id, ok: true as const }
-                        } catch (error) {
-                            const errorMessage =
-                                error instanceof Error ? error.message : 'Unknown error'
-                            return { id, ok: false as const, errorMessage }
+                            if (archive) {
+                                await client.inbox.archiveThread(id)
+                            }
+                        } else {
+                            if (markRead) {
+                                await client.conversations.markRead({ id })
+                            }
+                            if (archive) {
+                                await client.conversations.archiveConversation(id)
+                            }
                         }
-                    }),
-                )
+                        return { id, ok: true as const }
+                    } catch (error) {
+                        const errorMessage =
+                            error instanceof Error ? error.message : 'Unknown error'
+                        return { id, ok: false as const, errorMessage }
+                    }
+                })
 
                 for (const r of results) {
                     if (r.ok) {

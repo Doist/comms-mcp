@@ -2,6 +2,7 @@ import type { Channel, CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
 import type { CommsTool } from '../comms-tool.js'
+import { limitedAll } from '../utils/concurrency.js'
 import { ListChannelsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getChannelUrl } from '../utils/url-helpers.js'
@@ -74,13 +75,13 @@ async function generateChannelsList(
     // Look up creator names in parallel, tolerating individual failures so a
     // single deleted/inaccessible creator doesn't fail the whole list — the
     // fallback path (creator ID without a name) is exercised by the text output.
+    // Bounded concurrency keeps the socket pool / rate limiter happy on big
+    // workspaces; today's traffic is small but the ceiling matters when it isn't.
     const creatorLookup: Record<number, string> = {}
     if (creatorIds.size > 0) {
         const creatorIdArray = Array.from(creatorIds)
-        const users = await Promise.all(
-            creatorIdArray.map((userId) =>
-                client.workspaceUsers.getUserById({ workspaceId, userId }).catch(() => null),
-            ),
+        const users = await limitedAll(creatorIdArray, (userId) =>
+            client.workspaceUsers.getUserById({ workspaceId, userId }).catch(() => null),
         )
         for (let i = 0; i < creatorIdArray.length; i++) {
             const creatorId = creatorIdArray[i]

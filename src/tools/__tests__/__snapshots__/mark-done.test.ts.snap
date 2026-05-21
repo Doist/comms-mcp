@@ -1,5 +1,19 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`mark-done tool bulk thread operations marks all read in a channel without archiving when archive=false 1`] = `
+"# Mark Threads Done
+
+**Mode:** Bulk Operation
+**Channel ID:** channel-id-1
+**Mark Read:** Yes
+**Archive:** No
+
+Bulk operation completed successfully
+## Next Steps
+
+Use \`fetch-inbox\` to see remaining unread threads."
+`;
+
 exports[`mark-done tool bulk thread operations should archive all without marking as read in workspace 1`] = `
 "# Mark Threads Done
 
@@ -46,20 +60,6 @@ exports[`mark-done tool bulk thread operations should mark all threads as read a
 
 **Mode:** Bulk Operation
 **Workspace ID:** 11111
-**Mark Read:** Yes
-**Archive:** Yes
-
-Bulk operation completed successfully
-## Next Steps
-
-Use \`fetch-inbox\` to see remaining unread threads."
-`;
-
-exports[`mark-done tool bulk thread operations should mark all threads as read in a channel (archive skipped without workspaceId) 1`] = `
-"# Mark Threads Done
-
-**Mode:** Bulk Operation
-**Channel ID:** channel-id-1
 **Mark Read:** Yes
 **Archive:** Yes
 

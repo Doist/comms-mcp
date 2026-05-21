@@ -1,13 +1,15 @@
 import { z } from 'zod'
-import { getToolOutput } from '../mcp-helpers.js'
 import type { CommsTool } from '../comms-tool.js'
-import { AWAY_ACTIONS, type AwayOutput, AwayOutputSchema } from '../utils/output-schemas.js'
+import { AWAY_ACTIONS, AwayOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
 // The Comms SDK does not expose an away-mode endpoint, and the Comms user
-// payload does not carry away state. `get` therefore honestly reports
-// `isAway: false`, while `set` and `clear` reject so the LLM doesn't
-// silently succeed and mislead the user. Wire up the real implementation
+// payload does not carry away state. Every action throws with a clear
+// unsupported-by-SDK error — returning `{ isAway: false }` would be a
+// silent lie (the user may genuinely be away; we simply can't tell), and
+// the LLM would happily reason on it. The tool is also unregistered from
+// the MCP server; this symbol stays exported for importable-tools
+// consumers so they get the same loud failure. Wire up real behavior
 // when an away endpoint lands.
 
 const AWAY_MODE_TYPES = ['vacation', 'parental', 'sickleave', 'other'] as const
@@ -26,31 +28,13 @@ const ArgsSchema = {
     until: z.string().optional().describe('End date (YYYY-MM-DD). Required when action is "set".'),
 }
 
-const NOT_AWAY_MESSAGE =
-    '# Away Status\n\n**Status:** Not away\n\n_Away mode is not currently exposed by the Comms SDK; this tool only reports the absence of away state._'
-
-const UNSUPPORTED_MUTATION =
-    'Away mode is not currently supported by the Comms SDK — `set` and `clear` are unavailable. Reading via `get` will report the user as not away.'
-
-function getNotAwayOutput(): {
-    textContent: string
-    structuredContent: AwayOutput
-} {
-    return {
-        textContent: NOT_AWAY_MESSAGE,
-        structuredContent: {
-            type: 'away_status',
-            action: 'get',
-            isAway: false,
-            awayMode: undefined,
-        },
-    }
-}
+const UNSUPPORTED =
+    'Away mode is not currently supported by the Comms SDK — no endpoint is exposed and the user payload does not carry away state. `get`, `set`, and `clear` all fail loudly so callers do not act on stale or invented data.'
 
 const away = {
     name: ToolNames.AWAY,
     description:
-        "Manage the current user's away status. NOTE: the Comms SDK does not currently expose an away-mode endpoint, so only `action: \"get\"` is supported (and it always reports the user as not away). `set` and `clear` will fail with a clear error.",
+        "Manage the current user's away status. NOTE: the Comms SDK does not currently expose an away-mode endpoint, so all actions throw an explicit unsupported error. The tool is intentionally not registered on the MCP server; this stub exists only for the importable-tools surface.",
     parameters: ArgsSchema,
     outputSchema: AwayOutputSchema.shape,
     annotations: {
@@ -58,12 +42,8 @@ const away = {
         destructiveHint: false,
         idempotentHint: true,
     },
-    async execute(args, _client) {
-        if (args.action === 'set' || args.action === 'clear') {
-            throw new Error(UNSUPPORTED_MUTATION)
-        }
-
-        return getToolOutput(getNotAwayOutput())
+    async execute(_args, _client) {
+        throw new Error(UNSUPPORTED)
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof AwayOutputSchema.shape>
 

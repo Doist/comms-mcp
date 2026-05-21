@@ -9,6 +9,7 @@ import { ARCHIVE_FILTER_VALUES, getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import { getToolOutput } from '../mcp-helpers.js'
 import type { CommsTool } from '../comms-tool.js'
+import { limitedAll } from '../utils/concurrency.js'
 import { FetchInboxOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -207,11 +208,10 @@ const fetchInbox = {
 
         // Dedupe channel IDs so we hit `channels.getChannel` once per channel
         // even when the inbox page is dominated by threads from the same channel.
+        // `limitedAll` caps the burst on a large inbox page.
         const uniqueChannelIds = Array.from(new Set(threads.map((t) => t.channelId)))
-        const channelResponses = await Promise.all(
-            uniqueChannelIds.map((channelId) =>
-                client.channels.getChannel(channelId).catch(() => null),
-            ),
+        const channelResponses = await limitedAll(uniqueChannelIds, (channelId) =>
+            client.channels.getChannel(channelId).catch(() => null),
         )
         const channelInfo: Record<Channel['id'], Channel> = channelResponses.reduce<
             Record<Channel['id'], Channel>

@@ -258,14 +258,37 @@ describe(`${MARK_DONE} tool`, () => {
             )
         })
 
-        it('should mark all threads as read in a channel (archive skipped without workspaceId)', async () => {
+        it('rejects channel-only bulk archive (would silently drop the archive step)', async () => {
             mockCommsApi.threads.markAllRead.mockResolvedValue(undefined as never)
             mockCommsApi.inbox.archiveAll.mockResolvedValue(undefined as never)
+
+            // `archive: true` set explicitly so the test pins the rejection to
+            // the archive-without-workspaceId rule rather than the tool's
+            // default. If the default ever changes, this case still tests what
+            // it claims to.
+            await expect(
+                markDone.execute(
+                    {
+                        type: 'thread',
+                        channelId: TEST_IDS.CHANNEL_1,
+                        archive: true,
+                    },
+                    mockCommsApi,
+                ),
+            ).rejects.toThrow('Archiving by channelId requires workspaceId')
+
+            expect(mockCommsApi.threads.markAllRead).not.toHaveBeenCalled()
+            expect(mockCommsApi.inbox.archiveAll).not.toHaveBeenCalled()
+        })
+
+        it('marks all read in a channel without archiving when archive=false', async () => {
+            mockCommsApi.threads.markAllRead.mockResolvedValue(undefined as never)
 
             const result = await markDone.execute(
                 {
                     type: 'thread',
                     channelId: TEST_IDS.CHANNEL_1,
+                    archive: false,
                 },
                 mockCommsApi,
             )
@@ -273,11 +296,49 @@ describe(`${MARK_DONE} tool`, () => {
             expect(mockCommsApi.threads.markAllRead).toHaveBeenCalledWith({
                 channelId: TEST_IDS.CHANNEL_1,
             })
-            // The Comms SDK requires workspaceId for archiveAll, so we skip
-            // archive-by-channel-only. The tool falls through silently.
             expect(mockCommsApi.inbox.archiveAll).not.toHaveBeenCalled()
 
             expect(extractTextContent(result)).toMatchSnapshot()
+        })
+
+        it('scopes archive to a channel when workspaceId + channelId are both provided', async () => {
+            mockCommsApi.threads.markAllRead.mockResolvedValue(undefined as never)
+            mockCommsApi.inbox.archiveAll.mockResolvedValue(undefined as never)
+
+            const result = await markDone.execute(
+                {
+                    type: 'thread',
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    channelId: TEST_IDS.CHANNEL_1,
+                    archive: true,
+                },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.threads.markAllRead).toHaveBeenCalledWith({
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                channelId: TEST_IDS.CHANNEL_1,
+            })
+            expect(mockCommsApi.inbox.archiveAll).toHaveBeenCalledWith({
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                channelIds: [TEST_IDS.CHANNEL_1],
+            })
+
+            // Also pin the user-visible reporting so a regression in the
+            // selectors payload can't slip through with the SDK calls green.
+            const structured = result.structuredContent as {
+                mode: string
+                selectors?: { workspaceId?: number; channelId?: string }
+            }
+            expect(structured.mode).toBe('bulk')
+            expect(structured.selectors).toEqual({
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                channelId: TEST_IDS.CHANNEL_1,
+            })
+
+            const text = extractTextContent(result)
+            expect(text).toContain(`**Workspace ID:** ${TEST_IDS.WORKSPACE_1}`)
+            expect(text).toContain(`**Channel ID:** ${TEST_IDS.CHANNEL_1}`)
         })
 
         it('should clear all unread markers in a workspace', async () => {

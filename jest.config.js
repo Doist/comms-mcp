@@ -29,7 +29,9 @@ export default {
             },
         ],
     },
-    transformIgnorePatterns: ['node_modules/(?!(@doist/comms-sdk|camelcase)/)'],
+    transformIgnorePatterns: [
+        'node_modules/(?!(@doist/comms-sdk|camelcase|p-limit|yocto-queue|yoctocolors)/)',
+    ],
     collectCoverageFrom: [
         'src/**/*.ts',
         '!src/**/*.d.ts',
