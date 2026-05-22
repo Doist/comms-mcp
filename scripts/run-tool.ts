@@ -34,6 +34,7 @@ import { reply } from '../src/tools/reply.js'
 import { searchContent } from '../src/tools/search-content.js'
 import { updateObject } from '../src/tools/update-object.js'
 import { userInfo } from '../src/tools/user-info.js'
+import { buildServerOptions } from '../src/utils/server-options.js'
 import { configureBaseUrl } from '../src/utils/url-helpers.js'
 
 // Define a minimal type for tool execution that works with any tool
@@ -138,15 +139,16 @@ async function main() {
         process.exit(1)
     }
 
-    const apiKey = process.env.COMMS_API_KEY
-    if (!apiKey) {
-        console.error('COMMS_API_KEY not found in environment or .env file')
+    let commsApiKey: string
+    let baseUrl: string | undefined
+    try {
+        ;({ commsApiKey, baseUrl } = buildServerOptions())
+    } catch (e) {
+        console.error(e instanceof Error ? e.message : String(e))
         process.exit(1)
     }
-
-    const baseUrl = process.env.COMMS_BASE_URL || undefined
     configureBaseUrl(baseUrl)
-    const client = new CommsApi(apiKey, { baseUrl })
+    const client = new CommsApi(commsApiKey, { baseUrl })
 
     console.log(`Running ${toolName} with args:`)
     console.log(JSON.stringify(parsedArgs, null, 2))
