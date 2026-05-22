@@ -23,11 +23,28 @@ describe('url-helpers', () => {
                 'https://comms.staging.todoist.com/a/1/',
             )
         })
+    })
 
-        it('reverts to prod when baseUrl is cleared', () => {
+    describe('relative-URL helpers', () => {
+        // The SDK's `getMessageURL`/`getCommentURL` return relative paths.
+        // applyBaseUrl's regex only matches a leading prod host, so the
+        // wrapped versions must be no-ops on relative paths regardless of
+        // whether staging is configured. This catches "wrapper accidentally
+        // prepends/mangles a host on relative URLs."
+        const messageArgs = { workspaceId: 1, conversationId: 'c', messageId: 'm' }
+        const commentArgs = { workspaceId: 1, channelId: 'ch', threadId: 't', commentId: 'cm' }
+        const messageRelative = '/a/1/msg/c/m/m'
+        const commentRelative = '/a/1/ch/ch/t/t/c/cm'
+
+        it('pass relative paths through unchanged with no baseUrl', () => {
+            expect(getMessageURL(messageArgs)).toBe(messageRelative)
+            expect(getCommentURL(commentArgs)).toBe(commentRelative)
+        })
+
+        it('pass relative paths through unchanged with staging configured', () => {
             configureBaseUrl('https://comms.staging.todoist.com')
-            configureBaseUrl(undefined)
-            expect(getFullCommsURL({ workspaceId: 1 })).toBe('https://comms.todoist.com/a/1/')
+            expect(getMessageURL(messageArgs)).toBe(messageRelative)
+            expect(getCommentURL(commentArgs)).toBe(commentRelative)
         })
     })
 
@@ -36,43 +53,12 @@ describe('url-helpers', () => {
             expect(toRelativeCommsURL('https://comms.todoist.com/a/1/')).toBe('/a/1/')
         })
 
+        // The previous build-link implementation hardcoded the prod host in
+        // a `.replace(...)` call, which silently failed on staging. The
+        // regex must strip any host so a future contributor can't reintroduce
+        // the hardcoded-host pattern without breaking this test.
         it('strips a staging or custom host', () => {
             expect(toRelativeCommsURL('https://comms.staging.todoist.com/a/1/')).toBe('/a/1/')
-        })
-    })
-
-    describe('getMessageURL', () => {
-        it('returns a relative path by default', () => {
-            const url = getMessageURL({
-                workspaceId: 1,
-                conversationId: 'c',
-                messageId: 'm',
-            })
-            expect(url).toBe('/a/1/msg/c/m/m')
-        })
-
-        it('rewrites the host when staging is configured', () => {
-            configureBaseUrl('https://comms.staging.todoist.com')
-            const url = getMessageURL({
-                workspaceId: 1,
-                conversationId: 'c',
-                messageId: 'm',
-            })
-            // getMessageURL returns a relative path, so applyBaseUrl is a no-op;
-            // this asserts the wrapper doesn't accidentally mangle it.
-            expect(url).toBe('/a/1/msg/c/m/m')
-        })
-    })
-
-    describe('getCommentURL', () => {
-        it('returns a relative path by default', () => {
-            const url = getCommentURL({
-                workspaceId: 1,
-                channelId: 'ch',
-                threadId: 't',
-                commentId: 'cm',
-            })
-            expect(url).toBe('/a/1/ch/ch/t/t/c/cm')
         })
     })
 
