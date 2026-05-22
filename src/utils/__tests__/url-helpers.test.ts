@@ -81,5 +81,43 @@ describe('url-helpers', () => {
                 'https://comms.todoist.com/a/1/',
             )
         })
+
+        // The regex anchors with `(?=[/:?#]|$)` so an attacker-controlled
+        // suffix on the host can't sneak through the rewrite.
+        it('does not match a host with a malicious suffix', () => {
+            configureBaseUrl('https://comms.staging.todoist.com')
+            expect(rewriteToConfiguredHost('https://comms.todoist.com.evil.com/path')).toBe(
+                'https://comms.todoist.com.evil.com/path',
+            )
+            expect(rewriteToConfiguredHost('https://comms.todoist.comEXTRA/x')).toBe(
+                'https://comms.todoist.comEXTRA/x',
+            )
+        })
+
+        // Case-insensitive so an SDK upgrade emitting `Https://...` or
+        // `Comms.Todoist.Com` doesn't silently bypass the rewrite.
+        it('matches case-insensitively', () => {
+            configureBaseUrl('https://comms.staging.todoist.com')
+            expect(rewriteToConfiguredHost('HTTPS://Comms.Todoist.Com/a/1/')).toBe(
+                'https://comms.staging.todoist.com/a/1/',
+            )
+        })
+
+        // `$&` in `configuredBaseUrl` must not be interpreted as a
+        // backreference — use a function replacement.
+        it('treats $-tokens in the configured base URL as literal', () => {
+            configureBaseUrl('https://staging.example.com/$&')
+            expect(rewriteToConfiguredHost('https://comms.todoist.com/a/1/')).toBe(
+                'https://staging.example.com/$&/a/1/',
+            )
+        })
+
+        // Trailing slash in COMMS_BASE_URL must not double up.
+        it('strips a trailing slash from the configured base URL', () => {
+            configureBaseUrl('https://comms.staging.todoist.com/')
+            expect(rewriteToConfiguredHost('https://comms.todoist.com/a/1/')).toBe(
+                'https://comms.staging.todoist.com/a/1/',
+            )
+        })
     })
 })

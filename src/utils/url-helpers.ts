@@ -4,18 +4,32 @@ import {
     getMessageURL as sdkGetMessageURL,
 } from '@doist/comms-sdk'
 
-// Module-level state set by main.ts at startup. The SDK's URL helpers
-// hardcode the prod host, so without a wrapper a staging-targeted MCP
-// would still return prod links in its tool output.
+// Module-level state set by `getMcpServer` (and scripts/run-tool.ts)
+// at startup. The SDK's URL helpers hardcode the prod host, so without
+// a wrapper a staging-targeted MCP would still return prod links in
+// its tool output.
+//
+// **Process-scoped, last-call wins** — not multi-tenant safe. Library
+// consumers using importable tools standalone must call this
+// themselves; otherwise the helpers default to prod.
 let configuredBaseUrl: string | undefined
 
 export function configureBaseUrl(baseUrl: string | undefined): void {
-    configuredBaseUrl = baseUrl
+    // Normalize trailing slash so `https://staging/` doesn't produce
+    // double-slashed URLs like `https://staging//a/1/`.
+    configuredBaseUrl = baseUrl ? baseUrl.replace(/\/+$/, '') : undefined
 }
+
+// Match the SDK's prod host (case-insensitive, with a trailing
+// boundary so `comms.todoist.com.evil.com` does NOT match — prevents
+// host-injection if a url field is ever attacker-influenced).
+const PROD_HOST_RE = /^https:\/\/comms\.todoist\.com(?=[/:?#]|$)/i
 
 function applyBaseUrl(url: string): string {
     if (!configuredBaseUrl) return url
-    return url.replace(/^https:\/\/comms\.todoist\.com/, configuredBaseUrl)
+    // Use a function replacement so `$` in `configuredBaseUrl` isn't
+    // interpreted as a backreference token.
+    return url.replace(PROD_HOST_RE, () => configuredBaseUrl as string)
 }
 
 // Strip whatever host the SDK produced — robust to staging/custom hosts.
