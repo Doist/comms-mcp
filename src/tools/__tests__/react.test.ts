@@ -1,4 +1,4 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     createMockComment,
@@ -10,8 +10,8 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { react } from '../react.js'
 
-// Mock the Twist API
-const mockTwistApi = {
+// Mock the Comms API
+const mockCommsApi = {
     threads: {
         getThread: jest.fn(),
     },
@@ -28,7 +28,7 @@ const mockTwistApi = {
         add: jest.fn(),
         remove: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { REACT } = ToolNames
 
@@ -39,10 +39,10 @@ describe(`${REACT} tool`, () => {
 
     describe('adding reactions', () => {
         it('should add reaction to a thread', async () => {
-            mockTwistApi.threads.getThread.mockResolvedValue(
+            mockCommsApi.threads.getThread.mockResolvedValue(
                 createMockThread({ id: TEST_IDS.THREAD_1 }),
             )
-            mockTwistApi.reactions.add.mockResolvedValue(undefined)
+            mockCommsApi.reactions.add.mockResolvedValue(undefined)
 
             const result = await react.execute(
                 {
@@ -51,11 +51,11 @@ describe(`${REACT} tool`, () => {
                     emoji: '👍',
                     operation: 'add',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.getThread).toHaveBeenCalledWith(TEST_IDS.THREAD_1)
-            expect(mockTwistApi.reactions.add).toHaveBeenCalledWith(
+            expect(mockCommsApi.threads.getThread).toHaveBeenCalledWith(TEST_IDS.THREAD_1)
+            expect(mockCommsApi.reactions.add).toHaveBeenCalledWith(
                 expect.objectContaining({
                     threadId: TEST_IDS.THREAD_1,
                     reaction: '👍',
@@ -73,15 +73,15 @@ describe(`${REACT} tool`, () => {
                 targetType: 'thread',
                 targetId: TEST_IDS.THREAD_1,
                 emoji: '👍',
-                targetUrl: expect.stringContaining('twist.com'),
+                targetUrl: expect.stringContaining('comms.todoist.com'),
             })
         })
 
         it('should add reaction to a comment', async () => {
-            mockTwistApi.comments.getComment.mockResolvedValue(
+            mockCommsApi.comments.getComment.mockResolvedValue(
                 createMockComment({ id: TEST_IDS.COMMENT_1, threadId: TEST_IDS.THREAD_1 }),
             )
-            mockTwistApi.reactions.add.mockResolvedValue(undefined)
+            mockCommsApi.reactions.add.mockResolvedValue(undefined)
 
             const result = await react.execute(
                 {
@@ -90,11 +90,11 @@ describe(`${REACT} tool`, () => {
                     emoji: '❤️',
                     operation: 'add',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.getComment).toHaveBeenCalledWith(TEST_IDS.COMMENT_1)
-            expect(mockTwistApi.reactions.add).toHaveBeenCalledWith(
+            expect(mockCommsApi.comments.getComment).toHaveBeenCalledWith(TEST_IDS.COMMENT_1)
+            expect(mockCommsApi.reactions.add).toHaveBeenCalledWith(
                 expect.objectContaining({
                     commentId: TEST_IDS.COMMENT_1,
                     reaction: '❤️',
@@ -105,13 +105,13 @@ describe(`${REACT} tool`, () => {
         })
 
         it('should add reaction to a message', async () => {
-            mockTwistApi.conversationMessages.getMessage.mockResolvedValue(
+            mockCommsApi.conversationMessages.getMessage.mockResolvedValue(
                 createMockConversationMessage({
                     id: TEST_IDS.MESSAGE_1,
                     conversationId: TEST_IDS.CONVERSATION_1,
                 }),
             )
-            mockTwistApi.reactions.add.mockResolvedValue(undefined)
+            mockCommsApi.reactions.add.mockResolvedValue(undefined)
 
             const result = await react.execute(
                 {
@@ -120,13 +120,13 @@ describe(`${REACT} tool`, () => {
                     emoji: '🎉',
                     operation: 'add',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.conversationMessages.getMessage).toHaveBeenCalledWith(
+            expect(mockCommsApi.conversationMessages.getMessage).toHaveBeenCalledWith(
                 TEST_IDS.MESSAGE_1,
             )
-            expect(mockTwistApi.reactions.add).toHaveBeenCalledWith(
+            expect(mockCommsApi.reactions.add).toHaveBeenCalledWith(
                 expect.objectContaining({
                     messageId: TEST_IDS.MESSAGE_1,
                     reaction: '🎉',
@@ -139,10 +139,10 @@ describe(`${REACT} tool`, () => {
 
     describe('removing reactions', () => {
         it('should remove reaction from a thread', async () => {
-            mockTwistApi.threads.getThread.mockResolvedValue(
+            mockCommsApi.threads.getThread.mockResolvedValue(
                 createMockThread({ id: TEST_IDS.THREAD_1 }),
             )
-            mockTwistApi.reactions.remove.mockResolvedValue(undefined)
+            mockCommsApi.reactions.remove.mockResolvedValue(undefined)
 
             const result = await react.execute(
                 {
@@ -151,11 +151,11 @@ describe(`${REACT} tool`, () => {
                     emoji: '👍',
                     operation: 'remove',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.getThread).toHaveBeenCalledWith(TEST_IDS.THREAD_1)
-            expect(mockTwistApi.reactions.remove).toHaveBeenCalledWith(
+            expect(mockCommsApi.threads.getThread).toHaveBeenCalledWith(TEST_IDS.THREAD_1)
+            expect(mockCommsApi.reactions.remove).toHaveBeenCalledWith(
                 expect.objectContaining({
                     threadId: TEST_IDS.THREAD_1,
                     reaction: '👍',
@@ -166,10 +166,10 @@ describe(`${REACT} tool`, () => {
         })
 
         it('should remove reaction from a comment', async () => {
-            mockTwistApi.comments.getComment.mockResolvedValue(
+            mockCommsApi.comments.getComment.mockResolvedValue(
                 createMockComment({ id: TEST_IDS.COMMENT_1, threadId: TEST_IDS.THREAD_1 }),
             )
-            mockTwistApi.reactions.remove.mockResolvedValue(undefined)
+            mockCommsApi.reactions.remove.mockResolvedValue(undefined)
 
             const result = await react.execute(
                 {
@@ -178,11 +178,11 @@ describe(`${REACT} tool`, () => {
                     emoji: '❤️',
                     operation: 'remove',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.getComment).toHaveBeenCalledWith(TEST_IDS.COMMENT_1)
-            expect(mockTwistApi.reactions.remove).toHaveBeenCalledWith(
+            expect(mockCommsApi.comments.getComment).toHaveBeenCalledWith(TEST_IDS.COMMENT_1)
+            expect(mockCommsApi.reactions.remove).toHaveBeenCalledWith(
                 expect.objectContaining({
                     commentId: TEST_IDS.COMMENT_1,
                     reaction: '❤️',
@@ -193,13 +193,13 @@ describe(`${REACT} tool`, () => {
         })
 
         it('should remove reaction from a message', async () => {
-            mockTwistApi.conversationMessages.getMessage.mockResolvedValue(
+            mockCommsApi.conversationMessages.getMessage.mockResolvedValue(
                 createMockConversationMessage({
                     id: TEST_IDS.MESSAGE_1,
                     conversationId: TEST_IDS.CONVERSATION_1,
                 }),
             )
-            mockTwistApi.reactions.remove.mockResolvedValue(undefined)
+            mockCommsApi.reactions.remove.mockResolvedValue(undefined)
 
             const result = await react.execute(
                 {
@@ -208,13 +208,13 @@ describe(`${REACT} tool`, () => {
                     emoji: '🎉',
                     operation: 'remove',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.conversationMessages.getMessage).toHaveBeenCalledWith(
+            expect(mockCommsApi.conversationMessages.getMessage).toHaveBeenCalledWith(
                 TEST_IDS.MESSAGE_1,
             )
-            expect(mockTwistApi.reactions.remove).toHaveBeenCalledWith(
+            expect(mockCommsApi.reactions.remove).toHaveBeenCalledWith(
                 expect.objectContaining({
                     messageId: TEST_IDS.MESSAGE_1,
                     reaction: '🎉',
@@ -227,11 +227,11 @@ describe(`${REACT} tool`, () => {
 
     describe('error handling', () => {
         it('should propagate add reaction errors', async () => {
-            mockTwistApi.threads.getThread.mockResolvedValue(
+            mockCommsApi.threads.getThread.mockResolvedValue(
                 createMockThread({ id: TEST_IDS.THREAD_1 }),
             )
             const apiError = new Error('Thread not found')
-            mockTwistApi.reactions.add.mockRejectedValue(apiError)
+            mockCommsApi.reactions.add.mockRejectedValue(apiError)
 
             await expect(
                 react.execute(
@@ -241,17 +241,17 @@ describe(`${REACT} tool`, () => {
                         emoji: '👍',
                         operation: 'add',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Thread not found')
         })
 
         it('should propagate remove reaction errors', async () => {
-            mockTwistApi.comments.getComment.mockResolvedValue(
+            mockCommsApi.comments.getComment.mockResolvedValue(
                 createMockComment({ id: TEST_IDS.COMMENT_1, threadId: TEST_IDS.THREAD_1 }),
             )
             const apiError = new Error('Reaction not found')
-            mockTwistApi.reactions.remove.mockRejectedValue(apiError)
+            mockCommsApi.reactions.remove.mockRejectedValue(apiError)
 
             await expect(
                 react.execute(
@@ -261,7 +261,7 @@ describe(`${REACT} tool`, () => {
                         emoji: '❤️',
                         operation: 'remove',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Reaction not found')
         })

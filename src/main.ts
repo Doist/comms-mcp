@@ -4,12 +4,12 @@ import dotenv from 'dotenv'
 import { getMcpServer } from './mcp-server.js'
 
 function main() {
-    const twistApiKey = process.env.TWIST_API_KEY
-    if (!twistApiKey) {
-        throw new Error('TWIST_API_KEY is not set')
+    const commsApiKey = process.env.COMMS_API_KEY
+    if (!commsApiKey) {
+        throw new Error('COMMS_API_KEY is not set')
     }
 
-    const server = getMcpServer({ twistApiKey })
+    const server = getMcpServer({ commsApiKey })
     const transport = new StdioServerTransport()
     server
         .connect(transport)
@@ -18,7 +18,7 @@ function main() {
             console.error('Server started')
         })
         .catch((error) => {
-            console.error('Error starting the Twist MCP server:', error)
+            console.error('Error starting the Comms MCP server:', error)
             process.exit(1)
         })
 }

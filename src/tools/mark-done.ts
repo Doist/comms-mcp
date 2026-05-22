@@ -1,6 +1,7 @@
 import { z } from 'zod'
+import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
+import { limitedAll } from '../utils/concurrency.js'
 import { MarkDoneOutputSchema } from '../utils/output-schemas.js'
 import { type MarkDoneType, MarkDoneTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -8,9 +9,9 @@ import { ToolNames } from '../utils/tool-names.js'
 const ArgsSchema = {
     type: MarkDoneTypeSchema.describe('The type of items to mark as done: thread or conversation.'),
 
-    // Individual IDs
+    // Individual IDs (thread/conversation IDs are strings)
     ids: z
-        .array(z.number())
+        .array(z.string())
         .optional()
         .describe(
             'Specific thread or conversation IDs to mark as done. Use this OR bulk selectors.',
@@ -22,7 +23,7 @@ const ArgsSchema = {
         .optional()
         .describe('Mark all threads in this workspace as done (threads only).'),
     channelId: z
-        .number()
+        .string()
         .optional()
         .describe('Mark all threads in this channel as done (threads only).'),
 
@@ -44,8 +45,8 @@ type MarkDoneStructured = {
     type: 'mark_done_result'
     itemType: MarkDoneType
     mode: 'individual' | 'bulk'
-    completed: number[]
-    failed: Array<{ item: number; error: string }>
+    completed: string[]
+    failed: Array<{ item: string; error: string }>
     totalRequested: number
     successCount: number
     failureCount: number
@@ -56,7 +57,7 @@ type MarkDoneStructured = {
     }
     selectors?: {
         workspaceId?: number
-        channelId?: number
+        channelId?: string
     }
 }
 
@@ -78,8 +79,8 @@ const markDone = {
             clearUnread = false,
         } = args
 
-        const completed: number[] = []
-        const failed: Array<{ item: number; error: string }> = []
+        const completed: string[] = []
+        const failed: Array<{ item: string; error: string }> = []
         let mode: 'individual' | 'bulk' = 'individual'
 
         // Validate arguments
@@ -93,33 +94,54 @@ const markDone = {
             )
         }
 
+        // Reject channel-only bulk archive up front: the SDK's `inbox.archiveAll`
+        // requires a workspaceId, so without one we'd silently drop the archive
+        // step while reporting success — exactly the "lie about state" failure
+        // mode this tool must avoid.
+        if (type === 'thread' && archive && channelId && !workspaceId) {
+            throw new Error(
+                'Archiving by channelId requires workspaceId. Pass both, or pass individual `ids` instead.',
+            )
+        }
+
         try {
             // Bulk operations (threads only)
             if (type === 'thread' && (workspaceId || channelId)) {
                 mode = 'bulk'
 
-                // Clear unread takes precedence
+                // Clear unread takes precedence; it's strictly workspace-scoped
+                // (the SDK only exposes a workspace-level signature), so we
+                // require workspaceId for it.
                 if (clearUnread && workspaceId) {
                     await client.threads.clearUnread(workspaceId)
                 } else {
-                    // Mark all read
+                    // Mark all read — pass both selectors when both are present
+                    // so the call stays scoped to the channel inside the
+                    // workspace rather than nuking the whole workspace.
                     if (markRead) {
-                        if (workspaceId) {
+                        if (workspaceId && channelId) {
+                            await client.threads.markAllRead({ workspaceId, channelId })
+                        } else if (workspaceId) {
                             await client.threads.markAllRead({ workspaceId })
                         } else if (channelId) {
                             await client.threads.markAllRead({ channelId })
                         }
                     }
 
-                    // Archive all (inbox operations)
-                    if (archive) {
-                        if (workspaceId) {
-                            await client.inbox.archiveAll({ workspaceId })
-                        } else if (channelId) {
+                    // Archive all (inbox operations). `archiveAll` requires a
+                    // workspaceId; with a channelId also present, pass it via
+                    // `channelIds` so the archive stays scoped to that channel.
+                    // The channel-only case is rejected up front in the
+                    // validation above so this branch is reachable only with
+                    // a workspaceId.
+                    if (archive && workspaceId) {
+                        if (channelId) {
                             await client.inbox.archiveAll({
-                                workspaceId: 0,
+                                workspaceId,
                                 channelIds: [channelId],
                             })
+                        } else {
+                            await client.inbox.archiveAll({ workspaceId })
                         }
                     }
                 }
@@ -127,72 +149,43 @@ const markDone = {
                 // We don't get individual IDs back from bulk operations
                 // Just indicate success
             } else if (ids && ids.length > 0) {
-                // Individual operations - batch them together
+                // Individual operations - run them in parallel
                 mode = 'individual'
 
-                // Build array of batch operations for each ID
-                const operations = []
-                for (const id of ids) {
-                    if (type === 'thread') {
-                        // Mark thread as read
-                        if (markRead) {
-                            operations.push(
-                                client.threads.markRead({ id, objIndex: 0 }, { batch: true }),
-                            )
-                        }
-                        // Archive thread in inbox
-                        if (archive) {
-                            operations.push(client.inbox.archiveThread(id, { batch: true }))
-                        }
-                    } else {
-                        // Mark conversation as read
-                        if (markRead) {
-                            operations.push(client.conversations.markRead({ id }, { batch: true }))
-                        }
-                        // Archive conversation
-                        if (archive) {
-                            operations.push(
-                                client.conversations.archiveConversation(id, { batch: true }),
-                            )
-                        }
-                    }
-                }
-
-                // Execute all operations in batch
-                try {
-                    await client.batch(...operations)
-                    // All operations succeeded
-                    completed.push(...ids)
-                } catch (_error) {
-                    // If batch fails, we need to fall back to individual operations to track which ones failed
-                    for (const id of ids) {
-                        try {
-                            if (type === 'thread') {
-                                if (markRead) {
-                                    await client.threads.markRead({ id, objIndex: 0 })
-                                }
-                                if (archive) {
-                                    await client.inbox.archiveThread(id)
-                                }
-                            } else {
-                                if (markRead) {
-                                    await client.conversations.markRead({ id })
-                                }
-                                if (archive) {
-                                    await client.conversations.archiveConversation(id)
-                                }
+                // Try all operations with bounded concurrency; if any
+                // individual ID fails, record it but keep going. The `ids`
+                // list is user-supplied so it can be large — `limitedAll`
+                // keeps the burst inside the socket pool / rate limiter.
+                const results = await limitedAll(ids, async (id) => {
+                    try {
+                        if (type === 'thread') {
+                            if (markRead) {
+                                await client.threads.markRead({ id, objIndex: 0 })
                             }
-                            completed.push(id)
-                        } catch (individualError) {
-                            const errorMessage =
-                                individualError instanceof Error
-                                    ? individualError.message
-                                    : 'Unknown error'
-                            failed.push({
-                                item: id,
-                                error: errorMessage,
-                            })
+                            if (archive) {
+                                await client.inbox.archiveThread(id)
+                            }
+                        } else {
+                            if (markRead) {
+                                await client.conversations.markRead({ id })
+                            }
+                            if (archive) {
+                                await client.conversations.archiveConversation(id)
+                            }
                         }
+                        return { id, ok: true as const }
+                    } catch (error) {
+                        const errorMessage =
+                            error instanceof Error ? error.message : 'Unknown error'
+                        return { id, ok: false as const, errorMessage }
+                    }
+                })
+
+                for (const r of results) {
+                    if (r.ok) {
+                        completed.push(r.id)
+                    } else {
+                        failed.push({ item: r.id, error: r.errorMessage })
                     }
                 }
             }
@@ -224,7 +217,7 @@ const markDone = {
                 lines.push(`**Archive:** ${archive ? 'Yes' : 'No'}`)
             }
             lines.push('')
-            lines.push('✅ Bulk operation completed successfully')
+            lines.push('Bulk operation completed successfully')
         } else {
             lines.push(`**Total Requested:** ${ids?.length ?? 0}`)
             lines.push(`**Successful:** ${completed.length}`)
@@ -291,6 +284,6 @@ const markDone = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof MarkDoneOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof MarkDoneOutputSchema.shape>
 
 export { markDone, type MarkDoneStructured }

@@ -1,7 +1,7 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
+import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
 import {
     type DeleteCommentOutput,
     type DeleteMessageOutput,
@@ -17,14 +17,14 @@ const ArgsSchema = {
         'The type of object to delete: thread, comment, or message.',
     ),
     targetId: z
-        .number()
+        .string()
         .describe('The ID of the thread, comment, or conversation message to delete.'),
 }
 
 type Args = z.infer<z.ZodObject<typeof ArgsSchema>>
 type Branch = { textContent: string; structuredContent: DeleteObjectStructured }
 
-async function deleteThreadBranch(args: Args, client: TwistApi): Promise<Branch> {
+async function deleteThreadBranch(args: Args, client: CommsApi): Promise<Branch> {
     const { targetId } = args
 
     await client.threads.deleteThread(targetId)
@@ -47,7 +47,7 @@ async function deleteThreadBranch(args: Args, client: TwistApi): Promise<Branch>
     return { textContent: lines.join('\n'), structuredContent }
 }
 
-async function deleteCommentBranch(args: Args, client: TwistApi): Promise<Branch> {
+async function deleteCommentBranch(args: Args, client: CommsApi): Promise<Branch> {
     const { targetId } = args
 
     await client.comments.deleteComment(targetId)
@@ -70,7 +70,7 @@ async function deleteCommentBranch(args: Args, client: TwistApi): Promise<Branch
     return { textContent: lines.join('\n'), structuredContent }
 }
 
-async function deleteMessageBranch(args: Args, client: TwistApi): Promise<Branch> {
+async function deleteMessageBranch(args: Args, client: CommsApi): Promise<Branch> {
     const { targetId } = args
 
     await client.conversationMessages.deleteMessage(targetId)
@@ -96,7 +96,7 @@ async function deleteMessageBranch(args: Args, client: TwistApi): Promise<Branch
 const deleteObject = {
     name: ToolNames.DELETE_OBJECT,
     description:
-        'Permanently delete a Twist object. `targetType: "thread"` deletes a thread (and all of its comments); `"comment"` deletes a single thread comment; `"message"` deletes a direct/group conversation message. Always pass `targetId`. Deletion is irreversible — confirm with the user before invoking. Note: the Twist API only allows deletion by the object\'s creator or a workspace admin; the call will be rejected otherwise.',
+        'Permanently delete a Comms object. `targetType: "thread"` deletes a thread (and all of its comments); `"comment"` deletes a single thread comment; `"message"` deletes a direct/group conversation message. Always pass `targetId`. Deletion is irreversible — confirm with the user before invoking. Note: the Comms API only allows deletion by the object\'s creator or a workspace admin; the call will be rejected otherwise.',
     parameters: ArgsSchema,
     outputSchema: DeleteObjectOutputSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
@@ -115,6 +115,6 @@ const deleteObject = {
             structuredContent: branch.structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof DeleteObjectOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof DeleteObjectOutputSchema.shape>
 
 export { deleteObject }

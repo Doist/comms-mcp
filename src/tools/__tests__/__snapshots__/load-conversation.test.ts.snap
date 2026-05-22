@@ -1,9 +1,9 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`load-conversation tool loading conversations successfully should filter messages by date range 1`] = `
-"# Conversation 33333
+"# Conversation conv-id-1
 
-**Conversation ID:** 33333
+**Conversation ID:** conv-id-1
 **Workspace ID:** 11111
 **Archived:** No
 **Last Active:** 2024-01-01T00:00:00.000Z
@@ -17,9 +17,9 @@ Test User 1,
 `;
 
 exports[`load-conversation tool loading conversations successfully should handle conversation with no messages 1`] = `
-"# Conversation 33333
+"# Conversation conv-id-1
 
-**Conversation ID:** 33333
+**Conversation ID:** conv-id-1
 **Workspace ID:** 11111
 **Archived:** No
 **Last Active:** 2024-01-01T00:00:00.000Z
@@ -33,9 +33,9 @@ Test User 1,
 `;
 
 exports[`load-conversation tool loading conversations successfully should load conversation with messages and participants 1`] = `
-"# Conversation 33333
+"# Conversation conv-id-1
 
-**Conversation ID:** 33333
+**Conversation ID:** conv-id-1
 **Workspace ID:** 11111
 **Archived:** No
 **Last Active:** 2024-01-01T00:00:00.000Z
@@ -46,12 +46,12 @@ Test User 1, Test User 2
 
 ## Messages (2)
 
-### Message 98765
+### Message msg-id-1
 **Creator:** Test User 1 | **Posted:** 2024-01-01T00:00:00.000Z
 
 Test message content
 
-### Message 98766
+### Message msg-id-2
 **Creator:** Test User 1 | **Posted:** 2024-01-01T00:00:00.000Z
 
 Test message content
@@ -59,9 +59,9 @@ Test message content
 `;
 
 exports[`load-conversation tool loading conversations successfully should load conversation without participants when includeParticipants is false 1`] = `
-"# Conversation 33333
+"# Conversation conv-id-1
 
-**Conversation ID:** 33333
+**Conversation ID:** conv-id-1
 **Workspace ID:** 11111
 **Archived:** No
 **Last Active:** 2024-01-01T00:00:00.000Z

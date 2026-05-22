@@ -1,5 +1,19 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`mark-done tool bulk thread operations marks all read in a channel without archiving when archive=false 1`] = `
+"# Mark Threads Done
+
+**Mode:** Bulk Operation
+**Channel ID:** channel-id-1
+**Mark Read:** Yes
+**Archive:** No
+
+Bulk operation completed successfully
+## Next Steps
+
+Use \`fetch-inbox\` to see remaining unread threads."
+`;
+
 exports[`mark-done tool bulk thread operations should archive all without marking as read in workspace 1`] = `
 "# Mark Threads Done
 
@@ -8,7 +22,7 @@ exports[`mark-done tool bulk thread operations should archive all without markin
 **Mark Read:** No
 **Archive:** Yes
 
-✅ Bulk operation completed successfully
+Bulk operation completed successfully
 ## Next Steps
 
 Use \`fetch-inbox\` to see remaining unread threads."
@@ -21,7 +35,7 @@ exports[`mark-done tool bulk thread operations should clear all unread markers i
 **Workspace ID:** 11111
 **Operation:** Clear all unread markers
 
-✅ Bulk operation completed successfully
+Bulk operation completed successfully
 ## Next Steps
 
 Use \`fetch-inbox\` to see remaining unread threads."
@@ -35,21 +49,7 @@ exports[`mark-done tool bulk thread operations should mark all as read without a
 **Mark Read:** Yes
 **Archive:** No
 
-✅ Bulk operation completed successfully
-## Next Steps
-
-Use \`fetch-inbox\` to see remaining unread threads."
-`;
-
-exports[`mark-done tool bulk thread operations should mark all threads as read and archive in a channel 1`] = `
-"# Mark Threads Done
-
-**Mode:** Bulk Operation
-**Channel ID:** 67890
-**Mark Read:** Yes
-**Archive:** Yes
-
-✅ Bulk operation completed successfully
+Bulk operation completed successfully
 ## Next Steps
 
 Use \`fetch-inbox\` to see remaining unread threads."
@@ -63,7 +63,7 @@ exports[`mark-done tool bulk thread operations should mark all threads as read a
 **Mark Read:** Yes
 **Archive:** Yes
 
-✅ Bulk operation completed successfully
+Bulk operation completed successfully
 ## Next Steps
 
 Use \`fetch-inbox\` to see remaining unread threads."
@@ -74,18 +74,18 @@ exports[`mark-done tool marking conversations as done should handle conversation
 
 **Mode:** Individual IDs
 **Total Requested:** 1
-**Successful:** 1
-**Failed:** 0
+**Successful:** 0
+**Failed:** 1
 **Mark Read:** Yes
 **Archive:** No
 
-## Completed
+## Failed
 
-33333
+- conversation conv-id-1: Conversation not found
 
 ## Next Steps
 
-Check your conversations for remaining unread messages."
+Review failed items and retry if needed."
 `;
 
 exports[`mark-done tool marking conversations as done should mark all conversations as done successfully 1`] = `
@@ -100,7 +100,7 @@ exports[`mark-done tool marking conversations as done should mark all conversati
 
 ## Completed
 
-33333, 33334
+conv-id-1, conv-id-2
 
 ## Next Steps
 
@@ -119,7 +119,7 @@ exports[`mark-done tool marking threads as done should archive thread only 1`] =
 
 ## Completed
 
-12345
+thread-id-1
 
 ## Next Steps
 
@@ -138,8 +138,8 @@ exports[`mark-done tool marking threads as done should handle all threads failin
 
 ## Failed
 
-- thread 12345: API Error: Network timeout
-- thread 12346: API Error: Network timeout
+- thread thread-id-1: API Error: Network timeout
+- thread thread-id-2: API Error: Network timeout
 
 ## Next Steps
 
@@ -158,11 +158,11 @@ exports[`mark-done tool marking threads as done should handle partial failures g
 
 ## Completed
 
-12345, 12347
+thread-id-1, thread-id-3
 
 ## Failed
 
-- thread 12346: Thread not found
+- thread thread-id-2: Thread not found
 
 ## Next Steps
 
@@ -181,7 +181,7 @@ exports[`mark-done tool marking threads as done should mark all threads as done 
 
 ## Completed
 
-12345, 12346, 12347
+thread-id-1, thread-id-2, thread-id-3
 
 ## Next Steps
 
@@ -200,7 +200,7 @@ exports[`mark-done tool marking threads as done should mark thread as read only 
 
 ## Completed
 
-12345
+thread-id-1
 
 ## Next Steps
 
@@ -219,7 +219,7 @@ exports[`mark-done tool next steps logic validation should suggest fetch-inbox w
 
 ## Completed
 
-12345, 12346
+thread-id-1, thread-id-2
 
 ## Next Steps
 
@@ -238,11 +238,11 @@ exports[`mark-done tool next steps logic validation should suggest reviewing fai
 
 ## Completed
 
-12345
+thread-id-1
 
 ## Failed
 
-- thread 12346: Thread not found
+- thread thread-id-2: Thread not found
 
 ## Next Steps
 

@@ -1,13 +1,13 @@
-import { getFullTwistURL } from '@doist/twist-sdk'
+import { getFullCommsURL } from '@doist/comms-sdk'
 
 export function getWorkspaceUrl(workspaceId: number): string {
-    return getFullTwistURL({ workspaceId })
+    return getFullCommsURL({ workspaceId })
 }
 
-export function getChannelUrl(workspaceId: number, channelId: number): string {
-    return getFullTwistURL({ workspaceId, channelId })
+export function getChannelUrl(workspaceId: number, channelId: string): string {
+    return getFullCommsURL({ workspaceId, channelId })
 }
 
-export function getConversationUrl(workspaceId: number, conversationId: number): string {
-    return getFullTwistURL({ workspaceId, conversationId })
+export function getConversationUrl(workspaceId: number, conversationId: string): string {
+    return getFullCommsURL({ workspaceId, conversationId })
 }

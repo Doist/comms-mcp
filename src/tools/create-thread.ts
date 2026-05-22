@@ -1,22 +1,22 @@
-import { getFullTwistURL } from '@doist/twist-sdk'
+import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
+import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
 import { type CreateThreadOutput, CreateThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
 const ArgsSchema = {
-    channelId: z.number().describe('The ID of the channel to create the thread in.'),
+    channelId: z.string().describe('The ID of the channel to create the thread in.'),
     title: z.string().min(1).describe('The title of the thread.'),
     content: z.string().min(1).describe('The content/body of the thread.'),
     recipients: z
         .array(z.number())
         .optional()
         .describe(
-            'Optional array of user IDs to notify. If omitted, Twist defaults to notifying all current members of the channel (equivalent to the API\'s "EVERYONE" default). Note: workspace users who have not joined this channel will not be notified — add their IDs explicitly if you want to reach them.',
+            'Optional array of user IDs to notify. If omitted, Comms defaults to notifying all current members of the channel (equivalent to the API\'s "EVERYONE" default). Note: workspace users who have not joined this channel will not be notified — add their IDs explicitly if you want to reach them.',
         ),
     groups: z
-        .array(z.number())
+        .array(z.string())
         .optional()
         .describe(
             'Optional array of group IDs to notify. Use get-groups to discover group IDs before passing them here.',
@@ -50,7 +50,7 @@ const createThread = {
 
         const threadUrl =
             thread.url ??
-            getFullTwistURL({
+            getFullCommsURL({
                 workspaceId: thread.workspaceId,
                 channelId: thread.channelId,
                 threadId: thread.id,
@@ -92,6 +92,6 @@ const createThread = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof CreateThreadOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof CreateThreadOutputSchema.shape>
 
 export { createThread }

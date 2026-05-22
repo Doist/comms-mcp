@@ -1,11 +1,11 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import type { z } from 'zod'
 import type { RequiredToolAnnotations } from './utils/required-tool-annotations.js'
 
 /**
- * A Twist tool that can be used in an MCP server or other conversational AI interfaces.
+ * A Comms tool that can be used in an MCP server or other conversational AI interfaces.
  */
-type TwistTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape = z.ZodRawShape> = {
+type CommsTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape = z.ZodRawShape> = {
     /**
      * The name of the tool.
      */
@@ -46,10 +46,10 @@ type TwistTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape = z.Zo
      * This is the main function that will be called when the tool is used.
      *
      * @param args - The arguments of the tool.
-     * @param client - The Twist API client used to make requests to the Twist API.
+     * @param client - The Comms API client used to make requests to the Comms API.
      * @returns The result of the tool.
      */
-    execute: (args: z.infer<z.ZodObject<Params>>, client: TwistApi) => Promise<unknown>
+    execute: (args: z.infer<z.ZodObject<Params>>, client: CommsApi) => Promise<unknown>
 }
 
-export type { TwistTool }
+export type { CommsTool }

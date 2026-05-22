@@ -1,4 +1,4 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { extractTextContent } from '../../utils/test-helpers.js'
 import { buildLink } from '../build-link.js'
 
@@ -11,14 +11,14 @@ describe('buildLink', () => {
                     conversationId: 456,
                     fullUrl: true,
                 },
-                {} as TwistApi,
+                {} as CommsApi,
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toBe('https://twist.com/a/123/msg/456/')
+            expect(textContent).toBe('https://comms.todoist.com/a/123/msg/456/')
             expect(result.structuredContent?.type).toBe('link_data')
             expect(result.structuredContent?.linkType).toBe('conversation')
-            expect(result.structuredContent?.url).toBe('https://twist.com/a/123/msg/456/')
+            expect(result.structuredContent?.url).toBe('https://comms.todoist.com/a/123/msg/456/')
         })
 
         test('builds a message link', async () => {
@@ -29,11 +29,11 @@ describe('buildLink', () => {
                     messageId: 789,
                     fullUrl: true,
                 },
-                {} as TwistApi,
+                {} as CommsApi,
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toBe('https://twist.com/a/123/msg/456/m/789')
+            expect(textContent).toBe('https://comms.todoist.com/a/123/msg/456/m/789')
             expect(result.structuredContent?.linkType).toBe('message')
         })
 
@@ -44,7 +44,7 @@ describe('buildLink', () => {
                     conversationId: 456,
                     fullUrl: false,
                 },
-                {} as TwistApi,
+                {} as CommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -61,11 +61,11 @@ describe('buildLink', () => {
                     threadId: 789,
                     fullUrl: true,
                 },
-                {} as TwistApi,
+                {} as CommsApi,
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toBe('https://twist.com/a/123/ch/42/t/789/')
+            expect(textContent).toBe('https://comms.todoist.com/a/123/ch/42/t/789/')
             expect(result.structuredContent?.linkType).toBe('thread')
         })
 
@@ -76,11 +76,11 @@ describe('buildLink', () => {
                     threadId: 789,
                     fullUrl: true,
                 },
-                {} as TwistApi,
+                {} as CommsApi,
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toBe('https://twist.com/a/123/inbox/t/789/')
+            expect(textContent).toBe('https://comms.todoist.com/a/123/inbox/t/789/')
             expect(result.structuredContent?.linkType).toBe('thread')
         })
 
@@ -93,11 +93,11 @@ describe('buildLink', () => {
                     commentId: 999,
                     fullUrl: true,
                 },
-                {} as TwistApi,
+                {} as CommsApi,
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toBe('https://twist.com/a/123/ch/42/t/789/c/999')
+            expect(textContent).toBe('https://comms.todoist.com/a/123/ch/42/t/789/c/999')
             expect(result.structuredContent?.linkType).toBe('comment')
         })
 
@@ -110,7 +110,7 @@ describe('buildLink', () => {
                         commentId: 999,
                         fullUrl: true,
                     },
-                    {} as TwistApi,
+                    {} as CommsApi,
                 ),
             ).rejects.toThrow('channelId is required when building a comment link')
         })
@@ -124,7 +124,7 @@ describe('buildLink', () => {
                         workspaceId: 123,
                         fullUrl: true,
                     },
-                    {} as TwistApi,
+                    {} as CommsApi,
                 ),
             ).rejects.toThrow('Must provide either conversationId OR threadId to build a link')
         })
@@ -140,7 +140,7 @@ describe('buildLink', () => {
                     commentId: 999,
                     fullUrl: true,
                 },
-                {} as TwistApi,
+                {} as CommsApi,
             )
 
             expect(result.structuredContent?.params).toEqual({

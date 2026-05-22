@@ -1,4 +1,4 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     createMockComment,
@@ -10,7 +10,7 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { updateObject } from '../update-object.js'
 
-const mockTwistApi = {
+const mockCommsApi = {
     threads: {
         updateThread: jest.fn(),
     },
@@ -20,7 +20,7 @@ const mockTwistApi = {
     conversationMessages: {
         updateMessage: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { UPDATE_OBJECT } = ToolNames
 
@@ -36,7 +36,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                 content: 'Updated content',
                 lastEdited: new Date('2025-02-03T12:34:56Z'),
             })
-            mockTwistApi.threads.updateThread.mockResolvedValue(mockThread)
+            mockCommsApi.threads.updateThread.mockResolvedValue(mockThread)
 
             const result = await updateObject.execute(
                 {
@@ -45,10 +45,10 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                     title: 'Updated Title',
                     content: 'Updated content',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.updateThread).toHaveBeenCalledWith({
+            expect(mockCommsApi.threads.updateThread).toHaveBeenCalledWith({
                 id: TEST_IDS.THREAD_1,
                 title: 'Updated Title',
                 content: 'Updated content',
@@ -66,7 +66,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                     channelId: TEST_IDS.CHANNEL_1,
                     workspaceId: TEST_IDS.WORKSPACE_1,
                     content: 'Updated content',
-                    threadUrl: expect.stringContaining('twist.com'),
+                    threadUrl: expect.stringContaining('comms.todoist.com'),
                     lastEdited: '2025-02-03T12:34:56.000Z',
                 }),
             )
@@ -74,7 +74,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
 
         it('should update only the thread title', async () => {
             const mockThread = createMockThread({ title: 'New Title Only' })
-            mockTwistApi.threads.updateThread.mockResolvedValue(mockThread)
+            mockCommsApi.threads.updateThread.mockResolvedValue(mockThread)
 
             const result = await updateObject.execute(
                 {
@@ -82,10 +82,10 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                     targetId: TEST_IDS.THREAD_1,
                     title: 'New Title Only',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.updateThread).toHaveBeenCalledWith({
+            expect(mockCommsApi.threads.updateThread).toHaveBeenCalledWith({
                 id: TEST_IDS.THREAD_1,
                 title: 'New Title Only',
                 content: undefined,
@@ -107,7 +107,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
 
         it('should update only the thread content', async () => {
             const mockThread = createMockThread({ content: 'New content only' })
-            mockTwistApi.threads.updateThread.mockResolvedValue(mockThread)
+            mockCommsApi.threads.updateThread.mockResolvedValue(mockThread)
 
             const result = await updateObject.execute(
                 {
@@ -115,10 +115,10 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                     targetId: TEST_IDS.THREAD_1,
                     content: 'New content only',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.updateThread).toHaveBeenCalledWith({
+            expect(mockCommsApi.threads.updateThread).toHaveBeenCalledWith({
                 id: TEST_IDS.THREAD_1,
                 title: undefined,
                 content: 'New content only',
@@ -131,15 +131,15 @@ describe(`${UPDATE_OBJECT} tool`, () => {
             await expect(
                 updateObject.execute(
                     { targetType: 'thread', targetId: TEST_IDS.THREAD_1 },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('At least one of `title` or `content` must be provided.')
 
-            expect(mockTwistApi.threads.updateThread).not.toHaveBeenCalled()
+            expect(mockCommsApi.threads.updateThread).not.toHaveBeenCalled()
         })
 
         it('should propagate API errors', async () => {
-            mockTwistApi.threads.updateThread.mockRejectedValue(new Error('Thread not found'))
+            mockCommsApi.threads.updateThread.mockRejectedValue(new Error('Thread not found'))
 
             await expect(
                 updateObject.execute(
@@ -148,7 +148,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                         targetId: TEST_IDS.THREAD_1,
                         title: 'Updated Title',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Thread not found')
         })
@@ -160,7 +160,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                 content: 'Updated comment content',
                 lastEdited: new Date('2025-02-03T12:34:56Z'),
             })
-            mockTwistApi.comments.updateComment.mockResolvedValue(mockComment)
+            mockCommsApi.comments.updateComment.mockResolvedValue(mockComment)
 
             const result = await updateObject.execute(
                 {
@@ -168,10 +168,10 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                     targetId: TEST_IDS.COMMENT_1,
                     content: 'Updated comment content',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.updateComment).toHaveBeenCalledWith({
+            expect(mockCommsApi.comments.updateComment).toHaveBeenCalledWith({
                 id: TEST_IDS.COMMENT_1,
                 content: 'Updated comment content',
             })
@@ -188,7 +188,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                     channelId: mockComment.channelId,
                     workspaceId: mockComment.workspaceId,
                     content: 'Updated comment content',
-                    commentUrl: expect.stringContaining('twist.com'),
+                    commentUrl: expect.stringContaining('comms.todoist.com'),
                     lastEdited: '2025-02-03T12:34:56.000Z',
                 }),
             )
@@ -198,15 +198,15 @@ describe(`${UPDATE_OBJECT} tool`, () => {
             await expect(
                 updateObject.execute(
                     { targetType: 'comment', targetId: TEST_IDS.COMMENT_1 },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('`content` is required when targetType is "comment".')
 
-            expect(mockTwistApi.comments.updateComment).not.toHaveBeenCalled()
+            expect(mockCommsApi.comments.updateComment).not.toHaveBeenCalled()
         })
 
         it('should propagate API errors', async () => {
-            mockTwistApi.comments.updateComment.mockRejectedValue(new Error('Comment not found'))
+            mockCommsApi.comments.updateComment.mockRejectedValue(new Error('Comment not found'))
 
             await expect(
                 updateObject.execute(
@@ -215,7 +215,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                         targetId: TEST_IDS.COMMENT_1,
                         content: 'Updated content',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Comment not found')
         })
@@ -227,7 +227,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                 content: 'Updated message content',
                 lastEdited: new Date('2025-02-03T12:34:56Z'),
             })
-            mockTwistApi.conversationMessages.updateMessage.mockResolvedValue(mockMessage)
+            mockCommsApi.conversationMessages.updateMessage.mockResolvedValue(mockMessage)
 
             const result = await updateObject.execute(
                 {
@@ -235,10 +235,10 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                     targetId: TEST_IDS.MESSAGE_1,
                     content: 'Updated message content',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.conversationMessages.updateMessage).toHaveBeenCalledWith({
+            expect(mockCommsApi.conversationMessages.updateMessage).toHaveBeenCalledWith({
                 id: TEST_IDS.MESSAGE_1,
                 content: 'Updated message content',
             })
@@ -254,7 +254,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                     conversationId: mockMessage.conversationId,
                     workspaceId: mockMessage.workspaceId,
                     content: 'Updated message content',
-                    messageUrl: expect.stringContaining('twist.com'),
+                    messageUrl: expect.stringContaining('comms.todoist.com'),
                     lastEdited: '2025-02-03T12:34:56.000Z',
                 }),
             )
@@ -265,7 +265,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                 content: 'Edited again',
                 lastEdited: null,
             })
-            mockTwistApi.conversationMessages.updateMessage.mockResolvedValue(mockMessage)
+            mockCommsApi.conversationMessages.updateMessage.mockResolvedValue(mockMessage)
 
             const result = await updateObject.execute(
                 {
@@ -273,7 +273,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                     targetId: TEST_IDS.MESSAGE_1,
                     content: 'Edited again',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const { structuredContent } = result
@@ -290,15 +290,15 @@ describe(`${UPDATE_OBJECT} tool`, () => {
             await expect(
                 updateObject.execute(
                     { targetType: 'message', targetId: TEST_IDS.MESSAGE_1 },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('`content` is required when targetType is "message".')
 
-            expect(mockTwistApi.conversationMessages.updateMessage).not.toHaveBeenCalled()
+            expect(mockCommsApi.conversationMessages.updateMessage).not.toHaveBeenCalled()
         })
 
         it('should propagate API errors', async () => {
-            mockTwistApi.conversationMessages.updateMessage.mockRejectedValue(
+            mockCommsApi.conversationMessages.updateMessage.mockRejectedValue(
                 new Error('Message not found'),
             )
 
@@ -309,7 +309,7 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                         targetId: TEST_IDS.MESSAGE_1,
                         content: 'Updated content',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Message not found')
         })
@@ -325,11 +325,11 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                         content: 'updated',
                         title: 'oops',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('`title` is only valid when targetType is "thread".')
 
-            expect(mockTwistApi.comments.updateComment).not.toHaveBeenCalled()
+            expect(mockCommsApi.comments.updateComment).not.toHaveBeenCalled()
         })
 
         it('should reject title for message targetType', async () => {
@@ -341,11 +341,11 @@ describe(`${UPDATE_OBJECT} tool`, () => {
                         content: 'updated',
                         title: 'oops',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('`title` is only valid when targetType is "thread".')
 
-            expect(mockTwistApi.conversationMessages.updateMessage).not.toHaveBeenCalled()
+            expect(mockCommsApi.conversationMessages.updateMessage).not.toHaveBeenCalled()
         })
     })
 })

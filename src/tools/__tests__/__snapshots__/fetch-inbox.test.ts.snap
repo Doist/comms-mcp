@@ -8,8 +8,8 @@ exports[`fetch-inbox tool fetching inbox successfully should fetch inbox with th
 
 ## Threads (2)
 
-- [Test Channel] Test Thread 1 🔵 (ID: 12345)
-- [Test Channel] Test Thread 2 ⭐ (ID: 12346)
+- [Test Channel] Test Thread 1 [unread] (ID: thread-id-1)
+- [Test Channel] Test Thread 2 [saved] (ID: thread-id-2)
 
 ## Next Steps
 
@@ -32,8 +32,8 @@ _No threads in inbox_
 
 ## Conversations (2)
 
-- DM with Alice, Bob 🔵 (ID: 33333)
-- Project Discussion 🔵 (ID: 33334)
+- DM with Alice, Bob [unread] (ID: conv-id-1)
+- Project Discussion [unread] (ID: conv-id-2)
 
 ## Next Steps
 
@@ -62,7 +62,7 @@ exports[`fetch-inbox tool fetching inbox successfully should filter only unread 
 
 ## Threads (1)
 
-- [Test Channel] Unread Thread 🔵 (ID: 12345)
+- [Test Channel] Unread Thread [unread] (ID: thread-id-1)
 
 ## Next Steps
 
@@ -91,7 +91,7 @@ exports[`fetch-inbox tool fetching inbox successfully should not display convers
 
 ## Threads (1)
 
-- [Test Channel] Test Thread 🔵 (ID: 12345)
+- [Test Channel] Test Thread [unread] (ID: thread-id-1)
 
 ## Next Steps
 

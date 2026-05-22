@@ -1,7 +1,7 @@
-import { getFullTwistURL } from '@doist/twist-sdk'
+import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
+import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
 import { ReactOutputSchema } from '../utils/output-schemas.js'
 import { type ReactionTargetType, ReactionTargetTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -10,7 +10,7 @@ const ArgsSchema = {
     targetType: ReactionTargetTypeSchema.describe(
         'The type of object to react to: thread, comment, or message.',
     ),
-    targetId: z.number().describe('The ID of the thread, comment, or message to react to.'),
+    targetId: z.string().describe('The ID of the thread, comment, or message to react to.'),
     emoji: z.string().min(1).describe('The emoji to react with (e.g., "👍", "❤️", "🎉").'),
     operation: z
         .enum(['add', 'remove'])
@@ -23,7 +23,7 @@ type ReactStructured = {
     success: boolean
     operation: 'add' | 'remove'
     targetType: ReactionTargetType
-    targetId: number
+    targetId: string
     emoji: string
     targetUrl: string
 }
@@ -45,7 +45,7 @@ const react = {
             const thread = await client.threads.getThread(targetId)
             targetUrl =
                 thread.url ??
-                getFullTwistURL({
+                getFullCommsURL({
                     workspaceId: thread.workspaceId,
                     channelId: thread.channelId,
                     threadId: thread.id,
@@ -54,7 +54,7 @@ const react = {
             const comment = await client.comments.getComment(targetId)
             targetUrl =
                 comment.url ??
-                getFullTwistURL({
+                getFullCommsURL({
                     workspaceId: comment.workspaceId,
                     channelId: comment.channelId,
                     threadId: comment.threadId,
@@ -65,7 +65,7 @@ const react = {
             const message = await client.conversationMessages.getMessage(targetId)
             targetUrl =
                 message.url ??
-                getFullTwistURL({
+                getFullCommsURL({
                     workspaceId: message.workspaceId,
                     conversationId: message.conversationId,
                     messageId: message.id,
@@ -74,9 +74,9 @@ const react = {
 
         // Map targetType to the appropriate API parameter
         const apiParams: {
-            threadId?: number
-            commentId?: number
-            messageId?: number
+            threadId?: string
+            commentId?: string
+            messageId?: string
             reaction: string
         } = { reaction: emoji }
 
@@ -90,9 +90,9 @@ const react = {
 
         // Perform the reaction operation
         if (operation === 'add') {
-            await client.reactions.add(apiParams)
+            await client.reactions.add({ ...apiParams, reaction: emoji })
         } else {
-            await client.reactions.remove(apiParams)
+            await client.reactions.remove({ ...apiParams, reaction: emoji })
         }
 
         const lines: string[] = [
@@ -118,6 +118,6 @@ const react = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof ReactOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof ReactOutputSchema.shape>
 
 export { react, type ReactStructured }

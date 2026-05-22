@@ -1,10 +1,10 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import { extractTextContent, TEST_IDS } from '../../utils/test-helpers.js'
 import { ToolNames } from '../../utils/tool-names.js'
 import { getMentions } from '../get-mentions.js'
 
-const mockTwistApi = {
+const mockCommsApi = {
     batch: jest.fn(),
     search: {
         search: jest.fn(),
@@ -15,14 +15,14 @@ const mockTwistApi = {
     workspaceUsers: {
         getUserById: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { GET_MENTIONS } = ToolNames
 
 describe(`${GET_MENTIONS} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        mockTwistApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
+        mockCommsApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
             const results = []
             for (const arg of args) {
                 const result = await arg
@@ -33,7 +33,7 @@ describe(`${GET_MENTIONS} tool`, () => {
     })
 
     it('calls search.search with mentionSelf=true and no query', async () => {
-        mockTwistApi.search.search.mockResolvedValue({
+        mockCommsApi.search.search.mockResolvedValue({
             items: [],
             hasMore: false,
             isPlanRestricted: false,
@@ -44,10 +44,10 @@ describe(`${GET_MENTIONS} tool`, () => {
                 workspaceId: TEST_IDS.WORKSPACE_1,
                 limit: 50,
             },
-            mockTwistApi,
+            mockCommsApi,
         )
 
-        const call = mockTwistApi.search.search.mock.calls[0]?.[0] as Record<string, unknown>
+        const call = mockCommsApi.search.search.mock.calls[0]?.[0] as Record<string, unknown>
         expect(call).toBeDefined()
         expect(call.mentionSelf).toBe(true)
         expect(call.workspaceId).toBe(TEST_IDS.WORKSPACE_1)
@@ -56,7 +56,7 @@ describe(`${GET_MENTIONS} tool`, () => {
     })
 
     it('forwards filters to search.search', async () => {
-        mockTwistApi.search.search.mockResolvedValue({
+        mockCommsApi.search.search.mockResolvedValue({
             items: [],
             hasMore: false,
             isPlanRestricted: false,
@@ -72,10 +72,10 @@ describe(`${GET_MENTIONS} tool`, () => {
                 limit: 25,
                 cursor: 'cursor-abc',
             },
-            mockTwistApi,
+            mockCommsApi,
         )
 
-        expect(mockTwistApi.search.search).toHaveBeenCalledWith({
+        expect(mockCommsApi.search.search).toHaveBeenCalledWith({
             workspaceId: TEST_IDS.WORKSPACE_1,
             mentionSelf: true,
             channelIds: [TEST_IDS.CHANNEL_1],
@@ -88,7 +88,7 @@ describe(`${GET_MENTIONS} tool`, () => {
     })
 
     it('returns structured mentions_results with enriched names and URLs', async () => {
-        mockTwistApi.search.search.mockResolvedValue({
+        mockCommsApi.search.search.mockResolvedValue({
             items: [
                 {
                     id: 'thread-123',
@@ -105,18 +105,17 @@ describe(`${GET_MENTIONS} tool`, () => {
             hasMore: false,
             isPlanRestricted: false,
         })
-        mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+        mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
             id: TEST_IDS.USER_1,
-            name: 'Test User 1',
+            fullName: 'Test User 1',
             shortName: 'TU1',
             email: 'user1@test.com',
             userType: 'USER' as const,
-            bot: false,
             removed: false,
             timezone: 'UTC',
             version: 1,
-        })
-        mockTwistApi.channels.getChannel.mockResolvedValue({
+        } as never)
+        mockCommsApi.channels.getChannel.mockResolvedValue({
             id: TEST_IDS.CHANNEL_1,
             name: 'Test Channel',
             workspaceId: TEST_IDS.WORKSPACE_1,
@@ -133,7 +132,7 @@ describe(`${GET_MENTIONS} tool`, () => {
                 workspaceId: TEST_IDS.WORKSPACE_1,
                 limit: 50,
             },
-            mockTwistApi,
+            mockCommsApi,
         )
 
         const { structuredContent } = result
@@ -158,7 +157,7 @@ describe(`${GET_MENTIONS} tool`, () => {
     })
 
     it('exposes pagination cursor when hasMore is true', async () => {
-        mockTwistApi.search.search.mockResolvedValue({
+        mockCommsApi.search.search.mockResolvedValue({
             items: [
                 {
                     id: 'comment-1',
@@ -175,18 +174,17 @@ describe(`${GET_MENTIONS} tool`, () => {
             nextCursorMark: 'next-cursor-xyz',
             isPlanRestricted: false,
         })
-        mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+        mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
             id: TEST_IDS.USER_1,
-            name: 'Test User 1',
+            fullName: 'Test User 1',
             shortName: 'TU1',
             email: 'user1@test.com',
             userType: 'USER' as const,
-            bot: false,
             removed: false,
             timezone: 'UTC',
             version: 1,
-        })
-        mockTwistApi.channels.getChannel.mockResolvedValue({
+        } as never)
+        mockCommsApi.channels.getChannel.mockResolvedValue({
             id: TEST_IDS.CHANNEL_1,
             name: 'Test Channel',
             workspaceId: TEST_IDS.WORKSPACE_1,
@@ -203,7 +201,7 @@ describe(`${GET_MENTIONS} tool`, () => {
                 workspaceId: TEST_IDS.WORKSPACE_1,
                 limit: 1,
             },
-            mockTwistApi,
+            mockCommsApi,
         )
 
         expect(result.structuredContent?.hasMore).toBe(true)
@@ -212,7 +210,7 @@ describe(`${GET_MENTIONS} tool`, () => {
     })
 
     it('handles no results found', async () => {
-        mockTwistApi.search.search.mockResolvedValue({
+        mockCommsApi.search.search.mockResolvedValue({
             items: [],
             hasMore: false,
             isPlanRestricted: false,
@@ -223,7 +221,7 @@ describe(`${GET_MENTIONS} tool`, () => {
                 workspaceId: TEST_IDS.WORKSPACE_1,
                 limit: 50,
             },
-            mockTwistApi,
+            mockCommsApi,
         )
 
         expect(extractTextContent(result)).toContain('No mentions found')
@@ -231,7 +229,7 @@ describe(`${GET_MENTIONS} tool`, () => {
     })
 
     it('propagates API errors', async () => {
-        mockTwistApi.search.search.mockRejectedValue(new Error('Search API error'))
+        mockCommsApi.search.search.mockRejectedValue(new Error('Search API error'))
 
         await expect(
             getMentions.execute(
@@ -239,7 +237,7 @@ describe(`${GET_MENTIONS} tool`, () => {
                     workspaceId: TEST_IDS.WORKSPACE_1,
                     limit: 50,
                 },
-                mockTwistApi,
+                mockCommsApi,
             ),
         ).rejects.toThrow('Search API error')
     })

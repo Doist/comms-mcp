@@ -1,17 +1,17 @@
 import { z } from 'zod'
 
 /**
- * Valid Twist object types that can be used in enums
+ * Valid Comms object types that can be used in enums
  */
-type TwistObjectType = 'thread' | 'comment' | 'message' | 'conversation' | 'workspace'
+type CommsObjectType = 'thread' | 'comment' | 'message' | 'conversation' | 'workspace'
 
 /**
  * Helper to create an enum schema with types.
  * Requires at least 2 values (Zod enum requirement).
- * Only allows valid Twist object types.
+ * Only allows valid Comms object types.
  */
 function createEnumSchema<
-    const T extends readonly [TwistObjectType, TwistObjectType, ...TwistObjectType[]],
+    const T extends readonly [CommsObjectType, CommsObjectType, ...CommsObjectType[]],
 >(values: T) {
     return {
         values,

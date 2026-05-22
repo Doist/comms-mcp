@@ -1,4 +1,4 @@
-# Twist AI MCP Server - Development Guidelines
+# Comms MCP Server - Development Guidelines
 
 ## Adding a New Tool
 
@@ -48,4 +48,4 @@ npx tsx scripts/run-tool.ts search-content '{"query":"project update"}'
 npx tsx scripts/run-tool.ts fetch-inbox '{"workspaceId":12345}'
 ```
 
-Requires `TWIST_API_KEY` in `.env` (and optionally `TWIST_BASE_URL`).
+Requires `COMMS_API_KEY` in `.env` (and optionally `COMMS_BASE_URL`, e.g. `https://comms.staging.todoist.com` for staging).

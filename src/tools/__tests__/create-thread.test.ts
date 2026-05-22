@@ -1,4 +1,4 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     createMockThread,
@@ -9,11 +9,11 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { createThread } from '../create-thread.js'
 
-const mockTwistApi = {
+const mockCommsApi = {
     threads: {
         createThread: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { CREATE_THREAD } = ToolNames
 
@@ -28,7 +28,7 @@ describe(`${CREATE_THREAD} tool`, () => {
                 title: 'New Discussion',
                 content: 'Let us discuss this topic',
             })
-            mockTwistApi.threads.createThread.mockResolvedValue(mockThread)
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
 
             const result = await createThread.execute(
                 {
@@ -36,10 +36,10 @@ describe(`${CREATE_THREAD} tool`, () => {
                     title: 'New Discussion',
                     content: 'Let us discuss this topic',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.createThread).toHaveBeenCalledWith({
+            expect(mockCommsApi.threads.createThread).toHaveBeenCalledWith({
                 channelId: TEST_IDS.CHANNEL_1,
                 title: 'New Discussion',
                 content: 'Let us discuss this topic',
@@ -59,7 +59,7 @@ describe(`${CREATE_THREAD} tool`, () => {
                     channelId: TEST_IDS.CHANNEL_1,
                     workspaceId: TEST_IDS.WORKSPACE_1,
                     content: 'Let us discuss this topic',
-                    threadUrl: expect.stringContaining('twist.com'),
+                    threadUrl: expect.stringContaining('comms.todoist.com'),
                 }),
             )
         })
@@ -69,7 +69,7 @@ describe(`${CREATE_THREAD} tool`, () => {
                 title: 'Notify Users',
                 content: 'Important update',
             })
-            mockTwistApi.threads.createThread.mockResolvedValue(mockThread)
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
 
             const result = await createThread.execute(
                 {
@@ -78,10 +78,10 @@ describe(`${CREATE_THREAD} tool`, () => {
                     content: 'Important update',
                     recipients: [TEST_IDS.USER_1, TEST_IDS.USER_2],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.createThread).toHaveBeenCalledWith({
+            expect(mockCommsApi.threads.createThread).toHaveBeenCalledWith({
                 channelId: TEST_IDS.CHANNEL_1,
                 title: 'Notify Users',
                 content: 'Important update',
@@ -101,7 +101,7 @@ describe(`${CREATE_THREAD} tool`, () => {
                 title: 'Notify Groups',
                 content: 'Important group update',
             })
-            mockTwistApi.threads.createThread.mockResolvedValue(mockThread)
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
 
             const result = await createThread.execute(
                 {
@@ -110,10 +110,10 @@ describe(`${CREATE_THREAD} tool`, () => {
                     content: 'Important group update',
                     groups: [100, 200],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.createThread).toHaveBeenCalledWith({
+            expect(mockCommsApi.threads.createThread).toHaveBeenCalledWith({
                 channelId: TEST_IDS.CHANNEL_1,
                 title: 'Notify Groups',
                 content: 'Important group update',
@@ -131,7 +131,7 @@ describe(`${CREATE_THREAD} tool`, () => {
                 title: 'Empty Groups',
                 content: 'No group recipients',
             })
-            mockTwistApi.threads.createThread.mockResolvedValue(mockThread)
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
 
             const result = await createThread.execute(
                 {
@@ -140,10 +140,10 @@ describe(`${CREATE_THREAD} tool`, () => {
                     content: 'No group recipients',
                     groups: [],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.createThread).toHaveBeenCalledWith({
+            expect(mockCommsApi.threads.createThread).toHaveBeenCalledWith({
                 channelId: TEST_IDS.CHANNEL_1,
                 title: 'Empty Groups',
                 content: 'No group recipients',
@@ -161,7 +161,7 @@ describe(`${CREATE_THREAD} tool`, () => {
                 title: 'Notify Users and Groups',
                 content: 'Important broad update',
             })
-            mockTwistApi.threads.createThread.mockResolvedValue(mockThread)
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
 
             const result = await createThread.execute(
                 {
@@ -171,10 +171,10 @@ describe(`${CREATE_THREAD} tool`, () => {
                     recipients: [TEST_IDS.USER_1],
                     groups: [100],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.threads.createThread).toHaveBeenCalledWith({
+            expect(mockCommsApi.threads.createThread).toHaveBeenCalledWith({
                 channelId: TEST_IDS.CHANNEL_1,
                 title: 'Notify Users and Groups',
                 content: 'Important broad update',
@@ -191,7 +191,7 @@ describe(`${CREATE_THREAD} tool`, () => {
     describe('error handling', () => {
         it('should propagate API errors', async () => {
             const apiError = new Error('Channel not found')
-            mockTwistApi.threads.createThread.mockRejectedValue(apiError)
+            mockCommsApi.threads.createThread.mockRejectedValue(apiError)
 
             await expect(
                 createThread.execute(
@@ -200,7 +200,7 @@ describe(`${CREATE_THREAD} tool`, () => {
                         title: 'Test Thread',
                         content: 'Test content',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Channel not found')
         })

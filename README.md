@@ -1,30 +1,28 @@
-# Twist AI and MCP SDK
+# Comms MCP & AI Tools
 
-Library for connecting AI agents to Twist. Includes tools that can be integrated into LLMs,
-enabling them to access and interact with a Twist workspace on the user's behalf.
+MCP server and importable AI tools for the Doist Comms API. Use the
+tools through an MCP server, or import them directly to plug Comms into
+your own AI conversational interface.
 
-These tools can be used both through an MCP server, or imported directly in other projects to
-integrate them to your own AI conversational interfaces.
+## Using the tools
 
-## Using tools
-
-### 1. Add this repository as a dependency
+### 1. Install
 
 ```sh
-npm install @doist/twist-ai
+npm install @doist/comms-mcp
 ```
 
-### 2. Import the tools and plug them to an AI
+### 2. Plug them into an AI
 
-Here's an example using [Vercel's AI SDK](https://ai-sdk.dev/docs/ai-sdk-core/generating-text#streamtext).
+Example with [Vercel's AI SDK](https://ai-sdk.dev/docs/ai-sdk-core/generating-text#streamtext):
 
 ```js
-import { fetchInbox, reply, markDone } from '@doist/twist-ai'
+import { fetchInbox, reply, markDone } from '@doist/comms-mcp'
 import { streamText } from 'ai'
 
 const result = streamText({
     model: yourModel,
-    system: 'You are a helpful Twist assistant',
+    system: 'You are a helpful Comms assistant',
     tools: {
         fetchInbox,
         reply,
@@ -35,28 +33,26 @@ const result = streamText({
 
 ## Using as an MCP server
 
-### Quick Start
-
-You can run the MCP server directly with npx:
+### Quick start
 
 ```bash
-npx @doist/twist-ai
+npx @doist/comms-mcp
 ```
 
-### Setup Guide
+### Setup
 
 #### Claude Desktop
 
-Add to your Claude Desktop configuration file (`claude_desktop_config.json`):
+Add to `claude_desktop_config.json`:
 
 ```json
 {
     "mcpServers": {
-        "twist": {
+        "comms": {
             "command": "npx",
-            "args": ["-y", "@doist/twist-ai"],
+            "args": ["-y", "@doist/comms-mcp"],
             "env": {
-                "TWIST_API_KEY": "your-twist-api-key-here"
+                "COMMS_API_KEY": "your-comms-api-key-here"
             }
         }
     }
@@ -65,151 +61,134 @@ Add to your Claude Desktop configuration file (`claude_desktop_config.json`):
 
 #### Cursor
 
-Create a configuration file:
-
-- **Global:** `~/.cursor/mcp.json`
-- **Project-specific:** `.cursor/mcp.json`
+`~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (per-project):
 
 ```json
 {
     "mcpServers": {
-        "twist": {
+        "comms": {
             "command": "npx",
-            "args": ["-y", "@doist/twist-ai"],
+            "args": ["-y", "@doist/comms-mcp"],
             "env": {
-                "TWIST_API_KEY": "your-twist-api-key-here"
+                "COMMS_API_KEY": "your-comms-api-key-here"
             }
         }
     }
 }
 ```
-
-Then enable the server in Cursor settings if prompted.
 
 #### Claude Code (CLI)
 
 ```bash
-claude mcp add twist npx @doist/twist-ai
-```
-
-Then set your API key:
-
-```bash
-export TWIST_API_KEY=your-twist-api-key-here
+claude mcp add comms npx @doist/comms-mcp
+export COMMS_API_KEY=your-comms-api-key-here
 ```
 
 #### Visual Studio Code
 
-1. Open Command Palette → MCP: Add Server
-2. Configure the server:
+1. Command Palette → MCP: Add Server
+2. Configure:
 
 ```json
 {
     "servers": {
-        "twist": {
+        "comms": {
             "command": "npx",
-            "args": ["-y", "@doist/twist-ai"],
+            "args": ["-y", "@doist/comms-mcp"],
             "env": {
-                "TWIST_API_KEY": "your-twist-api-key-here"
+                "COMMS_API_KEY": "your-comms-api-key-here"
             }
         }
     }
 }
 ```
 
-### Getting your Twist API Key
+### Targeting a non-production deployment
 
-1. Visit [https://twist.com/app_console](https://twist.com/app_console)
-2. Create a new integration or use an existing one
-3. Copy your API key
-4. Add it to your MCP configuration as shown above
+By default the server talks to `https://comms.todoist.com`. To point at
+staging or a custom deployment, also set `COMMS_BASE_URL`:
+
+```json
+"env": {
+    "COMMS_API_KEY": "your-comms-api-key-here",
+    "COMMS_BASE_URL": "https://comms.staging.todoist.com"
+}
+```
+
+### Getting a Comms API key
+
+Generate a personal API token from the Comms app console, then export
+it as `COMMS_API_KEY` (or paste it into the MCP client config above).
 
 ## Features
 
-A key feature of this project is that tools can be reused, and are not written specifically for use in an MCP server. They can be hooked up as tools to other conversational AI interfaces (e.g. Vercel's AI SDK).
+The tools are intentionally workflow-shaped rather than 1:1 wrappers
+around API endpoints, so an LLM can complete a useful action with a
+small number of calls.
 
-This project is in its early stages. Expect more and/or better tools soon.
+### Available tools
 
-Nevertheless, our goal is to provide a small set of tools that enable complete workflows, rather than just atomic actions, striking a balance between flexibility and efficiency for LLMs.
+- **userInfo** — Information about the current user and their workspaces
+- **fetchInbox** — Threads and conversations from the inbox
+- **loadThread** — Load a thread with its comments
+- **loadConversation** — Load a conversation with its messages
+- **searchContent** — Search a workspace for threads, comments, and messages
+- **getMentions** — Threads, comments, and messages mentioning the current user
+- **createThread** — Start a new channel thread
+- **updateObject** / **deleteObject** — Edit or remove a thread, comment, or message
+- **reply** — Reply to a thread or conversation
+- **react** — Add a reaction to a thread, comment, conversation, or message
+- **markDone** — Mark threads or conversations as read and/or archived
+- **buildLink** — Build URLs to Comms resources
+- **listChannels** / **getGroups** / **getUsers** / **getWorkspaces** — Discovery helpers
 
-### Available Tools
-
-- **userInfo** - Get information about the current user and their workspaces
-- **fetchInbox** - Fetch threads and conversations from the inbox
-- **loadThread** - Load a specific thread with its comments
-- **loadConversation** - Load a specific conversation with its messages
-- **searchContent** - Search across a workspace for threads, comments, and messages
-- **reply** - Reply to threads or conversations
-- **react** - Add reactions to threads, comments, conversations, or messages
-- **markDone** - Mark threads or conversations as done (read and/or archived)
-- **buildLink** - Build URLs to Twist resources
-
-For more details on each tool, see the [src/tools](src/tools) directory.
+For details, see [src/tools](src/tools).
 
 ## Dependencies
 
-- MCP server using the official [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk?tab=readme-ov-file#installation)
-- Twist TypeScript SDK [@doist/twist-sdk](https://github.com/Doist/twist-sdk-typescript)
+- MCP server uses the official [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk)
+- Comms TypeScript SDK [@doist/comms-sdk](https://github.com/Doist/comms-sdk-typescript)
 
-## Local Development Setup
+## Local development
 
 ### Prerequisites
 
-- Node.js 18 or higher
+- Node.js 18+
 - npm
-- A Twist account with API access
+- A Comms API token
 
 ### Setup
 
-1. Clone the repository:
-
 ```bash
-git clone https://github.com/doist/twist-ai.git
-cd twist-ai
-```
-
-2. Install dependencies:
-
-```bash
+git clone https://github.com/Doist/comms-mcp.git
+cd comms-mcp
 npm install
-```
-
-3. Create a `.env` file with your Twist API key:
-
-```bash
-TWIST_API_KEY=your-twist-api-key-here
-```
-
-4. Build the project:
-
-```bash
+cp .env.example .env  # then add your COMMS_API_KEY
 npm run build
 ```
 
-### Development Commands
+### Commands
 
-- `npm start` - Build and run the MCP inspector for testing
-- `npm run dev` - Development mode with auto-rebuild and restart
-- `npm test` - Run all tests
-- `npm run type-check` - Run TypeScript type checking
-- `npm run format:check` - Run linting and formatting checks
-- `npm run format:fix` - Auto-fix linting and formatting issues
+- `npm start` — Build and run the MCP inspector
+- `npm run dev` — Watch mode with auto-restart
+- `npm test` — Jest
+- `npm run type-check` — TypeScript
+- `npm run format:check` / `npm run format:fix` — oxlint + oxfmt
+
+### Running a single tool directly
+
+```bash
+npx tsx scripts/run-tool.ts user-info '{}'
+npx tsx scripts/run-tool.ts --list
+```
 
 ## Contributing
 
-Contributions are welcome! Please ensure:
+1. Tests pass (`npm test`)
+2. Types pass (`npm run type-check`)
+3. Lint & format pass (`npm run format:check`)
 
-1. All tests pass (`npm test`)
-2. Code is properly typed (`npm run type-check`)
-3. Code passes linting and formatting checks (`npm run format:check`)
-
-Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages:
-
-- `feat:` for new features
-- `fix:` for bug fixes
-- `docs:` for documentation changes
-- `test:` for test changes
-- `chore:` for maintenance tasks
+Use [Conventional Commits](https://www.conventionalcommits.org/) — `feat:`, `fix:`, `docs:`, `test:`, `chore:`.
 
 ## License
 

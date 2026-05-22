@@ -1,6 +1,6 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
+import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
 import { UserInfoOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -10,14 +10,14 @@ type UserInfoStructured = Record<string, unknown> & {
     type: 'user_info'
     userId: number
     name: string
+    shortName: string
     email: string
     timezone: string
-    bot: boolean
-    defaultWorkspace: number | null
+    lang: string
 }
 
 async function generateUserInfo(
-    client: TwistApi,
+    client: CommsApi,
 ): Promise<{ textContent: string; structuredContent: UserInfoStructured }> {
     const user = await client.users.getSessionUser()
 
@@ -25,34 +25,23 @@ async function generateUserInfo(
         '# User Information',
         '',
         `**User ID:** ${user.id}`,
-        `**Name:** ${user.name}`,
+        `**Name:** ${user.fullName}`,
+        `**Short Name:** ${user.shortName}`,
         `**Email:** ${user.email}`,
         `**Timezone:** ${user.timezone}`,
-        `**Bot:** ${user.bot ? 'Yes' : 'No'}`,
         `**Language:** ${user.lang}`,
     ]
-
-    if (user.defaultWorkspace) {
-        lines.push(`**Default Workspace:** ${user.defaultWorkspace}`)
-    }
-
-    if (user.awayMode) {
-        lines.push('', '## Away Mode')
-        lines.push(`**Type:** ${user.awayMode.type}`)
-        lines.push(`**From:** ${user.awayMode.dateFrom}`)
-        lines.push(`**To:** ${user.awayMode.dateTo}`)
-    }
 
     const textContent = lines.join('\n')
 
     const structuredContent: UserInfoStructured = {
         type: 'user_info',
         userId: user.id,
-        name: user.name,
+        name: user.fullName,
+        shortName: user.shortName,
         email: user.email,
         timezone: user.timezone,
-        bot: user.bot,
-        defaultWorkspace: user.defaultWorkspace ?? null,
+        lang: user.lang,
     }
 
     return { textContent, structuredContent }
@@ -61,7 +50,7 @@ async function generateUserInfo(
 const userInfo = {
     name: ToolNames.USER_INFO,
     description:
-        'Get comprehensive user information including user ID, name, email, timezone, bot status, default workspace, and away mode status.',
+        'Get information about the authenticated Comms user: user ID, full name, short name, email, timezone, and language.',
     parameters: ArgsSchema,
     outputSchema: UserInfoOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
@@ -73,6 +62,6 @@ const userInfo = {
             structuredContent: result.structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof UserInfoOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof UserInfoOutputSchema.shape>
 
 export { userInfo, type UserInfoStructured }

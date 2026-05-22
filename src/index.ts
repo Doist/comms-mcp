@@ -1,5 +1,4 @@
 import { getMcpServer } from './mcp-server.js'
-import { away } from './tools/away.js'
 import { buildLink } from './tools/build-link.js'
 import { createThread } from './tools/create-thread.js'
 import { deleteObject } from './tools/delete-object.js'
@@ -17,7 +16,6 @@ import { updateObject } from './tools/update-object.js'
 import { userInfo } from './tools/user-info.js'
 
 const tools = {
-    away,
     userInfo,
     fetchInbox,
     loadThread,
@@ -38,7 +36,6 @@ const tools = {
 export { tools, getMcpServer }
 
 export {
-    away,
     userInfo,
     fetchInbox,
     loadThread,

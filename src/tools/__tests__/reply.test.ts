@@ -1,4 +1,4 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     createMockComment,
@@ -10,15 +10,15 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { reply } from '../reply.js'
 
-// Mock the Twist API
-const mockTwistApi = {
+// Mock the Comms API
+const mockCommsApi = {
     comments: {
         createComment: jest.fn(),
     },
     conversationMessages: {
         createMessage: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { REPLY } = ToolNames
 
@@ -30,7 +30,7 @@ describe(`${REPLY} tool`, () => {
     describe('replying to threads', () => {
         it('should post a comment to a thread', async () => {
             const mockComment = createMockComment()
-            mockTwistApi.comments.createComment.mockResolvedValue(mockComment)
+            mockCommsApi.comments.createComment.mockResolvedValue(mockComment)
 
             const result = await reply.execute(
                 {
@@ -38,10 +38,10 @@ describe(`${REPLY} tool`, () => {
                     targetId: TEST_IDS.THREAD_1,
                     content: 'This is my reply',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.createComment).toHaveBeenCalledWith({
+            expect(mockCommsApi.comments.createComment).toHaveBeenCalledWith({
                 threadId: TEST_IDS.THREAD_1,
                 content: 'This is my reply',
                 recipients: undefined,
@@ -60,7 +60,7 @@ describe(`${REPLY} tool`, () => {
                     targetType: 'thread',
                     targetId: TEST_IDS.THREAD_1,
                     content: 'This is my reply',
-                    replyUrl: expect.stringContaining('twist.com'),
+                    replyUrl: expect.stringContaining('comms.todoist.com'),
                 }),
             )
             expect(structuredContent?.replyId).toBe(mockComment.id)
@@ -70,7 +70,7 @@ describe(`${REPLY} tool`, () => {
 
         it('should post a comment with recipients', async () => {
             const mockComment = createMockComment()
-            mockTwistApi.comments.createComment.mockResolvedValue(mockComment)
+            mockCommsApi.comments.createComment.mockResolvedValue(mockComment)
 
             const result = await reply.execute(
                 {
@@ -79,10 +79,10 @@ describe(`${REPLY} tool`, () => {
                     content: 'Notifying users',
                     recipients: [TEST_IDS.USER_1, TEST_IDS.USER_2],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.createComment).toHaveBeenCalledWith({
+            expect(mockCommsApi.comments.createComment).toHaveBeenCalledWith({
                 threadId: TEST_IDS.THREAD_1,
                 content: 'Notifying users',
                 recipients: [TEST_IDS.USER_1, TEST_IDS.USER_2],
@@ -100,7 +100,7 @@ describe(`${REPLY} tool`, () => {
 
         it('should post a comment with groups', async () => {
             const mockComment = createMockComment()
-            mockTwistApi.comments.createComment.mockResolvedValue(mockComment)
+            mockCommsApi.comments.createComment.mockResolvedValue(mockComment)
 
             const result = await reply.execute(
                 {
@@ -109,10 +109,10 @@ describe(`${REPLY} tool`, () => {
                     content: 'Notifying groups',
                     groups: [100, 200],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.createComment).toHaveBeenCalledWith({
+            expect(mockCommsApi.comments.createComment).toHaveBeenCalledWith({
                 threadId: TEST_IDS.THREAD_1,
                 content: 'Notifying groups',
                 recipients: undefined,
@@ -128,7 +128,7 @@ describe(`${REPLY} tool`, () => {
 
         it('should default to notifyAudience: thread when groups are empty', async () => {
             const mockComment = createMockComment()
-            mockTwistApi.comments.createComment.mockResolvedValue(mockComment)
+            mockCommsApi.comments.createComment.mockResolvedValue(mockComment)
 
             const result = await reply.execute(
                 {
@@ -137,10 +137,10 @@ describe(`${REPLY} tool`, () => {
                     content: 'Notifying default recipients',
                     groups: [],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.createComment).toHaveBeenCalledWith({
+            expect(mockCommsApi.comments.createComment).toHaveBeenCalledWith({
                 threadId: TEST_IDS.THREAD_1,
                 content: 'Notifying default recipients',
                 recipients: undefined,
@@ -155,7 +155,7 @@ describe(`${REPLY} tool`, () => {
 
         it('should post a comment with recipients and groups', async () => {
             const mockComment = createMockComment()
-            mockTwistApi.comments.createComment.mockResolvedValue(mockComment)
+            mockCommsApi.comments.createComment.mockResolvedValue(mockComment)
 
             const result = await reply.execute(
                 {
@@ -165,10 +165,10 @@ describe(`${REPLY} tool`, () => {
                     recipients: [TEST_IDS.USER_1],
                     groups: [100],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.createComment).toHaveBeenCalledWith({
+            expect(mockCommsApi.comments.createComment).toHaveBeenCalledWith({
                 threadId: TEST_IDS.THREAD_1,
                 content: 'Notifying users and groups',
                 recipients: [TEST_IDS.USER_1],
@@ -184,7 +184,7 @@ describe(`${REPLY} tool`, () => {
 
         it('should pass through an explicit notifyAudience', async () => {
             const mockComment = createMockComment()
-            mockTwistApi.comments.createComment.mockResolvedValue(mockComment)
+            mockCommsApi.comments.createComment.mockResolvedValue(mockComment)
 
             const result = await reply.execute(
                 {
@@ -193,10 +193,10 @@ describe(`${REPLY} tool`, () => {
                     content: 'Notifying the whole channel',
                     notifyAudience: 'channel',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.createComment).toHaveBeenCalledWith({
+            expect(mockCommsApi.comments.createComment).toHaveBeenCalledWith({
                 threadId: TEST_IDS.THREAD_1,
                 content: 'Notifying the whole channel',
                 recipients: undefined,
@@ -210,7 +210,7 @@ describe(`${REPLY} tool`, () => {
 
         it('should combine an explicit notifyAudience with recipients and groups', async () => {
             const mockComment = createMockComment()
-            mockTwistApi.comments.createComment.mockResolvedValue(mockComment)
+            mockCommsApi.comments.createComment.mockResolvedValue(mockComment)
 
             const result = await reply.execute(
                 {
@@ -221,10 +221,10 @@ describe(`${REPLY} tool`, () => {
                     groups: [100],
                     notifyAudience: 'channel',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.createComment).toHaveBeenCalledWith({
+            expect(mockCommsApi.comments.createComment).toHaveBeenCalledWith({
                 threadId: TEST_IDS.THREAD_1,
                 content: 'Notifying users, groups, and the whole channel',
                 recipients: [TEST_IDS.USER_1],
@@ -240,7 +240,7 @@ describe(`${REPLY} tool`, () => {
 
         it('should treat an explicit empty recipients array as user-provided and skip the default audience', async () => {
             const mockComment = createMockComment()
-            mockTwistApi.comments.createComment.mockResolvedValue(mockComment)
+            mockCommsApi.comments.createComment.mockResolvedValue(mockComment)
 
             const result = await reply.execute(
                 {
@@ -249,10 +249,10 @@ describe(`${REPLY} tool`, () => {
                     content: 'No one to notify explicitly',
                     recipients: [],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.comments.createComment).toHaveBeenCalledWith({
+            expect(mockCommsApi.comments.createComment).toHaveBeenCalledWith({
                 threadId: TEST_IDS.THREAD_1,
                 content: 'No one to notify explicitly',
                 recipients: [],
@@ -270,7 +270,7 @@ describe(`${REPLY} tool`, () => {
     describe('replying to conversations', () => {
         it('should post a message to a conversation', async () => {
             const mockMessage = createMockConversationMessage()
-            mockTwistApi.conversationMessages.createMessage.mockResolvedValue(mockMessage)
+            mockCommsApi.conversationMessages.createMessage.mockResolvedValue(mockMessage)
 
             const result = await reply.execute(
                 {
@@ -278,10 +278,10 @@ describe(`${REPLY} tool`, () => {
                     targetId: TEST_IDS.CONVERSATION_1,
                     content: 'This is my message',
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.conversationMessages.createMessage).toHaveBeenCalledWith({
+            expect(mockCommsApi.conversationMessages.createMessage).toHaveBeenCalledWith({
                 conversationId: TEST_IDS.CONVERSATION_1,
                 content: 'This is my message',
             })
@@ -298,11 +298,11 @@ describe(`${REPLY} tool`, () => {
                         content: 'This is my message',
                         groups: [100],
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('groups can only be used when replying to a thread.')
 
-            expect(mockTwistApi.conversationMessages.createMessage).not.toHaveBeenCalled()
+            expect(mockCommsApi.conversationMessages.createMessage).not.toHaveBeenCalled()
         })
 
         it('should reject notifyAudience for conversation messages', async () => {
@@ -314,11 +314,11 @@ describe(`${REPLY} tool`, () => {
                         content: 'This is my message',
                         notifyAudience: 'channel',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('notifyAudience can only be used when replying to a thread.')
 
-            expect(mockTwistApi.conversationMessages.createMessage).not.toHaveBeenCalled()
+            expect(mockCommsApi.conversationMessages.createMessage).not.toHaveBeenCalled()
         })
 
         it('should reject empty groups for conversation messages', async () => {
@@ -330,16 +330,16 @@ describe(`${REPLY} tool`, () => {
                         content: 'This is my message',
                         groups: [],
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('groups can only be used when replying to a thread.')
 
-            expect(mockTwistApi.conversationMessages.createMessage).not.toHaveBeenCalled()
+            expect(mockCommsApi.conversationMessages.createMessage).not.toHaveBeenCalled()
         })
 
         it('should ignore recipients for conversation messages', async () => {
             const mockMessage = createMockConversationMessage()
-            mockTwistApi.conversationMessages.createMessage.mockResolvedValue(mockMessage)
+            mockCommsApi.conversationMessages.createMessage.mockResolvedValue(mockMessage)
 
             const result = await reply.execute(
                 {
@@ -348,10 +348,10 @@ describe(`${REPLY} tool`, () => {
                     content: 'This is my message',
                     recipients: [TEST_IDS.USER_1],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.conversationMessages.createMessage).toHaveBeenCalledWith({
+            expect(mockCommsApi.conversationMessages.createMessage).toHaveBeenCalledWith({
                 conversationId: TEST_IDS.CONVERSATION_1,
                 content: 'This is my message',
             })
@@ -364,7 +364,7 @@ describe(`${REPLY} tool`, () => {
     describe('error handling', () => {
         it('should propagate thread reply errors', async () => {
             const apiError = new Error('Thread not found')
-            mockTwistApi.comments.createComment.mockRejectedValue(apiError)
+            mockCommsApi.comments.createComment.mockRejectedValue(apiError)
 
             await expect(
                 reply.execute(
@@ -373,14 +373,14 @@ describe(`${REPLY} tool`, () => {
                         targetId: TEST_IDS.THREAD_1,
                         content: 'Reply content',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Thread not found')
         })
 
         it('should propagate conversation reply errors', async () => {
             const apiError = new Error('Conversation not found')
-            mockTwistApi.conversationMessages.createMessage.mockRejectedValue(apiError)
+            mockCommsApi.conversationMessages.createMessage.mockRejectedValue(apiError)
 
             await expect(
                 reply.execute(
@@ -389,7 +389,7 @@ describe(`${REPLY} tool`, () => {
                         targetId: TEST_IDS.CONVERSATION_1,
                         content: 'Message content',
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Conversation not found')
         })

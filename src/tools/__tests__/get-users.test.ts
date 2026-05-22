@@ -1,4 +1,4 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     extractStructuredContent,
@@ -9,23 +9,21 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { getUsers } from '../get-users.js'
 
-// Mock the Twist API
-const mockTwistApi = {
+// Mock the Comms API
+const mockCommsApi = {
     workspaceUsers: {
         getWorkspaceUsers: jest.fn(),
         getUserById: jest.fn(),
     },
-    batch: jest.fn(),
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { GET_USERS } = ToolNames
 
-const createMockWorkspaceUser = (overrides = {}) => ({
+const createMockWorkspaceUser = (overrides: Partial<Record<string, unknown>> = {}) => ({
     id: TEST_IDS.USER_1,
-    name: 'Alice Johnson',
+    fullName: 'Alice Johnson',
     shortName: 'Alice',
     email: 'alice@example.com',
-    bot: false,
     removed: false,
     timezone: 'America/New_York',
     userType: 'USER' as const,
@@ -36,15 +34,6 @@ const createMockWorkspaceUser = (overrides = {}) => ({
 describe(`${GET_USERS} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        // Mock batch to return responses with .data property
-        mockTwistApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
-            const results = []
-            for (const arg of args) {
-                const result = await arg
-                results.push({ data: result })
-            }
-            return results as never
-        })
     })
 
     describe('fetching all users', () => {
@@ -53,28 +42,27 @@ describe(`${GET_USERS} tool`, () => {
                 createMockWorkspaceUser(),
                 createMockWorkspaceUser({
                     id: TEST_IDS.USER_2,
-                    name: 'Bob Smith',
+                    fullName: 'Bob Smith',
                     shortName: 'Bob',
                     email: 'bob@example.com',
                     userType: 'ADMIN',
                 }),
                 createMockWorkspaceUser({
                     id: TEST_IDS.USER_3,
-                    name: 'Charlie Bot',
+                    fullName: 'Charlie Person',
                     shortName: 'Charlie',
-                    email: 'bot@example.com',
-                    bot: true,
+                    email: 'charlie@example.com',
                 }),
             ]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers as never)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledWith({
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledWith({
                 workspaceId: TEST_IDS.WORKSPACE_1,
             })
 
@@ -83,7 +71,7 @@ describe(`${GET_USERS} tool`, () => {
             expect(textContent).toContain('**Total Users:** 3')
             expect(textContent).toContain('## Alice Johnson')
             expect(textContent).toContain('## Bob Smith')
-            expect(textContent).toContain('## Charlie Bot 🤖')
+            expect(textContent).toContain('## Charlie Person')
 
             const structuredContent = extractStructuredContent(result)
             expect(structuredContent).toEqual({
@@ -105,8 +93,7 @@ describe(`${GET_USERS} tool`, () => {
                     }),
                     expect.objectContaining({
                         id: TEST_IDS.USER_3,
-                        name: 'Charlie Bot',
-                        bot: true,
+                        name: 'Charlie Person',
                     }),
                 ]),
             })
@@ -115,14 +102,14 @@ describe(`${GET_USERS} tool`, () => {
         it('should handle empty userIds array (fetch all)', async () => {
             const mockUsers = [createMockWorkspaceUser()]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers as never)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [] },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledWith({
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledWith({
                 workspaceId: TEST_IDS.WORKSPACE_1,
             })
 
@@ -132,19 +119,19 @@ describe(`${GET_USERS} tool`, () => {
     })
 
     describe('fetching specific users', () => {
-        it('should batch fetch specific users by ID', async () => {
-            mockTwistApi.workspaceUsers.getUserById.mockImplementation(
+        it('should fetch specific users by ID in parallel', async () => {
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
                 async (args: { workspaceId: number; userId: number }) => {
                     if (args.userId === TEST_IDS.USER_1) {
-                        return createMockWorkspaceUser()
+                        return createMockWorkspaceUser() as never
                     }
                     if (args.userId === TEST_IDS.USER_2) {
                         return createMockWorkspaceUser({
                             id: TEST_IDS.USER_2,
-                            name: 'Bob Smith',
+                            fullName: 'Bob Smith',
                             shortName: 'Bob',
                             email: 'bob@example.com',
-                        })
+                        }) as never
                     }
                     throw new Error('User not found')
                 },
@@ -155,11 +142,11 @@ describe(`${GET_USERS} tool`, () => {
                     workspaceId: TEST_IDS.WORKSPACE_1,
                     userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.batch).toHaveBeenCalled()
-            expect(mockTwistApi.workspaceUsers.getWorkspaceUsers).not.toHaveBeenCalled()
+            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledTimes(2)
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).not.toHaveBeenCalled()
 
             const textContent = extractTextContent(result)
             expect(textContent).toContain('**Total Users:** 2')
@@ -172,14 +159,16 @@ describe(`${GET_USERS} tool`, () => {
         })
 
         it('should handle single user ID', async () => {
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue(createMockWorkspaceUser())
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                createMockWorkspaceUser() as never,
+            )
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [TEST_IDS.USER_1] },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.batch).toHaveBeenCalled()
+            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledTimes(1)
 
             const structuredContent = extractStructuredContent(result)
             expect(structuredContent.users).toHaveLength(1)
@@ -190,24 +179,24 @@ describe(`${GET_USERS} tool`, () => {
     describe('search filtering', () => {
         it('should filter users by name (case-insensitive)', async () => {
             const mockUsers = [
-                createMockWorkspaceUser({ name: 'Alice Johnson' }),
+                createMockWorkspaceUser({ fullName: 'Alice Johnson' }),
                 createMockWorkspaceUser({
                     id: TEST_IDS.USER_2,
-                    name: 'Bob Smith',
+                    fullName: 'Bob Smith',
                     email: 'bob@example.com',
                 }),
                 createMockWorkspaceUser({
                     id: TEST_IDS.USER_3,
-                    name: 'Alice Cooper',
+                    fullName: 'Alice Cooper',
                     email: 'alice2@example.com',
                 }),
             ]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers as never)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'alice' },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -224,19 +213,19 @@ describe(`${GET_USERS} tool`, () => {
 
         it('should filter users by email (case-insensitive)', async () => {
             const mockUsers = [
-                createMockWorkspaceUser({ name: 'Alice', email: 'alice@company.com' }),
+                createMockWorkspaceUser({ fullName: 'Alice', email: 'alice@company.com' }),
                 createMockWorkspaceUser({
                     id: TEST_IDS.USER_2,
-                    name: 'Bob',
+                    fullName: 'Bob',
                     email: 'bob@different.com',
                 }),
             ]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers as never)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'COMPANY' },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -248,11 +237,11 @@ describe(`${GET_USERS} tool`, () => {
         it('should handle no search matches', async () => {
             const mockUsers = [createMockWorkspaceUser()]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers as never)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'nonexistent' },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -272,17 +261,17 @@ describe(`${GET_USERS} tool`, () => {
                 createMockWorkspaceUser({ userType: 'ADMIN', removed: false }),
                 createMockWorkspaceUser({
                     id: TEST_IDS.USER_2,
-                    name: 'Guest User',
+                    fullName: 'Guest User',
                     userType: 'GUEST',
                     removed: true,
                 }),
             ]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers as never)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -295,11 +284,11 @@ describe(`${GET_USERS} tool`, () => {
         it('should handle users without email', async () => {
             const mockUsers = [createMockWorkspaceUser({ email: undefined })]
 
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(mockUsers as never)
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -313,21 +302,21 @@ describe(`${GET_USERS} tool`, () => {
     describe('error handling', () => {
         it('should propagate API errors', async () => {
             const apiError = new Error(TEST_ERRORS.API_UNAUTHORIZED)
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockRejectedValue(apiError)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockRejectedValue(apiError)
 
             await expect(
-                getUsers.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockTwistApi),
+                getUsers.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockCommsApi),
             ).rejects.toThrow(TEST_ERRORS.API_UNAUTHORIZED)
         })
     })
 
     describe('edge cases', () => {
         it('should handle empty user list', async () => {
-            mockTwistApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue([])
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue([])
 
             const result = await getUsers.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)

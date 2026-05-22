@@ -29,7 +29,7 @@ export default {
             },
         ],
     },
-    transformIgnorePatterns: ['node_modules/(?!(@doist/twist-sdk|camelcase)/)'],
+    transformIgnorePatterns: ['node_modules/(?!(@doist/comms-sdk|camelcase|p-limit|yocto-queue)/)'],
     collectCoverageFrom: [
         'src/**/*.ts',
         '!src/**/*.d.ts',

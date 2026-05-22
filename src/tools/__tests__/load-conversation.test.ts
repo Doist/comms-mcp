@@ -1,4 +1,4 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
     createMockConversation,
@@ -9,9 +9,8 @@ import {
 import { ToolNames } from '../../utils/tool-names.js'
 import { loadConversation } from '../load-conversation.js'
 
-// Mock the Twist API
-const mockTwistApi = {
-    batch: jest.fn(),
+// Mock the Comms API
+const mockCommsApi = {
     conversations: {
         getConversation: jest.fn(),
     },
@@ -21,22 +20,24 @@ const mockTwistApi = {
     workspaceUsers: {
         getUserById: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { LOAD_CONVERSATION } = ToolNames
+
+const makeUser = (id: number, name: string) => ({
+    id,
+    fullName: name,
+    shortName: name.split(' ')[0] ?? name,
+    email: `${name.toLowerCase().replace(/\s/g, '')}@test.com`,
+    userType: 'USER' as const,
+    removed: false,
+    timezone: 'UTC',
+    version: 1,
+})
 
 describe(`${LOAD_CONVERSATION} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        // Mock batch to return responses with .data property
-        mockTwistApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
-            const results = []
-            for (const arg of args) {
-                const result = await arg
-                results.push({ data: result })
-            }
-            return results as never
-        })
     })
 
     describe('loading conversations successfully', () => {
@@ -49,69 +50,43 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
                 createMockConversationMessage({ id: TEST_IDS.MESSAGE_2 }),
             ]
 
-            mockTwistApi.conversations.getConversation.mockResolvedValue(mockConversation)
-            mockTwistApi.conversationMessages.getMessages.mockResolvedValue(mockMessages)
-            mockTwistApi.workspaceUsers.getUserById.mockImplementation((async (args: {
+            mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
+            mockCommsApi.conversationMessages.getMessages.mockResolvedValue(mockMessages)
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation((async (args: {
                 workspaceId: number
                 userId: number
             }) => {
                 if (args.userId === TEST_IDS.USER_1) {
-                    return {
-                        id: TEST_IDS.USER_1,
-                        name: 'Test User 1',
-                        shortName: 'TU1',
-                        email: 'user1@test.com',
-                        userType: 'USER' as const,
-                        bot: false,
-                        removed: false,
-                        timezone: 'UTC',
-                        version: 1,
-                    }
+                    return makeUser(TEST_IDS.USER_1, 'Test User 1')
                 }
-                return {
-                    id: TEST_IDS.USER_2,
-                    name: 'Test User 2',
-                    shortName: 'TU2',
-                    email: 'user2@test.com',
-                    userType: 'USER' as const,
-                    bot: false,
-                    removed: false,
-                    timezone: 'UTC',
-                    version: 1,
-                }
+                return makeUser(TEST_IDS.USER_2, 'Test User 2')
             }) as never)
 
             const result = await loadConversation.execute(
                 { conversationId: TEST_IDS.CONVERSATION_1, limit: 50, includeParticipants: true },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.conversations.getConversation).toHaveBeenCalledWith(
+            expect(mockCommsApi.conversations.getConversation).toHaveBeenCalledWith(
                 TEST_IDS.CONVERSATION_1,
-                { batch: true },
             )
-            expect(mockTwistApi.conversationMessages.getMessages).toHaveBeenCalledWith(
-                {
-                    conversationId: TEST_IDS.CONVERSATION_1,
-                    newerThan: undefined,
-                    olderThan: undefined,
-                    limit: 50,
-                },
-                { batch: true },
-            )
-            // Verify user info is fetched for each participant
-            expect(mockTwistApi.workspaceUsers.getUserById).toHaveBeenCalledWith(
-                { workspaceId: mockConversation.workspaceId, userId: TEST_IDS.USER_1 },
-                { batch: true },
-            )
-            expect(mockTwistApi.workspaceUsers.getUserById).toHaveBeenCalledWith(
-                { workspaceId: mockConversation.workspaceId, userId: TEST_IDS.USER_2 },
-                { batch: true },
-            )
+            expect(mockCommsApi.conversationMessages.getMessages).toHaveBeenCalledWith({
+                conversationId: TEST_IDS.CONVERSATION_1,
+                newerThan: undefined,
+                olderThan: undefined,
+                limit: 50,
+            })
+            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledWith({
+                workspaceId: mockConversation.workspaceId,
+                userId: TEST_IDS.USER_1,
+            })
+            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledWith({
+                workspaceId: mockConversation.workspaceId,
+                userId: TEST_IDS.USER_2,
+            })
 
             expect(extractTextContent(result)).toMatchSnapshot()
 
-            // Verify structured content
             const { structuredContent } = result
             expect(structuredContent).toEqual(
                 expect.objectContaining({
@@ -139,19 +114,11 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
             const mockConversation = createMockConversation({
                 userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
             })
-            mockTwistApi.conversations.getConversation.mockResolvedValue(mockConversation)
-            mockTwistApi.conversationMessages.getMessages.mockResolvedValue([])
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                name: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                bot: false,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            })
+            mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
+            mockCommsApi.conversationMessages.getMessages.mockResolvedValue([])
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            )
 
             const result = await loadConversation.execute(
                 {
@@ -159,7 +126,7 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
                     limit: 50,
                     includeParticipants: false,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -169,19 +136,11 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
 
         it('should filter messages by date range', async () => {
             const mockConversation = createMockConversation()
-            mockTwistApi.conversations.getConversation.mockResolvedValue(mockConversation)
-            mockTwistApi.conversationMessages.getMessages.mockResolvedValue([])
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                name: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                bot: false,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            })
+            mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
+            mockCommsApi.conversationMessages.getMessages.mockResolvedValue([])
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            )
 
             const result = await loadConversation.execute(
                 {
@@ -191,16 +150,14 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
                     limit: 50,
                     includeParticipants: true,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            // Verify dates were converted to Date objects
-            expect(mockTwistApi.conversationMessages.getMessages).toHaveBeenCalledWith(
+            expect(mockCommsApi.conversationMessages.getMessages).toHaveBeenCalledWith(
                 expect.objectContaining({
                     newerThan: expect.any(Date),
                     olderThan: expect.any(Date),
                 }),
-                { batch: true },
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
@@ -208,23 +165,15 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
 
         it('should handle conversation with no messages', async () => {
             const mockConversation = createMockConversation()
-            mockTwistApi.conversations.getConversation.mockResolvedValue(mockConversation)
-            mockTwistApi.conversationMessages.getMessages.mockResolvedValue([])
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                name: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                bot: false,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            })
+            mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
+            mockCommsApi.conversationMessages.getMessages.mockResolvedValue([])
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            )
 
             const result = await loadConversation.execute(
                 { conversationId: TEST_IDS.CONVERSATION_1, limit: 50, includeParticipants: true },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
@@ -234,7 +183,7 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
     describe('error handling', () => {
         it('should propagate conversation not found error', async () => {
             const apiError = new Error('Conversation not found')
-            mockTwistApi.conversations.getConversation.mockRejectedValue(apiError)
+            mockCommsApi.conversations.getConversation.mockRejectedValue(apiError)
 
             await expect(
                 loadConversation.execute(
@@ -243,7 +192,7 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
                         limit: 50,
                         includeParticipants: true,
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Conversation not found')
         })

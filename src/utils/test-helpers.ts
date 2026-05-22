@@ -5,7 +5,7 @@ import type {
     Thread,
     User,
     Workspace,
-} from '@doist/twist-sdk'
+} from '@doist/comms-sdk'
 import type { getToolOutput } from '../mcp-helpers.js'
 
 /**
@@ -14,17 +14,17 @@ import type { getToolOutput } from '../mcp-helpers.js'
  */
 export function createMockThread(overrides: Partial<Thread> = {}): Thread {
     return {
-        id: 12345,
+        id: TEST_IDS.THREAD_1,
         title: 'Test Thread',
         content: 'Test thread content',
-        channelId: 67890,
-        workspaceId: 11111,
-        creator: 22222,
+        channelId: TEST_IDS.CHANNEL_1,
+        workspaceId: TEST_IDS.WORKSPACE_1,
+        creator: TEST_IDS.USER_1,
         posted: new Date('2024-01-01T00:00:00Z'),
         lastUpdated: new Date('2024-01-01T00:00:00Z'),
         pinned: false,
         snippet: 'Test thread content',
-        snippetCreator: 22222,
+        snippetCreator: TEST_IDS.USER_1,
         systemMessage: null,
         attachments: [],
         groups: [],
@@ -33,9 +33,8 @@ export function createMockThread(overrides: Partial<Thread> = {}): Thread {
         commentCount: 0,
         isArchived: false,
         inInbox: true,
-        starred: false,
-        participants: [22222],
-        url: 'https://twist.com/a/11111/ch/67890/t/12345/',
+        participants: [TEST_IDS.USER_1],
+        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
         ...overrides,
     }
 }
@@ -46,18 +45,18 @@ export function createMockThread(overrides: Partial<Thread> = {}): Thread {
  */
 export function createMockComment(overrides: Partial<Comment> = {}): Comment {
     return {
-        id: 54321,
+        id: TEST_IDS.COMMENT_1,
         content: 'Test comment content',
-        threadId: 12345,
-        workspaceId: 11111,
-        channelId: 67890,
-        creator: 22222,
+        threadId: TEST_IDS.THREAD_1,
+        workspaceId: TEST_IDS.WORKSPACE_1,
+        channelId: TEST_IDS.CHANNEL_1,
+        creator: TEST_IDS.USER_1,
         posted: new Date('2024-01-01T00:00:00Z'),
         systemMessage: null,
         attachments: [],
         reactions: {},
         objIndex: 1,
-        url: 'https://twist.com/a/11111/ch/67890/t/12345/c/54321',
+        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/c/${TEST_IDS.COMMENT_1}`,
         ...overrides,
     }
 }
@@ -68,18 +67,18 @@ export function createMockComment(overrides: Partial<Comment> = {}): Comment {
  */
 export function createMockConversation(overrides: Partial<Conversation> = {}): Conversation {
     return {
-        id: 33333,
-        workspaceId: 11111,
-        userIds: [22222, 44444],
+        id: TEST_IDS.CONVERSATION_1,
+        workspaceId: TEST_IDS.WORKSPACE_1,
+        userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
         messageCount: 0,
         lastObjIndex: 0,
         snippet: '',
         snippetCreators: [],
         archived: false,
-        creator: 22222,
+        creator: TEST_IDS.USER_1,
         created: new Date('2024-01-01T00:00:00Z'),
         lastActive: new Date('2024-01-01T00:00:00Z'),
-        url: 'https://twist.com/a/11111/msg/33333/',
+        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
         ...overrides,
     }
 }
@@ -92,18 +91,18 @@ export function createMockConversationMessage(
     overrides: Partial<ConversationMessage> = {},
 ): ConversationMessage {
     return {
-        id: 98765,
+        id: TEST_IDS.MESSAGE_1,
         content: 'Test message content',
-        creator: 22222,
-        conversationId: 33333,
-        workspaceId: 11111,
+        creator: TEST_IDS.USER_1,
+        conversationId: TEST_IDS.CONVERSATION_1,
+        workspaceId: TEST_IDS.WORKSPACE_1,
         posted: new Date('2024-01-01T00:00:00Z'),
         systemMessage: null,
         attachments: [],
         reactions: {},
         objIndex: 1,
         lastEdited: null,
-        url: 'https://twist.com/a/11111/msg/33333/m/98765',
+        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/m/${TEST_IDS.MESSAGE_1}`,
         ...overrides,
     }
 }
@@ -116,17 +115,9 @@ export function createMockUser(overrides: Partial<User> = {}): User {
     return {
         id: TEST_IDS.USER_1,
         email: 'test@example.com',
-        name: 'Test User',
+        fullName: 'Test User',
         shortName: 'Test',
-        avatarId: undefined,
-        defaultWorkspace: TEST_IDS.WORKSPACE_1,
-        awayMode: undefined,
-        profession: undefined,
-        contactInfo: undefined,
         timezone: 'UTC',
-        snoozeUntil: undefined,
-        offDays: [],
-        bot: false,
         lang: 'en',
         removed: false,
         ...overrides,
@@ -143,11 +134,8 @@ export function createMockWorkspace(overrides: Partial<Workspace> = {}): Workspa
         name: 'Test Workspace',
         creator: TEST_IDS.USER_1,
         created: new Date('2024-01-01T00:00:00Z'),
-        defaultChannel: TEST_IDS.CHANNEL_1,
         defaultConversation: TEST_IDS.CONVERSATION_1,
         plan: 'free',
-        avatarId: undefined,
-        avatarUrls: undefined,
         ...overrides,
     }
 }
@@ -223,20 +211,27 @@ export function extractStructuredContent(
 
 /**
  * Common mock IDs used across tests for consistency.
+ *
+ * Channel/thread/comment/conversation/message/group IDs are opaque base58
+ * UUIDv7 strings in the Comms API; workspace/user IDs are numeric.
+ * The string IDs below are stable fixtures — not real base58 — and exist
+ * purely so tests have predictable values to assert on.
  */
 export const TEST_IDS = {
-    THREAD_1: 12345,
-    THREAD_2: 12346,
-    THREAD_3: 12347,
-    COMMENT_1: 54321,
-    COMMENT_2: 54322,
-    CONVERSATION_1: 33333,
-    CONVERSATION_2: 33334,
-    MESSAGE_1: 98765,
-    MESSAGE_2: 98766,
+    THREAD_1: 'thread-id-1',
+    THREAD_2: 'thread-id-2',
+    THREAD_3: 'thread-id-3',
+    COMMENT_1: 'comment-id-1',
+    COMMENT_2: 'comment-id-2',
+    CONVERSATION_1: 'conv-id-1',
+    CONVERSATION_2: 'conv-id-2',
+    MESSAGE_1: 'msg-id-1',
+    MESSAGE_2: 'msg-id-2',
+    CHANNEL_1: 'channel-id-1',
+    GROUP_1: 'group-id-1',
+    GROUP_2: 'group-id-2',
     WORKSPACE_1: 11111,
     WORKSPACE_2: 11112,
-    CHANNEL_1: 67890,
     USER_1: 22222,
     USER_2: 44444,
     USER_3: 55555,

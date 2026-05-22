@@ -1,12 +1,12 @@
-import { getFullTwistURL, type WorkspaceUser } from '@doist/twist-sdk'
+import { getFullCommsURL, type WorkspaceUser } from '@doist/comms-sdk'
 import { z } from 'zod'
+import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
 import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
 const ArgsSchema = {
-    conversationId: z.number().describe('The conversation ID to load.'),
+    conversationId: z.string().describe('The conversation ID to load.'),
     newerThanDate: z
         .string()
         .optional()
@@ -33,7 +33,7 @@ const ArgsSchema = {
 type LoadConversationStructured = {
     type: 'conversation_data'
     conversation: {
-        id: number
+        id: string
         workspaceId: number
         userIds: number[]
         archived: boolean
@@ -42,11 +42,11 @@ type LoadConversationStructured = {
         conversationUrl: string
     }
     messages: Array<{
-        id: number
+        id: string
         content: string
         creatorId: number
         creatorName?: string
-        conversationId: number
+        conversationId: string
         posted: string
         messageUrl: string
     }>
@@ -63,39 +63,30 @@ const loadConversation = {
     async execute(args, client) {
         const { conversationId, newerThanDate, olderThanDate, limit, includeParticipants } = args
 
-        // Fetch conversation metadata and messages in parallel using batch
-        const [conversationResponse, messagesResponse] = await client.batch(
-            client.conversations.getConversation(conversationId, { batch: true }),
-            client.conversationMessages.getMessages(
-                {
-                    conversationId,
-                    newerThan: newerThanDate ? new Date(newerThanDate) : undefined,
-                    olderThan: olderThanDate ? new Date(olderThanDate) : undefined,
-                    limit,
-                },
-                { batch: true },
-            ),
-        )
-
-        const conversation = conversationResponse.data
-        const messages = messagesResponse.data
+        // Fetch conversation metadata and messages in parallel
+        const [conversation, messages] = await Promise.all([
+            client.conversations.getConversation(conversationId),
+            client.conversationMessages.getMessages({
+                conversationId,
+                newerThan: newerThanDate ? new Date(newerThanDate) : undefined,
+                olderThan: olderThanDate ? new Date(olderThanDate) : undefined,
+                limit,
+            }),
+        ])
 
         const { userIds } = conversation
-        const userRequests = userIds.map((id) =>
-            client.workspaceUsers.getUserById(
-                { workspaceId: conversation.workspaceId, userId: id },
-                { batch: true },
+        const users = await Promise.all(
+            userIds.map((id) =>
+                client.workspaceUsers.getUserById({
+                    workspaceId: conversation.workspaceId,
+                    userId: id,
+                }),
             ),
         )
-        const userResponses = await client.batch(...userRequests)
-        const users = userResponses.map((res) => res.data)
-        const userInfo = users.reduce(
-            (acc, user) => {
-                acc[user.id] = user
-                return acc
-            },
-            {} as Record<WorkspaceUser['id'], WorkspaceUser>,
-        )
+        const userInfo = users.reduce<Record<WorkspaceUser['id'], WorkspaceUser>>((acc, user) => {
+            acc[user.id] = user
+            return acc
+        }, {})
 
         // Build text content
         const lines: string[] = [
@@ -112,7 +103,7 @@ const loadConversation = {
         if (includeParticipants) {
             lines.push('## Participants')
             lines.push('')
-            lines.push(conversation.userIds.map((id) => userInfo[id]?.name).join(', '))
+            lines.push(conversation.userIds.map((id) => userInfo[id]?.fullName).join(', '))
             lines.push('')
         }
 
@@ -123,7 +114,7 @@ const loadConversation = {
             const messageDate = message.posted.toISOString()
             lines.push(`### Message ${message.id}`)
             lines.push(
-                `**Creator:** ${userInfo[message.creator]?.name} | **Posted:** ${messageDate}`,
+                `**Creator:** ${userInfo[message.creator]?.fullName} | **Posted:** ${messageDate}`,
             )
             lines.push('')
             lines.push(message.content)
@@ -141,7 +132,7 @@ const loadConversation = {
                 lastActive: conversation.lastActive.toISOString(),
                 conversationUrl:
                     conversation.url ??
-                    getFullTwistURL({
+                    getFullCommsURL({
                         workspaceId: conversation.workspaceId,
                         conversationId: conversation.id,
                     }),
@@ -150,12 +141,12 @@ const loadConversation = {
                 id: m.id,
                 content: m.content,
                 creatorId: m.creator,
-                creatorName: userInfo[m.creator]?.name,
+                creatorName: userInfo[m.creator]?.fullName,
                 conversationId: m.conversationId,
                 posted: m.posted.toISOString(),
                 messageUrl:
                     m.url ??
-                    getFullTwistURL({
+                    getFullCommsURL({
                         workspaceId: m.workspaceId,
                         conversationId: m.conversationId,
                         messageId: m.id,
@@ -169,6 +160,6 @@ const loadConversation = {
             structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof LoadConversationOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof LoadConversationOutputSchema.shape>
 
 export { loadConversation, type LoadConversationStructured }

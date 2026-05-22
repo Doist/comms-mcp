@@ -1,9 +1,9 @@
-import type { TwistApi, WorkspacePlan } from '@doist/twist-sdk'
+import type { CommsApi, WorkspacePlan } from '@doist/comms-sdk'
+import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
 import { GetWorkspacesOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getChannelUrl, getConversationUrl, getWorkspaceUrl } from '../utils/url-helpers.js'
+import { getConversationUrl, getWorkspaceUrl } from '../utils/url-helpers.js'
 
 const ArgsSchema = {}
 
@@ -14,10 +14,7 @@ type WorkspaceData = {
     creatorName?: string
     created: string
     url: string
-    defaultChannel?: number
-    defaultChannelName?: string
-    defaultChannelUrl?: string
-    defaultConversation?: number
+    defaultConversation?: string
     defaultConversationTitle?: string
     defaultConversationUrl?: string
     plan?: WorkspacePlan
@@ -36,7 +33,7 @@ type GetWorkspacesStructured = Record<string, unknown> & {
 }
 
 async function generateWorkspacesList(
-    client: TwistApi,
+    client: CommsApi,
 ): Promise<{ textContent: string; structuredContent: GetWorkspacesStructured }> {
     const workspaces = await client.workspaces.getWorkspaces()
 
@@ -50,98 +47,57 @@ async function generateWorkspacesList(
         }
     }
 
-    // Collect all unique channel IDs, conversation IDs, and creator IDs
-    const channelIds = new Set<number>()
-    const conversationIds = new Set<number>()
-    const creatorIds = new Set<number>()
+    // Collect default conversation IDs (paired with the workspace they belong to)
+    // and unique creator IDs (paired with workspace IDs so we can do per-workspace
+    // user lookups).
+    const defaultConversationPairs: Array<{ workspaceId: number; conversationId: string }> = []
+    const creatorPairs: Array<{ workspaceId: number; creatorId: number }> = []
 
     for (const workspace of workspaces) {
-        if (workspace.defaultChannel) {
-            channelIds.add(workspace.defaultChannel)
-        }
         if (workspace.defaultConversation) {
-            conversationIds.add(workspace.defaultConversation)
-        }
-        creatorIds.add(workspace.creator)
-    }
-
-    // Fetch channels, conversations, and users in separate batch calls
-    // This makes the code clearer and easier to maintain
-
-    // Batch 1: Fetch all channels
-    const channelLookup: Record<number, string> = {}
-    if (channelIds.size > 0) {
-        const channelRequests = Array.from(channelIds).map((channelId) =>
-            client.channels.getChannel(channelId, { batch: true }),
-        )
-        const channelResponses = await client.batch(...channelRequests)
-
-        const channelIdArray = Array.from(channelIds)
-        for (let i = 0; i < channelIdArray.length; i++) {
-            const channelId = channelIdArray[i]
-            if (channelId !== undefined) {
-                const channel = channelResponses[i]?.data
-                if (channel) {
-                    channelLookup[channelId] = channel.name
-                }
-            }
-        }
-    }
-
-    // Batch 2: Fetch all conversations
-    const conversationLookup: Record<number, string> = {}
-    if (conversationIds.size > 0) {
-        const conversationRequests = Array.from(conversationIds).map((conversationId) =>
-            client.conversations.getConversation(conversationId, { batch: true }),
-        )
-        const conversationResponses = await client.batch(...conversationRequests)
-
-        const conversationIdArray = Array.from(conversationIds)
-        for (let i = 0; i < conversationIdArray.length; i++) {
-            const conversationId = conversationIdArray[i]
-            if (conversationId !== undefined) {
-                const conversation = conversationResponses[i]?.data
-                if (conversation) {
-                    // Conversations have a 'title' field which may be null, fallback to user IDs
-                    const title =
-                        conversation.title ||
-                        `Conversation with users: ${conversation.userIds.join(', ')}`
-                    conversationLookup[conversationId] = title
-                }
-            }
-        }
-    }
-
-    // Batch 3: Fetch all workspace users
-    // Note: We need to know the workspace ID for getUserById
-    const creatorLookup: Record<number, string> = {}
-    if (creatorIds.size > 0) {
-        const workspaceIdByCreatorId = new Map<number, number>()
-        for (const workspace of workspaces) {
-            workspaceIdByCreatorId.set(workspace.creator, workspace.id)
-        }
-
-        const userRequests = Array.from(creatorIds)
-            .map((creatorId) => {
-                const workspaceId = workspaceIdByCreatorId.get(creatorId)
-                if (!workspaceId) return null
-                return client.workspaceUsers.getUserById(
-                    { workspaceId, userId: creatorId },
-                    { batch: true },
-                )
+            defaultConversationPairs.push({
+                workspaceId: workspace.id,
+                conversationId: workspace.defaultConversation,
             })
-            .filter((req): req is Exclude<typeof req, null> => req !== null)
+        }
+        creatorPairs.push({ workspaceId: workspace.id, creatorId: workspace.creator })
+    }
 
-        const userResponses = await client.batch(...userRequests)
+    // Fetch default conversations
+    const conversationLookup: Record<string, string> = {}
+    if (defaultConversationPairs.length > 0) {
+        const conversations = await Promise.all(
+            defaultConversationPairs.map(({ conversationId }) =>
+                client.conversations.getConversation(conversationId).catch(() => null),
+            ),
+        )
+        for (let i = 0; i < defaultConversationPairs.length; i++) {
+            const pair = defaultConversationPairs[i]
+            const conversation = conversations[i]
+            if (pair && conversation) {
+                const title =
+                    conversation.title ||
+                    `Conversation with users: ${conversation.userIds.join(', ')}`
+                conversationLookup[pair.conversationId] = title
+            }
+        }
+    }
 
-        const creatorIdArray = Array.from(creatorIds)
-        for (let i = 0; i < creatorIdArray.length; i++) {
-            const creatorId = creatorIdArray[i]
-            if (creatorId !== undefined) {
-                const user = userResponses[i]?.data
-                if (user) {
-                    creatorLookup[creatorId] = user.name
-                }
+    // Fetch all workspace creators
+    const creatorLookup: Record<number, string> = {}
+    if (creatorPairs.length > 0) {
+        const users = await Promise.all(
+            creatorPairs.map(({ workspaceId, creatorId }) =>
+                client.workspaceUsers
+                    .getUserById({ workspaceId, userId: creatorId })
+                    .catch(() => null),
+            ),
+        )
+        for (let i = 0; i < creatorPairs.length; i++) {
+            const pair = creatorPairs[i]
+            const user = users[i]
+            if (pair && user) {
+                creatorLookup[pair.creatorId] = user.fullName
             }
         }
     }
@@ -151,9 +107,6 @@ async function generateWorkspacesList(
 
     for (const workspace of workspaces) {
         const creatorName = creatorLookup[workspace.creator]
-        const defaultChannelName = workspace.defaultChannel
-            ? channelLookup[workspace.defaultChannel]
-            : undefined
         const defaultConversationTitle = workspace.defaultConversation
             ? conversationLookup[workspace.defaultConversation]
             : undefined
@@ -164,13 +117,6 @@ async function generateWorkspacesList(
             `**Creator:** ${creatorName ? `${creatorName} (${workspace.creator})` : workspace.creator}`,
         )
         lines.push(`**Created:** ${workspace.created.toISOString()}`)
-
-        if (workspace.defaultChannel) {
-            const channelUrl = getChannelUrl(workspace.id, workspace.defaultChannel)
-            lines.push(
-                `**Default Channel:** ${defaultChannelName ? `[${defaultChannelName}](${channelUrl}) (${workspace.defaultChannel})` : `[${workspace.defaultChannel}](${channelUrl})`}`,
-            )
-        }
 
         if (workspace.defaultConversation) {
             const conversationUrl = getConversationUrl(workspace.id, workspace.defaultConversation)
@@ -199,14 +145,6 @@ async function generateWorkspacesList(
             }),
             created: workspace.created.toISOString(),
             url: getWorkspaceUrl(workspace.id),
-            ...(workspace.defaultChannel && { defaultChannel: workspace.defaultChannel }),
-            ...(workspace.defaultChannel &&
-                channelLookup[workspace.defaultChannel] && {
-                    defaultChannelName: channelLookup[workspace.defaultChannel],
-                }),
-            ...(workspace.defaultChannel && {
-                defaultChannelUrl: getChannelUrl(workspace.id, workspace.defaultChannel),
-            }),
             ...(workspace.defaultConversation && {
                 defaultConversation: workspace.defaultConversation,
             }),
@@ -232,7 +170,7 @@ async function generateWorkspacesList(
 const getWorkspaces = {
     name: ToolNames.GET_WORKSPACES,
     description:
-        'Get all workspaces that the user belongs to. Returns a list of workspaces with their IDs, names, creators, creation dates, and optional default channels, conversations, and plan information.',
+        'Get all workspaces that the user belongs to. Returns a list of workspaces with their IDs, names, creators, creation dates, default conversation, and plan information.',
     parameters: ArgsSchema,
     outputSchema: GetWorkspacesOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
@@ -244,6 +182,6 @@ const getWorkspaces = {
             structuredContent: result.structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof GetWorkspacesOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof GetWorkspacesOutputSchema.shape>
 
 export { getWorkspaces, type GetWorkspacesStructured }

@@ -1,7 +1,7 @@
-import { getFullTwistURL, type TwistApi } from '@doist/twist-sdk'
+import { getFullCommsURL, type CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
+import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import type { TwistTool } from '../twist-tool.js'
 import {
     type UpdateCommentOutput,
     type UpdateMessageOutput,
@@ -17,7 +17,7 @@ const ArgsSchema = {
         'The type of object to update: thread, comment, or message.',
     ),
     targetId: z
-        .number()
+        .string()
         .describe('The ID of the thread, comment, or conversation message to update.'),
     content: z
         .string()
@@ -36,7 +36,7 @@ const ArgsSchema = {
 type Args = z.infer<z.ZodObject<typeof ArgsSchema>>
 type Branch = { textContent: string; structuredContent: UpdateObjectStructured }
 
-async function updateThreadBranch(args: Args, client: TwistApi): Promise<Branch> {
+async function updateThreadBranch(args: Args, client: CommsApi): Promise<Branch> {
     const { targetId, title, content } = args
 
     if (title === undefined && content === undefined) {
@@ -47,7 +47,7 @@ async function updateThreadBranch(args: Args, client: TwistApi): Promise<Branch>
 
     const threadUrl =
         thread.url ??
-        getFullTwistURL({
+        getFullCommsURL({
             workspaceId: thread.workspaceId,
             channelId: thread.channelId,
             threadId: thread.id,
@@ -84,7 +84,7 @@ async function updateThreadBranch(args: Args, client: TwistApi): Promise<Branch>
     return { textContent: lines.join('\n'), structuredContent }
 }
 
-async function updateCommentBranch(args: Args, client: TwistApi): Promise<Branch> {
+async function updateCommentBranch(args: Args, client: CommsApi): Promise<Branch> {
     const { targetId, content } = args
     if (content === undefined) {
         throw new Error('`content` is required when targetType is "comment".')
@@ -94,7 +94,7 @@ async function updateCommentBranch(args: Args, client: TwistApi): Promise<Branch
 
     const commentUrl =
         comment.url ??
-        getFullTwistURL({
+        getFullCommsURL({
             workspaceId: comment.workspaceId,
             channelId: comment.channelId,
             threadId: comment.threadId,
@@ -132,7 +132,7 @@ async function updateCommentBranch(args: Args, client: TwistApi): Promise<Branch
     return { textContent: lines.join('\n'), structuredContent }
 }
 
-async function updateMessageBranch(args: Args, client: TwistApi): Promise<Branch> {
+async function updateMessageBranch(args: Args, client: CommsApi): Promise<Branch> {
     const { targetId, content } = args
     if (content === undefined) {
         throw new Error('`content` is required when targetType is "message".')
@@ -142,7 +142,7 @@ async function updateMessageBranch(args: Args, client: TwistApi): Promise<Branch
 
     const messageUrl =
         message.url ??
-        getFullTwistURL({
+        getFullCommsURL({
             workspaceId: message.workspaceId,
             conversationId: message.conversationId,
             messageId: message.id,
@@ -181,7 +181,7 @@ async function updateMessageBranch(args: Args, client: TwistApi): Promise<Branch
 const updateObject = {
     name: ToolNames.UPDATE_OBJECT,
     description:
-        'Update an existing Twist object. `targetType: "thread"` updates a thread\'s title and/or body; `"comment"` updates a thread comment\'s body; `"message"` updates a direct/group conversation message\'s body. Always pass `targetId`. `content` is required for `"comment"` and `"message"`; for `"thread"` it is optional as long as `title` is provided (i.e. a thread can be renamed without re-sending the body). `title` is only valid when `targetType` is `"thread"`.',
+        'Update an existing Comms object. `targetType: "thread"` updates a thread\'s title and/or body; `"comment"` updates a thread comment\'s body; `"message"` updates a direct/group conversation message\'s body. Always pass `targetId`. `content` is required for `"comment"` and `"message"`; for `"thread"` it is optional as long as `title` is provided (i.e. a thread can be renamed without re-sending the body). `title` is only valid when `targetType` is `"thread"`.',
     parameters: ArgsSchema,
     outputSchema: UpdateObjectOutputSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
@@ -204,6 +204,6 @@ const updateObject = {
             structuredContent: branch.structuredContent,
         })
     },
-} satisfies TwistTool<typeof ArgsSchema, typeof UpdateObjectOutputSchema.shape>
+} satisfies CommsTool<typeof ArgsSchema, typeof UpdateObjectOutputSchema.shape>
 
 export { updateObject }

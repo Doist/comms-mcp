@@ -1,11 +1,11 @@
-import type { TwistApi } from '@doist/twist-sdk'
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import { extractTextContent, TEST_IDS } from '../../utils/test-helpers.js'
 import { ToolNames } from '../../utils/tool-names.js'
 import { searchContent } from '../search-content.js'
 
-// Mock the Twist API
-const mockTwistApi = {
+// Mock the Comms API
+const mockCommsApi = {
     batch: jest.fn(),
     search: {
         search: jest.fn(),
@@ -16,7 +16,7 @@ const mockTwistApi = {
     workspaceUsers: {
         getUserById: jest.fn(),
     },
-} as unknown as jest.Mocked<TwistApi>
+} as unknown as jest.Mocked<CommsApi>
 
 const { SEARCH_CONTENT } = ToolNames
 
@@ -24,7 +24,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
         // Mock batch to return responses with .data property
-        mockTwistApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
+        mockCommsApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
             const results = []
             for (const arg of args) {
                 const result = await arg
@@ -36,7 +36,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
 
     describe('workspace search', () => {
         it('should search across workspace with results', async () => {
-            mockTwistApi.search.search.mockResolvedValue({
+            mockCommsApi.search.search.mockResolvedValue({
                 items: [
                     {
                         id: 'thread-123',
@@ -64,18 +64,17 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                 hasMore: false,
                 isPlanRestricted: false,
             })
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
                 id: TEST_IDS.USER_1,
-                name: 'Test User 1',
+                fullName: 'Test User 1',
                 shortName: 'TU1',
                 email: 'user1@test.com',
                 userType: 'USER' as const,
-                bot: false,
                 removed: false,
                 timezone: 'UTC',
                 version: 1,
-            })
-            mockTwistApi.channels.getChannel.mockResolvedValue({
+            } as never)
+            mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: TEST_IDS.CHANNEL_1,
                 name: 'Test Channel',
                 workspaceId: TEST_IDS.WORKSPACE_1,
@@ -93,10 +92,10 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                     workspaceId: TEST_IDS.WORKSPACE_1,
                     limit: 50,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.search.search).toHaveBeenCalledWith(
+            expect(mockCommsApi.search.search).toHaveBeenCalledWith(
                 expect.objectContaining({
                     query: 'test query',
                     workspaceId: TEST_IDS.WORKSPACE_1,
@@ -135,7 +134,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
         })
 
         it('should search with filters', async () => {
-            mockTwistApi.search.search.mockResolvedValue({
+            mockCommsApi.search.search.mockResolvedValue({
                 items: [
                     {
                         id: 'thread-789',
@@ -150,18 +149,17 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                 hasMore: false,
                 isPlanRestricted: false,
             })
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
                 id: TEST_IDS.USER_1,
-                name: 'Test User 1',
+                fullName: 'Test User 1',
                 shortName: 'TU1',
                 email: 'user1@test.com',
                 userType: 'USER' as const,
-                bot: false,
                 removed: false,
                 timezone: 'UTC',
                 version: 1,
-            })
-            mockTwistApi.channels.getChannel.mockResolvedValue({
+            } as never)
+            mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: TEST_IDS.CHANNEL_1,
                 name: 'Test Channel',
                 workspaceId: TEST_IDS.WORKSPACE_1,
@@ -184,10 +182,10 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                     dateTo: '2024-12-31',
                     limit: 25,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
-            expect(mockTwistApi.search.search).toHaveBeenCalledWith({
+            expect(mockCommsApi.search.search).toHaveBeenCalledWith({
                 query: 'filtered',
                 workspaceId: TEST_IDS.WORKSPACE_1,
                 channelIds: [TEST_IDS.CHANNEL_1],
@@ -203,7 +201,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
         })
 
         it('should handle pagination', async () => {
-            mockTwistApi.search.search.mockResolvedValue({
+            mockCommsApi.search.search.mockResolvedValue({
                 items: [
                     {
                         id: 'result-1',
@@ -218,17 +216,16 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                 nextCursorMark: 'next-cursor-123',
                 isPlanRestricted: false,
             })
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
                 id: TEST_IDS.USER_1,
-                name: 'Test User 1',
+                fullName: 'Test User 1',
                 shortName: 'TU1',
                 email: 'user1@test.com',
                 userType: 'USER' as const,
-                bot: false,
                 removed: false,
                 timezone: 'UTC',
                 version: 1,
-            })
+            } as never)
 
             const result = await searchContent.execute(
                 {
@@ -236,7 +233,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                     workspaceId: TEST_IDS.WORKSPACE_1,
                     limit: 10,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const { structuredContent } = result
@@ -249,7 +246,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
 
     describe('conversation results', () => {
         it('should handle conversation type results with correct URL', async () => {
-            mockTwistApi.search.search.mockResolvedValue({
+            mockCommsApi.search.search.mockResolvedValue({
                 items: [
                     {
                         id: 'conversation-33333',
@@ -263,17 +260,16 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                 hasMore: false,
                 isPlanRestricted: false,
             })
-            mockTwistApi.workspaceUsers.getUserById.mockResolvedValue({
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
                 id: TEST_IDS.USER_1,
-                name: 'Test User 1',
+                fullName: 'Test User 1',
                 shortName: 'TU1',
                 email: 'user1@test.com',
                 userType: 'USER' as const,
-                bot: false,
                 removed: false,
                 timezone: 'UTC',
                 version: 1,
-            })
+            } as never)
 
             const result = await searchContent.execute(
                 {
@@ -281,7 +277,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                     workspaceId: TEST_IDS.WORKSPACE_1,
                     limit: 50,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const { structuredContent } = result
@@ -300,7 +296,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
 
     describe('empty results', () => {
         it('should handle no results found', async () => {
-            mockTwistApi.search.search.mockResolvedValue({
+            mockCommsApi.search.search.mockResolvedValue({
                 items: [],
                 hasMore: false,
                 isPlanRestricted: false,
@@ -312,7 +308,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                     workspaceId: TEST_IDS.WORKSPACE_1,
                     limit: 50,
                 },
-                mockTwistApi,
+                mockCommsApi,
             )
 
             const textContent = extractTextContent(result)
@@ -323,7 +319,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
 
     describe('error handling', () => {
         it('should propagate API errors', async () => {
-            mockTwistApi.search.search.mockRejectedValue(new Error('Search API error'))
+            mockCommsApi.search.search.mockRejectedValue(new Error('Search API error'))
 
             await expect(
                 searchContent.execute(
@@ -332,7 +328,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                         workspaceId: TEST_IDS.WORKSPACE_1,
                         limit: 50,
                     },
-                    mockTwistApi,
+                    mockCommsApi,
                 ),
             ).rejects.toThrow('Search API error')
         })
