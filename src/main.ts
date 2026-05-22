@@ -6,10 +6,18 @@ import { buildServerOptions } from './utils/server-options.js'
 
 function main() {
     const options = buildServerOptions()
-    // stderr (stdout is reserved for the MCP protocol). Surfacing the
-    // target up-front turns "why am I getting 403s" debugging into one
-    // log line — staging vs prod tokens aren't cross-compatible.
-    console.error(`Comms MCP targeting ${options.baseUrl ?? 'https://comms.todoist.com (default)'}`)
+    // Structured stderr log (stdout is reserved for the MCP protocol).
+    // Surfacing the target up-front turns "why am I getting 403s"
+    // debugging into one machine-parsable line — staging vs prod
+    // tokens aren't cross-compatible.
+    console.error(
+        JSON.stringify({
+            level: 'info',
+            event: 'startup',
+            base_url: options.baseUrl ?? 'https://comms.todoist.com',
+            base_url_source: options.baseUrl ? 'env' : 'default',
+        }),
+    )
     const server = getMcpServer(options)
     const transport = new StdioServerTransport()
     server
