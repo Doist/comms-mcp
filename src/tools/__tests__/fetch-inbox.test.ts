@@ -136,7 +136,12 @@ describe(`${FETCH_INBOX} tool`, () => {
             if (threads?.[0] && threads[1]) {
                 expect(threads[0].id).toBe(TEST_IDS.THREAD_1)
                 expect(threads[0].channelName).toBe('Test Channel')
-                expect(threads[0].threadUrl).toContain('comms.todoist.com')
+                // toBe (not toContain): 'comms.staging.todoist.com' contains
+                // 'comms.todoist.com', so toContain wouldn't catch a rewrite
+                // regression on a staging-targeted run.
+                expect(threads[0].threadUrl).toBe(
+                    `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
+                )
                 expect(threads[0].isUnread).toBe(true)
                 expect(threads[1].isStarred).toBe(true)
             }
@@ -329,7 +334,9 @@ describe(`${FETCH_INBOX} tool`, () => {
                 expect(conversations[0].id).toBe(TEST_IDS.CONVERSATION_1)
                 expect(conversations[0].participantNames).toEqual(['Alice', 'Bob'])
                 expect(conversations[0].isUnread).toBe(true)
-                expect(conversations[0].conversationUrl).toContain('comms.todoist.com')
+                expect(conversations[0].conversationUrl).toBe(
+                    `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
+                )
                 expect(conversations[1].title).toBe('Project Discussion')
             }
         })
@@ -540,10 +547,9 @@ describe(`${FETCH_INBOX} tool`, () => {
             const { structuredContent } = result
             expect(structuredContent?.threads).toHaveLength(1)
             const threadUrl = structuredContent?.threads?.[0]?.threadUrl
-            expect(threadUrl).toBeDefined()
-            expect(typeof threadUrl).toBe('string')
-            expect(threadUrl).toContain('comms.todoist.com')
-            expect(threadUrl).toContain(String(TEST_IDS.THREAD_1))
+            expect(threadUrl).toBe(
+                `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
+            )
         })
 
         it('should construct conversationUrl via getFullCommsURL when SDK omits url field', async () => {
@@ -607,10 +613,9 @@ describe(`${FETCH_INBOX} tool`, () => {
             const { structuredContent } = result
             expect(structuredContent?.conversations).toHaveLength(1)
             const conversationUrl = structuredContent?.conversations?.[0]?.conversationUrl
-            expect(conversationUrl).toBeDefined()
-            expect(typeof conversationUrl).toBe('string')
-            expect(conversationUrl).toContain('comms.todoist.com')
-            expect(conversationUrl).toContain(String(TEST_IDS.CONVERSATION_1))
+            expect(conversationUrl).toBe(
+                `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
+            )
         })
     })
 
