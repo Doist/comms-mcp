@@ -2,6 +2,7 @@ import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import { extractTextContent, TEST_IDS } from '../../utils/test-helpers.js'
 import { ToolNames } from '../../utils/tool-names.js'
+import { configureBaseUrl } from '../../utils/url-helpers.js'
 import { fetchInbox } from '../fetch-inbox.js'
 
 // Mock the Comms API
@@ -630,6 +631,48 @@ describe(`${FETCH_INBOX} tool`, () => {
                     mockCommsApi,
                 ),
             ).rejects.toThrow('API Error: Unauthorized')
+        })
+    })
+
+    // The unit tests for url-helpers cover the rewrite mechanism in
+    // isolation; this case covers it end-to-end at the tool boundary,
+    // which is the layer that previously regressed and shipped prod
+    // links from a staging-targeted server.
+    describe('staging baseUrl rewrites tool output', () => {
+        afterEach(() => {
+            configureBaseUrl(undefined)
+        })
+
+        it('rewrites threadUrl and unreadThreads[*].url to the configured host', async () => {
+            configureBaseUrl('https://comms.staging.todoist.com')
+
+            mockCommsApi.inbox.getInbox.mockResolvedValue([makeInboxThread()])
+            mockCommsApi.inbox.getCount.mockResolvedValue(1)
+            mockCommsApi.threads.getUnread.mockResolvedValue({
+                data: [
+                    {
+                        threadId: TEST_IDS.THREAD_1,
+                        channelId: TEST_IDS.CHANNEL_1,
+                        objIndex: 1,
+                        directMention: false,
+                    },
+                ],
+                version: 1,
+            })
+            mockCommsApi.conversations.getUnread.mockResolvedValue({ data: [], version: 1 })
+            mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
+
+            const result = await fetchInbox.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
+                mockCommsApi,
+            )
+
+            const { structuredContent } = result
+            const stagingThreadUrl = `https://comms.staging.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`
+            expect(structuredContent?.threads?.[0]?.threadUrl).toBe(stagingThreadUrl)
+            // unreadThreads is the raw SDK array; its `.url` must also
+            // be rewritten or the structured payload is inconsistent.
+            expect(structuredContent?.unreadThreads?.[0]?.url).toBe(stagingThreadUrl)
         })
     })
 })
