@@ -3,7 +3,7 @@ import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { type CreateThreadOutput, CreateThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getFullCommsURL } from '../utils/url-helpers.js'
+import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     channelId: z.string().describe('The ID of the channel to create the thread in.'),
@@ -48,13 +48,14 @@ const createThread = {
                 : postedValue
             : new Date()
 
-        const threadUrl =
+        const threadUrl = rewriteToConfiguredHost(
             thread.url ??
-            getFullCommsURL({
-                workspaceId: thread.workspaceId,
-                channelId: thread.channelId,
-                threadId: thread.id,
-            })
+                getFullCommsURL({
+                    workspaceId: thread.workspaceId,
+                    channelId: thread.channelId,
+                    threadId: thread.id,
+                }),
+        )
 
         const lines: string[] = [
             `# Thread Created`,

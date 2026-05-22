@@ -4,7 +4,7 @@ import { getToolOutput } from '../mcp-helpers.js'
 import { ReactOutputSchema } from '../utils/output-schemas.js'
 import { type ReactionTargetType, ReactionTargetTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getFullCommsURL } from '../utils/url-helpers.js'
+import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     targetType: ReactionTargetTypeSchema.describe(
@@ -43,33 +43,36 @@ const react = {
         // Fetch target metadata to get URL
         if (targetType === 'thread') {
             const thread = await client.threads.getThread(targetId)
-            targetUrl =
+            targetUrl = rewriteToConfiguredHost(
                 thread.url ??
-                getFullCommsURL({
-                    workspaceId: thread.workspaceId,
-                    channelId: thread.channelId,
-                    threadId: thread.id,
-                })
+                    getFullCommsURL({
+                        workspaceId: thread.workspaceId,
+                        channelId: thread.channelId,
+                        threadId: thread.id,
+                    }),
+            )
         } else if (targetType === 'comment') {
             const comment = await client.comments.getComment(targetId)
-            targetUrl =
+            targetUrl = rewriteToConfiguredHost(
                 comment.url ??
-                getFullCommsURL({
-                    workspaceId: comment.workspaceId,
-                    channelId: comment.channelId,
-                    threadId: comment.threadId,
-                    commentId: comment.id,
-                })
+                    getFullCommsURL({
+                        workspaceId: comment.workspaceId,
+                        channelId: comment.channelId,
+                        threadId: comment.threadId,
+                        commentId: comment.id,
+                    }),
+            )
         } else {
             // message
             const message = await client.conversationMessages.getMessage(targetId)
-            targetUrl =
+            targetUrl = rewriteToConfiguredHost(
                 message.url ??
-                getFullCommsURL({
-                    workspaceId: message.workspaceId,
-                    conversationId: message.conversationId,
-                    messageId: message.id,
-                })
+                    getFullCommsURL({
+                        workspaceId: message.workspaceId,
+                        conversationId: message.conversationId,
+                        messageId: message.id,
+                    }),
+            )
         }
 
         // Map targetType to the appropriate API parameter

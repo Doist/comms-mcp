@@ -5,7 +5,7 @@ import { getToolOutput } from '../mcp-helpers.js'
 import { type ReplyOutput, ReplyOutputSchema } from '../utils/output-schemas.js'
 import { ReplyTargetTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getFullCommsURL } from '../utils/url-helpers.js'
+import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     targetType: ReplyTargetTypeSchema.describe(
@@ -71,14 +71,15 @@ const reply = {
                 notifyAudience: appliedAudience,
             })
             replyId = comment.id
-            replyUrl =
+            replyUrl = rewriteToConfiguredHost(
                 comment.url ??
-                getFullCommsURL({
-                    workspaceId: comment.workspaceId,
-                    channelId: comment.channelId,
-                    threadId: comment.threadId,
-                    commentId: comment.id,
-                })
+                    getFullCommsURL({
+                        workspaceId: comment.workspaceId,
+                        channelId: comment.channelId,
+                        threadId: comment.threadId,
+                        commentId: comment.id,
+                    }),
+            )
             const postedValue = comment.posted
             created = postedValue
                 ? typeof postedValue === 'string'
@@ -91,13 +92,14 @@ const reply = {
                 content,
             })
             replyId = message.id
-            replyUrl =
+            replyUrl = rewriteToConfiguredHost(
                 message.url ??
-                getFullCommsURL({
-                    workspaceId: message.workspaceId,
-                    conversationId: message.conversationId,
-                    messageId: message.id,
-                })
+                    getFullCommsURL({
+                        workspaceId: message.workspaceId,
+                        conversationId: message.conversationId,
+                        messageId: message.id,
+                    }),
+            )
             const postedValue = message.posted
             created = postedValue
                 ? typeof postedValue === 'string'
