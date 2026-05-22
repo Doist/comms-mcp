@@ -1,11 +1,6 @@
 import { CommsApi } from '@doist/comms-sdk'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { registerTool } from './mcp-helpers.js'
-// `away` is intentionally not registered on the MCP server — the Comms SDK
-// doesn't expose an away-mode endpoint, so advertising a tool whose entire
-// surface throws would only invite the model to keep trying it. The symbol
-// stays exported from src/index.ts for importable-tools consumers; wire it
-// back in here once a real endpoint lands.
 import { buildLink } from './tools/build-link.js'
 import { createThread } from './tools/create-thread.js'
 import { deleteObject } from './tools/delete-object.js'

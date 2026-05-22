@@ -141,7 +141,6 @@ small number of calls.
 - **markDone** — Mark threads or conversations as read and/or archived
 - **buildLink** — Build URLs to Comms resources
 - **listChannels** / **getGroups** / **getUsers** / **getWorkspaces** — Discovery helpers
-- **away** — Set or clear away mode
 
 For details, see [src/tools](src/tools).
 

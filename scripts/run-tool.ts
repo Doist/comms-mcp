@@ -17,7 +17,6 @@
 import { readFileSync } from 'node:fs'
 import { CommsApi } from '@doist/comms-sdk'
 import { config } from 'dotenv'
-import { away } from '../src/tools/away.js'
 import { buildLink } from '../src/tools/build-link.js'
 import { createThread } from '../src/tools/create-thread.js'
 import { deleteObject } from '../src/tools/delete-object.js'
@@ -67,7 +66,6 @@ const tools: Record<string, ExecutableTool> = {
     'get-workspaces': getWorkspaces,
     'get-users': getUsers,
     'get-groups': getGroups,
-    away: away,
     'list-channels': listChannels,
 }
 

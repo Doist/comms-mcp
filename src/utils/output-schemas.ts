@@ -263,29 +263,6 @@ export const GetGroupsOutputSchema = z.object({
     filteredGroups: z.number(),
 })
 
-export const AWAY_ACTIONS = ['get', 'set', 'clear'] as const
-export type AwayAction = (typeof AWAY_ACTIONS)[number]
-
-/**
- * Schema for away tool output.
- *
- * Away mode is not part of the Comms session-user payload — the structured
- * output keeps the field for forwards-compat but the SDK currently doesn't
- * surface away state, so `isAway` is always false and `awayMode` is omitted.
- */
-export const AwayOutputSchema = z.object({
-    type: z.literal('away_status'),
-    action: z.enum(AWAY_ACTIONS),
-    isAway: z.boolean(),
-    awayMode: z
-        .object({
-            type: z.string(),
-            dateFrom: z.string(),
-            dateTo: z.string(),
-        })
-        .optional(),
-})
-
 /**
  * Schema for user-info tool output.
  *
@@ -548,7 +525,6 @@ export const ListChannelsOutputSchema = z.object({
  * Union of all possible structured outputs for type safety
  */
 export const StructuredOutputSchema = z.union([
-    AwayOutputSchema,
     LoadThreadOutputSchema,
     LoadConversationOutputSchema,
     FetchInboxOutputSchema,
@@ -595,7 +571,6 @@ export type DeleteObjectOutput = z.infer<typeof DeleteObjectOutputSchema>
  * to construct structured payloads — `DeleteObjectOutput` is the looser MCP-facing shape.
  */
 export type DeleteObjectStructured = DeleteThreadOutput | DeleteCommentOutput | DeleteMessageOutput
-export type AwayOutput = z.infer<typeof AwayOutputSchema>
 export type LoadThreadOutput = z.infer<typeof LoadThreadOutputSchema>
 export type LoadConversationOutput = z.infer<typeof LoadConversationOutputSchema>
 export type FetchInboxOutput = z.infer<typeof FetchInboxOutputSchema>

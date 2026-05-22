@@ -11,8 +11,6 @@ type ToolExpectation = {
     idempotentHint: boolean
 }
 
-// `away` is intentionally absent: the Comms SDK has no away endpoint, so
-// the tool isn't registered on the MCP server (see src/mcp-server.ts).
 const TOOL_EXPECTATIONS: ToolExpectation[] = [
     {
         name: ToolNames.USER_INFO,
