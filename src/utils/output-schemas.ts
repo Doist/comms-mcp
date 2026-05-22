@@ -264,10 +264,7 @@ export const GetGroupsOutputSchema = z.object({
 })
 
 /**
- * Schema for user-info tool output.
- *
- * Comms users no longer carry `bot` or `defaultWorkspace`; both are dropped
- * from the structured output. `name` mirrors `User.fullName`.
+ * Schema for user-info tool output. `name` mirrors `User.fullName`.
  */
 export const UserInfoOutputSchema = z.object({
     type: z.literal('user_info'),
