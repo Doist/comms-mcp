@@ -17,8 +17,12 @@ npm install @doist/comms-mcp
 Example with [Vercel's AI SDK](https://ai-sdk.dev/docs/ai-sdk-core/generating-text#streamtext):
 
 ```js
-import { fetchInbox, reply, markDone } from '@doist/comms-mcp'
+import { configureBaseUrl, fetchInbox, reply, markDone } from '@doist/comms-mcp'
 import { streamText } from 'ai'
+
+// Required if your CommsApi targets staging / a custom deployment.
+// `getMcpServer` calls this for you; standalone tool consumers must.
+configureBaseUrl(process.env.COMMS_BASE_URL)
 
 const result = streamText({
     model: yourModel,
