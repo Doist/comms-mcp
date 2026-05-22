@@ -31,7 +31,7 @@ const ArgsSchema = {
         .optional()
         .default(true)
         .describe(
-            'Whether to return a full URL (with https://comms.todoist.com) or relative path.',
+            'Whether to return a full URL (including the configured host) or a relative path.',
         ),
 }
 
