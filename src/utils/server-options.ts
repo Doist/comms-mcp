@@ -3,7 +3,9 @@
 
 export type ServerOptions = {
     commsApiKey: string
-    baseUrl: string | undefined
+    // Optional so external callers (`getMcpServer({ commsApiKey })`)
+    // don't have to spell out `baseUrl: undefined`.
+    baseUrl?: string
 }
 
 export function buildServerOptions(env: NodeJS.ProcessEnv = process.env): ServerOptions {
@@ -11,8 +13,8 @@ export function buildServerOptions(env: NodeJS.ProcessEnv = process.env): Server
     if (!commsApiKey) {
         throw new Error('COMMS_API_KEY is not set')
     }
-    // Empty string would override the SDK's prod default with garbage;
-    // treat `COMMS_BASE_URL=` the same as unset.
-    const baseUrl = env.COMMS_BASE_URL || undefined
+    // Trim before the falsy check so `COMMS_BASE_URL= ` (trailing
+    // space, common in env files) doesn't pass garbage to the SDK.
+    const baseUrl = env.COMMS_BASE_URL?.trim() || undefined
     return { commsApiKey, baseUrl }
 }

@@ -27,6 +27,22 @@ describe('buildServerOptions', () => {
         })
     })
 
+    it('trims whitespace from COMMS_BASE_URL so " " is not passed to the SDK', () => {
+        expect(buildServerOptions({ COMMS_API_KEY: 'k', COMMS_BASE_URL: '   ' })).toEqual({
+            commsApiKey: 'k',
+            baseUrl: undefined,
+        })
+        expect(
+            buildServerOptions({
+                COMMS_API_KEY: 'k',
+                COMMS_BASE_URL: '  https://comms.staging.todoist.com  ',
+            }),
+        ).toEqual({
+            commsApiKey: 'k',
+            baseUrl: 'https://comms.staging.todoist.com',
+        })
+    })
+
     it('throws when COMMS_API_KEY is missing', () => {
         expect(() => buildServerOptions({})).toThrow('COMMS_API_KEY is not set')
     })
