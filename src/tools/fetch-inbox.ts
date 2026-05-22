@@ -308,7 +308,13 @@ const fetchInbox = {
                 }
             }),
             unreadCount: unreadThreads.length,
-            unreadThreads: unreadThreadsOriginal,
+            // InboxThread.url is hardcoded to the SDK prod host; rewrite
+            // so a staging-targeted server returns staging links here too.
+            // UnreadConversation has no url field, so no rewrite needed.
+            unreadThreads: unreadThreadsOriginal.map((t) => ({
+                ...t,
+                url: rewriteToConfiguredHost(t.url),
+            })),
             unreadConversations: unreadConversationsOriginal,
             totalThreads: threads.length,
             totalConversations: conversationsWithDetails.length,
