@@ -1,7 +1,7 @@
 import { type SearchResultType, getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
-import { getToolOutput } from '../mcp-helpers.js'
 import type { CommsTool } from '../comms-tool.js'
+import { getToolOutput } from '../mcp-helpers.js'
 import { GetMentionsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -104,9 +104,7 @@ const getMentions = {
                     ),
                 ),
                 Promise.all(
-                    uniqueChannelIds.map((id) =>
-                        client.channels.getChannel(id).catch(() => null),
-                    ),
+                    uniqueChannelIds.map((id) => client.channels.getChannel(id).catch(() => null)),
                 ),
             ])
 

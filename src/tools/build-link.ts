@@ -1,7 +1,7 @@
 import { getCommentURL, getFullCommsURL, getMessageURL } from '@doist/comms-sdk'
 import { z } from 'zod'
-import { getToolOutput } from '../mcp-helpers.js'
 import type { CommsTool } from '../comms-tool.js'
+import { getToolOutput } from '../mcp-helpers.js'
 import { BuildLinkOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -25,7 +25,9 @@ const ArgsSchema = {
         .boolean()
         .optional()
         .default(true)
-        .describe('Whether to return a full URL (with https://comms.todoist.com) or relative path.'),
+        .describe(
+            'Whether to return a full URL (with https://comms.todoist.com) or relative path.',
+        ),
 }
 
 type BuildLinkStructured = {

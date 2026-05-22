@@ -1,6 +1,6 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { getToolOutput } from '../mcp-helpers.js'
 import type { CommsTool } from '../comms-tool.js'
+import { getToolOutput } from '../mcp-helpers.js'
 import { UserInfoOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 

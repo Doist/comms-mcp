@@ -150,7 +150,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([
                 createMockChannel({ description: 'Main discussion channel' }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({ fullName: 'Alice' } as never)
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                fullName: 'Alice',
+            } as never)
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -169,7 +171,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
 
         it('should omit description when not present', async () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([createMockChannel()])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({ fullName: 'Alice' } as never)
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                fullName: 'Alice',
+            } as never)
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -187,7 +191,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([
                 createMockChannel({ archived: true }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({ fullName: 'Alice' } as never)
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                fullName: 'Alice',
+            } as never)
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -203,7 +209,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
 
         it('should include color when present', async () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([createMockChannel({ color: 5 })])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({ fullName: 'Alice' } as never)
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                fullName: 'Alice',
+            } as never)
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -216,7 +224,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
 
         it('should omit color when not present', async () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([createMockChannel()])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({ fullName: 'Alice' } as never)
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                fullName: 'Alice',
+            } as never)
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -275,7 +285,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
             expect(text).toContain(`Alice (${TEST_IDS.USER_1})`)
             expect(text).toContain(`**Creator:** ${TEST_IDS.USER_2}`)
 
-            const structured = result.structuredContent as { channels: Array<{ creatorId: number; creatorName?: string }> }
+            const structured = result.structuredContent as {
+                channels: Array<{ creatorId: number; creatorName?: string }>
+            }
             const aliceChannel = structured.channels.find((c) => c.creatorId === TEST_IDS.USER_1)
             const orphanChannel = structured.channels.find((c) => c.creatorId === TEST_IDS.USER_2)
             expect(aliceChannel?.creatorName).toBe('Alice')
@@ -286,7 +298,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
     describe('includeArchived', () => {
         it('should only fetch active channels by default', async () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([createMockChannel()])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({ fullName: 'Alice' } as never)
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                fullName: 'Alice',
+            } as never)
 
             await listChannels.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockCommsApi)
 
@@ -311,7 +325,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
                 }
                 return [activeChannel]
             })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({ fullName: 'Alice' } as never)
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                fullName: 'Alice',
+            } as never)
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, includeArchived: true },

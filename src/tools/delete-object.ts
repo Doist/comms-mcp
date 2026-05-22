@@ -1,7 +1,7 @@
 import type { CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
-import { getToolOutput } from '../mcp-helpers.js'
 import type { CommsTool } from '../comms-tool.js'
+import { getToolOutput } from '../mcp-helpers.js'
 import {
     type DeleteCommentOutput,
     type DeleteMessageOutput,

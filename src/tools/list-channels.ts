@@ -1,7 +1,7 @@
 import type { Channel, CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
-import { getToolOutput } from '../mcp-helpers.js'
 import type { CommsTool } from '../comms-tool.js'
+import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
 import { ListChannelsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
