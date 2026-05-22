@@ -2,19 +2,19 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import dotenv from 'dotenv'
 import { getMcpServer } from './mcp-server.js'
+import { buildServerOptions } from './utils/server-options.js'
 
 function main() {
-    const commsApiKey = process.env.COMMS_API_KEY
-    if (!commsApiKey) {
-        throw new Error('COMMS_API_KEY is not set')
-    }
-
-    const server = getMcpServer({ commsApiKey })
+    const options = buildServerOptions()
+    // stderr (stdout is reserved for the MCP protocol). Surfacing the
+    // target up-front turns "why am I getting 403s" debugging into one
+    // log line — staging vs prod tokens aren't cross-compatible.
+    console.error(`Comms MCP targeting ${options.baseUrl ?? 'https://comms.todoist.com (default)'}`)
+    const server = getMcpServer(options)
     const transport = new StdioServerTransport()
     server
         .connect(transport)
         .then(() => {
-            // We use console.error because standard I/O is being used for the MCP server communication.
             console.error('Server started')
         })
         .catch((error) => {

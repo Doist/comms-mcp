@@ -1,9 +1,10 @@
-import { getFullCommsURL, type WorkspaceUser } from '@doist/comms-sdk'
+import type { WorkspaceUser } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
+import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     conversationId: z.string().describe('The conversation ID to load.'),
@@ -130,12 +131,12 @@ const loadConversation = {
                 userIds: includeParticipants ? conversation.userIds : [],
                 archived: conversation.archived,
                 lastActive: conversation.lastActive.toISOString(),
-                conversationUrl:
-                    conversation.url ??
-                    getFullCommsURL({
-                        workspaceId: conversation.workspaceId,
-                        conversationId: conversation.id,
-                    }),
+                conversationUrl: conversation.url
+                    ? rewriteToConfiguredHost(conversation.url)
+                    : getFullCommsURL({
+                          workspaceId: conversation.workspaceId,
+                          conversationId: conversation.id,
+                      }),
             },
             messages: messages.map((m) => ({
                 id: m.id,
@@ -144,13 +145,13 @@ const loadConversation = {
                 creatorName: userInfo[m.creator]?.fullName,
                 conversationId: m.conversationId,
                 posted: m.posted.toISOString(),
-                messageUrl:
-                    m.url ??
-                    getFullCommsURL({
-                        workspaceId: m.workspaceId,
-                        conversationId: m.conversationId,
-                        messageId: m.id,
-                    }),
+                messageUrl: m.url
+                    ? rewriteToConfiguredHost(m.url)
+                    : getFullCommsURL({
+                          workspaceId: m.workspaceId,
+                          conversationId: m.conversationId,
+                          messageId: m.id,
+                      }),
             })),
             totalMessages: conversation.messageCount ?? 0,
         }

@@ -79,9 +79,30 @@ Add to `claude_desktop_config.json`:
 
 #### Claude Code (CLI)
 
+Don't pass the token via `-e KEY=VAL` — even via shell expansion, the
+resolved value lands in `claude mcp add`'s argv and shows up in `ps`
+output. Use a wrapper script that loads a `chmod 600` env file at
+runtime:
+
 ```bash
-claude mcp add comms npx @doist/comms-mcp
-export COMMS_API_KEY=your-comms-api-key-here
+# 1. Token in a private env file (never in shell history or argv).
+install -m 600 /dev/null ~/.config/comms-mcp.env
+$EDITOR ~/.config/comms-mcp.env
+# Contents: COMMS_API_KEY=...
+
+# 2. Wrapper script reads it at spawn time.
+mkdir -p ~/.local/bin
+cat > ~/.local/bin/comms-mcp <<'EOF'
+#!/bin/sh
+set -a
+. ~/.config/comms-mcp.env
+set +a
+exec npx -y @doist/comms-mcp
+EOF
+chmod +x ~/.local/bin/comms-mcp
+
+# 3. Register the wrapper — no -e flags, no secrets in argv.
+claude mcp add comms -s user -- ~/.local/bin/comms-mcp
 ```
 
 #### Visual Studio Code
@@ -106,14 +127,33 @@ export COMMS_API_KEY=your-comms-api-key-here
 ### Targeting a non-production deployment
 
 By default the server talks to `https://comms.todoist.com`. To point at
-staging or a custom deployment, also set `COMMS_BASE_URL`:
+staging or a custom deployment, also set `COMMS_BASE_URL`. The staging
+token and the prod token are different — a staging token will 403
+against prod and vice versa.
+
+For Claude Desktop / Cursor / VS Code:
 
 ```json
 "env": {
-    "COMMS_API_KEY": "your-comms-api-key-here",
+    "COMMS_API_KEY": "your-staging-api-key-here",
     "COMMS_BASE_URL": "https://comms.staging.todoist.com"
 }
 ```
+
+For Claude Code: extend the wrapper script from the Claude Code setup
+above to also set `COMMS_BASE_URL`:
+
+```sh
+#!/bin/sh
+set -a
+. ~/.config/comms-mcp.env  # contains COMMS_API_KEY=...
+COMMS_BASE_URL=https://comms.staging.todoist.com
+set +a
+exec npx -y @doist/comms-mcp
+```
+
+The server logs `Comms MCP targeting <baseUrl>` to stderr on startup so
+you can confirm at a glance which environment it's hitting.
 
 ### Getting a Comms API key
 

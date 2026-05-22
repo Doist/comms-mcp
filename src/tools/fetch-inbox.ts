@@ -5,13 +5,14 @@ import type {
     UnreadConversation,
     WorkspaceUser,
 } from '@doist/comms-sdk'
-import { ARCHIVE_FILTER_VALUES, getFullCommsURL } from '@doist/comms-sdk'
+import { ARCHIVE_FILTER_VALUES } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
 import { FetchInboxOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
+import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     workspaceId: z.number().describe('The workspace ID to fetch inbox for.'),
@@ -282,9 +283,9 @@ const fetchInbox = {
                 isUnread: t.isUnread,
                 isArchived: t.isArchived,
                 isStarred: Boolean(t.isSaved),
-                threadUrl:
-                    t.url ??
-                    getFullCommsURL({ workspaceId, channelId: t.channelId, threadId: t.id }),
+                threadUrl: t.url
+                    ? rewriteToConfiguredHost(t.url)
+                    : getFullCommsURL({ workspaceId, channelId: t.channelId, threadId: t.id }),
             })),
             conversations: conversationsWithDetails.map((cd) => {
                 const { conversation, participants } = cd
@@ -298,12 +299,12 @@ const fetchInbox = {
                     userIds: conversation.userIds,
                     participantNames,
                     isUnread: cd.isUnread,
-                    conversationUrl:
-                        conversation.url ??
-                        getFullCommsURL({
-                            workspaceId: conversation.workspaceId,
-                            conversationId: conversation.id,
-                        }),
+                    conversationUrl: conversation.url
+                        ? rewriteToConfiguredHost(conversation.url)
+                        : getFullCommsURL({
+                              workspaceId: conversation.workspaceId,
+                              conversationId: conversation.id,
+                          }),
                 }
             }),
             unreadCount: unreadThreads.length,

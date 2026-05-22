@@ -1,9 +1,9 @@
-import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { LoadThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
+import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     threadId: z.string().describe('The thread ID to load.'),
@@ -172,13 +172,13 @@ const loadThread = {
                               .map((id) => userLookup[id])
                               .filter((name): name is string => name !== undefined)
                         : undefined,
-                threadUrl:
-                    thread.url ??
-                    getFullCommsURL({
-                        workspaceId: thread.workspaceId,
-                        channelId: thread.channelId,
-                        threadId: thread.id,
-                    }),
+                threadUrl: thread.url
+                    ? rewriteToConfiguredHost(thread.url)
+                    : getFullCommsURL({
+                          workspaceId: thread.workspaceId,
+                          channelId: thread.channelId,
+                          threadId: thread.id,
+                      }),
             },
             comments: comments.map((c) => ({
                 id: c.id,
@@ -187,14 +187,14 @@ const loadThread = {
                 creatorName: userLookup[c.creator],
                 threadId: c.threadId,
                 posted: c.posted.toISOString(),
-                commentUrl:
-                    c.url ??
-                    getFullCommsURL({
-                        workspaceId: c.workspaceId,
-                        channelId: c.channelId,
-                        threadId: c.threadId,
-                        commentId: c.id,
-                    }),
+                commentUrl: c.url
+                    ? rewriteToConfiguredHost(c.url)
+                    : getFullCommsURL({
+                          workspaceId: c.workspaceId,
+                          channelId: c.channelId,
+                          threadId: c.threadId,
+                          commentId: c.id,
+                      }),
             })),
             totalComments: thread.commentCount,
         }

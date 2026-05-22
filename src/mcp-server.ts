@@ -18,6 +18,8 @@ import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
 import { updateObject } from './tools/update-object.js'
 import { userInfo } from './tools/user-info.js'
+import type { ServerOptions } from './utils/server-options.js'
+import { configureBaseUrl } from './utils/url-helpers.js'
 
 const instructions = `
 ## Comms Communication Tools
@@ -58,7 +60,12 @@ Always provide clear context and maintain professional communication standards.
  * @param baseUrl - Optional base URL for the Comms API.
  * @returns the MCP server.
  */
-function getMcpServer({ commsApiKey, baseUrl }: { commsApiKey: string; baseUrl?: string }) {
+function getMcpServer({ commsApiKey, baseUrl }: ServerOptions) {
+    // Set up host rewriting for SDK + helper URLs before any tool runs.
+    // Idempotent and applies to every consumer of getMcpServer (CLI,
+    // importable-tools, future entry points).
+    configureBaseUrl(baseUrl)
+
     const server = new McpServer(
         { name: 'comms-mcp-server', version: '0.1.0' },
         {

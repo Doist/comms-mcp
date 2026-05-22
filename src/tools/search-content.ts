@@ -1,9 +1,10 @@
-import { type SearchResultType, getFullCommsURL } from '@doist/comms-sdk'
+import type { SearchResultType } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { SearchContentOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
+import { getFullCommsURL } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     query: z.string().min(1).describe('The search query string.'),

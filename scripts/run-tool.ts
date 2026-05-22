@@ -34,6 +34,7 @@ import { reply } from '../src/tools/reply.js'
 import { searchContent } from '../src/tools/search-content.js'
 import { updateObject } from '../src/tools/update-object.js'
 import { userInfo } from '../src/tools/user-info.js'
+import { configureBaseUrl } from '../src/utils/url-helpers.js'
 
 // Define a minimal type for tool execution that works with any tool
 type ExecutableTool = {
@@ -143,7 +144,8 @@ async function main() {
         process.exit(1)
     }
 
-    const baseUrl = process.env.COMMS_BASE_URL
+    const baseUrl = process.env.COMMS_BASE_URL || undefined
+    configureBaseUrl(baseUrl)
     const client = new CommsApi(apiKey, { baseUrl })
 
     console.log(`Running ${toolName} with args:`)

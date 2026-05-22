@@ -1,10 +1,10 @@
-import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { ReactOutputSchema } from '../utils/output-schemas.js'
 import { type ReactionTargetType, ReactionTargetTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
+import { getFullCommsURL } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     targetType: ReactionTargetTypeSchema.describe(

@@ -1,9 +1,14 @@
-import { getCommentURL, getFullCommsURL, getMessageURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { BuildLinkOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
+import {
+    getCommentURL,
+    getFullCommsURL,
+    getMessageURL,
+    toRelativeCommsURL,
+} from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     workspaceId: z.number().describe('The workspace ID.'),
@@ -71,7 +76,7 @@ const buildLink = {
                 const params = { workspaceId, conversationId }
                 url = fullUrl
                     ? getFullCommsURL(params)
-                    : getFullCommsURL(params).replace('https://comms.todoist.com', '')
+                    : toRelativeCommsURL(getFullCommsURL(params))
             }
         } else if (threadId !== undefined) {
             if (commentId !== undefined) {
@@ -90,7 +95,7 @@ const buildLink = {
                     : { workspaceId, threadId }
                 url = fullUrl
                     ? getFullCommsURL(params)
-                    : getFullCommsURL(params).replace('https://comms.todoist.com', '')
+                    : toRelativeCommsURL(getFullCommsURL(params))
             }
         } else {
             throw new Error('Must provide either conversationId OR threadId to build a link')
