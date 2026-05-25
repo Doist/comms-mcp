@@ -1,6 +1,5 @@
 import { getMcpServer } from './mcp-server.js'
 import { buildLink } from './tools/build-link.js'
-import { createChannel } from './tools/create-channel.js'
 import { createThread } from './tools/create-thread.js'
 import { deleteObject } from './tools/delete-object.js'
 import { fetchInbox } from './tools/fetch-inbox.js'
@@ -13,7 +12,6 @@ import { markDone } from './tools/mark-done.js'
 import { react } from './tools/react.js'
 import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
-import { updateChannel } from './tools/update-channel.js'
 import { updateObject } from './tools/update-object.js'
 import { userInfo } from './tools/user-info.js'
 
@@ -24,8 +22,6 @@ const tools = {
     loadConversation,
     searchContent,
     getMentions,
-    createChannel,
-    updateChannel,
     createThread,
     updateObject,
     deleteObject,
@@ -46,8 +42,6 @@ export {
     loadConversation,
     searchContent,
     getMentions,
-    createChannel,
-    updateChannel,
     createThread,
     updateObject,
     deleteObject,
