@@ -12,11 +12,11 @@ const ArgsSchema = {
     public: z
         .boolean()
         .optional()
-        .describe('Whether the channel is public. Omit to use the Comms API default.'),
+        .describe('Whether the channel is public. Defaults to false (private) when omitted.'),
     userIds: z
         .array(z.number())
         .optional()
-        .describe('Optional user IDs to add to the channel when it is created.'),
+        .describe('Optional numeric user IDs to add to the channel when it is created.'),
 }
 
 const createChannel = {
