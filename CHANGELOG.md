@@ -1,3 +1,9 @@
+## [5.5.0](https://github.com/Doist/comms-mcp/compare/v5.4.0...v5.5.0) (2026-05-25)
+
+### Features
+
+* Add channel create/update tools ([#4](https://github.com/Doist/comms-mcp/issues/4)) ([8fdb4c8](https://github.com/Doist/comms-mcp/commit/8fdb4c8f5ed2ff84559fd6d96498f1bdc8338816))
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
