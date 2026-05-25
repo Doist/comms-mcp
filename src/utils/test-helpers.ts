@@ -1,4 +1,5 @@
 import type {
+    Channel,
     Comment,
     Conversation,
     ConversationMessage,
@@ -7,6 +8,25 @@ import type {
     Workspace,
 } from '@doist/comms-sdk'
 import type { getToolOutput } from '../mcp-helpers.js'
+
+/**
+ * Creates a mock Channel with all required properties and sensible defaults.
+ * Pass only the properties you want to override for your specific test.
+ */
+export function createMockChannel(overrides: Partial<Channel> = {}): Channel {
+    return {
+        id: TEST_IDS.CHANNEL_1,
+        name: 'General',
+        creator: TEST_IDS.USER_1,
+        public: true,
+        workspaceId: TEST_IDS.WORKSPACE_1,
+        archived: false,
+        created: new Date('2024-01-01T00:00:00Z'),
+        version: 1,
+        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/`,
+        ...overrides,
+    }
+}
 
 /**
  * Creates a mock Thread with all required properties and sensible defaults.

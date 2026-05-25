@@ -294,6 +294,27 @@ export const BuildLinkOutputSchema = z.object({
 })
 
 /**
+ * Schema for create-channel tool output
+ */
+const ChannelOutputFieldsSchema = z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    public: z.boolean(),
+    archived: z.boolean(),
+    created: z.string(),
+    channelUrl: z.string(),
+})
+
+export const CreateChannelOutputSchema = ChannelOutputFieldsSchema.extend({
+    type: z.literal('create_channel_result'),
+    success: z.boolean(),
+    channelId: z.string(),
+    workspaceId: z.number(),
+    creator: z.number(),
+    userIds: z.array(z.number()).optional(),
+})
+
+/**
  * Schema for create-thread tool output
  */
 export const CreateThreadOutputSchema = z.object({
@@ -502,16 +523,10 @@ export const ListChannelsOutputSchema = z.object({
     type: z.literal('list_channels'),
     workspaceId: z.number(),
     channels: z.array(
-        z.object({
+        ChannelOutputFieldsSchema.extend({
             id: z.string(),
-            name: z.string(),
-            description: z.string().optional(),
-            public: z.boolean(),
-            archived: z.boolean(),
             creatorId: z.number(),
             creatorName: z.string().optional(),
-            created: z.string(),
-            channelUrl: z.string(),
             color: z.number().optional(),
         }),
     ),
@@ -531,6 +546,7 @@ export const StructuredOutputSchema = z.union([
     GetGroupsOutputSchema,
     UserInfoOutputSchema,
     BuildLinkOutputSchema,
+    CreateChannelOutputSchema,
     CreateThreadOutputSchema,
     UpdateThreadOutputSchema,
     UpdateCommentOutputSchema,
@@ -547,6 +563,7 @@ export const StructuredOutputSchema = z.union([
 /**
  * Type definitions for the structured outputs
  */
+export type CreateChannelOutput = z.infer<typeof CreateChannelOutputSchema>
 export type CreateThreadOutput = z.infer<typeof CreateThreadOutputSchema>
 export type UpdateThreadOutput = z.infer<typeof UpdateThreadOutputSchema>
 export type UpdateCommentOutput = z.infer<typeof UpdateCommentOutputSchema>

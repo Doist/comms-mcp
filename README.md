@@ -134,6 +134,7 @@ small number of calls.
 - **loadConversation** — Load a conversation with its messages
 - **searchContent** — Search a workspace for threads, comments, and messages
 - **getMentions** — Threads, comments, and messages mentioning the current user
+- **createChannel** — Create a workspace channel
 - **createThread** — Start a new channel thread
 - **updateObject** / **deleteObject** — Edit or remove a thread, comment, or message
 - **reply** — Reply to a thread or conversation

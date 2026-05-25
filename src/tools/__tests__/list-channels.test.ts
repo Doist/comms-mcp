@@ -1,6 +1,7 @@
 import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
+    createMockChannel,
     extractStructuredContent,
     extractTextContent,
     TEST_ERRORS,
@@ -19,18 +20,6 @@ const mockCommsApi = {
 } as unknown as jest.Mocked<CommsApi>
 
 const { LIST_CHANNELS } = ToolNames
-
-const createMockChannel = (overrides: Partial<Record<string, unknown>> = {}) => ({
-    id: TEST_IDS.CHANNEL_1,
-    name: 'General',
-    creator: TEST_IDS.USER_1,
-    public: true,
-    workspaceId: TEST_IDS.WORKSPACE_1,
-    archived: false,
-    created: new Date('2024-01-01T00:00:00Z'),
-    version: 1,
-    ...overrides,
-})
 
 describe(`${LIST_CHANNELS} tool`, () => {
     beforeEach(() => {
