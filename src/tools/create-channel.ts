@@ -3,7 +3,7 @@ import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { type CreateChannelOutput, CreateChannelOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getChannelUrl } from '../utils/url-helpers.js'
+import { getChannelMutationData, getChannelMutationText } from './channel-output.js'
 
 const ArgsSchema = {
     workspaceId: z.number().describe('The workspace ID where the channel should be created.'),
@@ -37,41 +37,14 @@ const createChannel = {
             ...(userIds !== undefined ? { userIds } : {}),
         })
 
-        const channelUrl = channel.url ?? getChannelUrl(channel.workspaceId, channel.id)
-        const created = channel.created.toISOString()
-
-        const lines = [
-            '# Channel Created',
-            '',
-            `**Name:** ${channel.name}`,
-            `**Channel ID:** ${channel.id}`,
-            `**Workspace ID:** ${channel.workspaceId}`,
-            `**Public:** ${channel.public ? 'Yes' : 'No'}`,
-            `**Created:** ${created}`,
-            `**URL:** ${channelUrl}`,
-        ]
-
-        if (channel.description) {
-            lines.push(`**Description:** ${channel.description}`)
-        }
-
         const structuredContent: CreateChannelOutput = {
             type: 'create_channel_result',
             success: true,
-            channelId: channel.id,
-            name: channel.name,
-            workspaceId: channel.workspaceId,
-            public: channel.public,
-            archived: channel.archived,
-            creator: channel.creator,
-            created,
-            channelUrl,
-            ...(channel.description != null ? { description: channel.description } : {}),
-            ...(channel.userIds != null ? { userIds: channel.userIds } : {}),
+            ...getChannelMutationData(channel),
         }
 
         return getToolOutput({
-            textContent: lines.join('\n'),
+            textContent: getChannelMutationText('Channel Created', channel),
             structuredContent,
         })
     },

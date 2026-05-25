@@ -33,6 +33,7 @@ import { markDone } from '../src/tools/mark-done.js'
 import { react } from '../src/tools/react.js'
 import { reply } from '../src/tools/reply.js'
 import { searchContent } from '../src/tools/search-content.js'
+import { updateChannel } from '../src/tools/update-channel.js'
 import { updateObject } from '../src/tools/update-object.js'
 import { userInfo } from '../src/tools/user-info.js'
 
@@ -58,6 +59,7 @@ const tools: Record<string, ExecutableTool> = {
     'search-content': searchContent,
     'get-mentions': getMentions,
     'create-channel': createChannel,
+    'update-channel': updateChannel,
     'create-thread': createThread,
     'update-object': updateObject,
     'delete-object': deleteObject,

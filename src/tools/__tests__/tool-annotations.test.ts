@@ -90,6 +90,13 @@ const TOOL_EXPECTATIONS: ToolExpectation[] = [
         idempotentHint: false,
     },
     {
+        name: ToolNames.UPDATE_CHANNEL,
+        title: 'Comms: Update Channel',
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+    },
+    {
         name: ToolNames.CREATE_THREAD,
         title: 'Comms: Create Thread',
         readOnlyHint: false,

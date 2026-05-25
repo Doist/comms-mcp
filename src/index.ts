@@ -13,6 +13,7 @@ import { markDone } from './tools/mark-done.js'
 import { react } from './tools/react.js'
 import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
+import { updateChannel } from './tools/update-channel.js'
 import { updateObject } from './tools/update-object.js'
 import { userInfo } from './tools/user-info.js'
 
@@ -24,6 +25,7 @@ const tools = {
     searchContent,
     getMentions,
     createChannel,
+    updateChannel,
     createThread,
     updateObject,
     deleteObject,
@@ -45,6 +47,7 @@ export {
     searchContent,
     getMentions,
     createChannel,
+    updateChannel,
     createThread,
     updateObject,
     deleteObject,

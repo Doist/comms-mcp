@@ -296,7 +296,7 @@ export const BuildLinkOutputSchema = z.object({
 /**
  * Schema for create-channel tool output
  */
-const ChannelOutputFieldsSchema = z.object({
+export const ChannelOutputFieldsSchema = z.object({
     name: z.string(),
     description: z.string().optional(),
     public: z.boolean(),
@@ -307,6 +307,18 @@ const ChannelOutputFieldsSchema = z.object({
 
 export const CreateChannelOutputSchema = ChannelOutputFieldsSchema.extend({
     type: z.literal('create_channel_result'),
+    success: z.boolean(),
+    channelId: z.string(),
+    workspaceId: z.number(),
+    creator: z.number(),
+    userIds: z.array(z.number()).optional(),
+})
+
+/**
+ * Schema for update-channel tool output
+ */
+export const UpdateChannelOutputSchema = ChannelOutputFieldsSchema.extend({
+    type: z.literal('update_channel_result'),
     success: z.boolean(),
     channelId: z.string(),
     workspaceId: z.number(),
@@ -547,6 +559,7 @@ export const StructuredOutputSchema = z.union([
     UserInfoOutputSchema,
     BuildLinkOutputSchema,
     CreateChannelOutputSchema,
+    UpdateChannelOutputSchema,
     CreateThreadOutputSchema,
     UpdateThreadOutputSchema,
     UpdateCommentOutputSchema,
@@ -564,6 +577,8 @@ export const StructuredOutputSchema = z.union([
  * Type definitions for the structured outputs
  */
 export type CreateChannelOutput = z.infer<typeof CreateChannelOutputSchema>
+export type UpdateChannelOutput = z.infer<typeof UpdateChannelOutputSchema>
+export type ChannelOutputFields = z.infer<typeof ChannelOutputFieldsSchema>
 export type CreateThreadOutput = z.infer<typeof CreateThreadOutputSchema>
 export type UpdateThreadOutput = z.infer<typeof UpdateThreadOutputSchema>
 export type UpdateCommentOutput = z.infer<typeof UpdateCommentOutputSchema>

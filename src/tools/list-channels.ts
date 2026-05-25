@@ -5,7 +5,7 @@ import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
 import { ListChannelsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getChannelUrl } from '../utils/url-helpers.js'
+import { getChannelListData, type ChannelListData } from './channel-output.js'
 
 const ArgsSchema = {
     workspaceId: z.number().describe('The workspace ID to list channels from.'),
@@ -17,23 +17,10 @@ const ArgsSchema = {
         ),
 }
 
-type ChannelData = {
-    id: string
-    name: string
-    description?: string
-    public: boolean
-    archived: boolean
-    creatorId: number
-    creatorName?: string
-    created: string
-    channelUrl: string
-    color?: number
-}
-
 type ListChannelsStructured = Record<string, unknown> & {
     type: 'list_channels'
     workspaceId: number
-    channels: ChannelData[]
+    channels: ChannelListData[]
     totalChannels: number
 }
 
@@ -100,19 +87,19 @@ async function generateChannelsList(
 
     for (const channel of channels) {
         const creatorName = creatorLookup[channel.creator]
-        const channelUrl = getChannelUrl(workspaceId, channel.id)
+        const channelData = getChannelListData(channel, creatorName)
 
-        lines.push(`## [${channel.name}](${channelUrl})`)
+        lines.push(`## [${channelData.name}](${channelData.channelUrl})`)
         lines.push(`**ID:** ${channel.id}`)
-        lines.push(`**Public:** ${channel.public ? 'Yes' : 'No'}`)
-        lines.push(`**Archived:** ${channel.archived ? 'Yes' : 'No'}`)
+        lines.push(`**Public:** ${channelData.public ? 'Yes' : 'No'}`)
+        lines.push(`**Archived:** ${channelData.archived ? 'Yes' : 'No'}`)
         lines.push(
             `**Creator:** ${creatorName ? `${creatorName} (${channel.creator})` : channel.creator}`,
         )
-        lines.push(`**Created:** ${channel.created.toISOString()}`)
+        lines.push(`**Created:** ${channelData.created}`)
 
-        if (channel.description) {
-            lines.push(`**Description:** ${channel.description}`)
+        if (channelData.description != null) {
+            lines.push(`**Description:** ${channelData.description}`)
         }
 
         lines.push('')
@@ -123,20 +110,9 @@ async function generateChannelsList(
     const structuredContent: ListChannelsStructured = {
         type: 'list_channels',
         workspaceId,
-        channels: channels.map((channel) => ({
-            id: channel.id,
-            name: channel.name,
-            ...(channel.description && { description: channel.description }),
-            public: channel.public,
-            archived: channel.archived,
-            creatorId: channel.creator,
-            ...(creatorLookup[channel.creator] && {
-                creatorName: creatorLookup[channel.creator],
-            }),
-            created: channel.created.toISOString(),
-            channelUrl: getChannelUrl(workspaceId, channel.id),
-            ...(channel.color != null && { color: channel.color }),
-        })),
+        channels: channels.map((channel) =>
+            getChannelListData(channel, creatorLookup[channel.creator]),
+        ),
         totalChannels: channels.length,
     }
 
