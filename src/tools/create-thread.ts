@@ -3,7 +3,7 @@ import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { type CreateThreadOutput, CreateThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
+import { resolveCommsUrl } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     channelId: z.string().describe('The ID of the channel to create the thread in.'),
@@ -30,7 +30,7 @@ const createThread = {
     parameters: ArgsSchema,
     outputSchema: CreateThreadOutputSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
-    async execute(args, client) {
+    async execute(args, client, context) {
         const { channelId, title, content, recipients, groups } = args
 
         const thread = await client.threads.createThread({
@@ -48,13 +48,14 @@ const createThread = {
                 : postedValue
             : new Date()
 
-        const threadUrl = rewriteToConfiguredHost(
-            thread.url ??
-                getFullCommsURL({
-                    workspaceId: thread.workspaceId,
-                    channelId: thread.channelId,
-                    threadId: thread.id,
-                }),
+        const threadUrl = resolveCommsUrl(
+            thread.url,
+            {
+                workspaceId: thread.workspaceId,
+                channelId: thread.channelId,
+                threadId: thread.id,
+            },
+            context,
         )
 
         const lines: string[] = [

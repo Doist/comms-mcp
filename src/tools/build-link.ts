@@ -3,12 +3,7 @@ import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { BuildLinkOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import {
-    getCommentURL,
-    getFullCommsURL,
-    getMessageURL,
-    toRelativeCommsURL,
-} from '../utils/url-helpers.js'
+import { getCommsURL, getFullCommsURL } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     workspaceId: z.number().describe('The workspace ID.'),
@@ -56,7 +51,7 @@ const buildLink = {
     parameters: ArgsSchema,
     outputSchema: BuildLinkOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-    async execute(args, _client) {
+    async execute(args, _client, context) {
         const { workspaceId, conversationId, messageId, channelId, threadId, commentId, fullUrl } =
             args
 
@@ -69,14 +64,12 @@ const buildLink = {
                 // Message link
                 linkType = 'message'
                 const params = { workspaceId, conversationId, messageId }
-                url = fullUrl ? getFullCommsURL(params) : getMessageURL(params)
+                url = fullUrl ? getFullCommsURL(params, context) : getCommsURL(params)
             } else {
                 // Conversation link
                 linkType = 'conversation'
                 const params = { workspaceId, conversationId }
-                url = fullUrl
-                    ? getFullCommsURL(params)
-                    : toRelativeCommsURL(getFullCommsURL(params))
+                url = fullUrl ? getFullCommsURL(params, context) : getCommsURL(params)
             }
         } else if (threadId !== undefined) {
             if (commentId !== undefined) {
@@ -86,16 +79,14 @@ const buildLink = {
                     throw new Error('channelId is required when building a comment link')
                 }
                 const params = { workspaceId, channelId, threadId, commentId }
-                url = fullUrl ? getFullCommsURL(params) : getCommentURL(params)
+                url = fullUrl ? getFullCommsURL(params, context) : getCommsURL(params)
             } else {
                 // Thread link
                 linkType = 'thread'
                 const params = channelId
                     ? { workspaceId, channelId, threadId }
                     : { workspaceId, threadId }
-                url = fullUrl
-                    ? getFullCommsURL(params)
-                    : toRelativeCommsURL(getFullCommsURL(params))
+                url = fullUrl ? getFullCommsURL(params, context) : getCommsURL(params)
             }
         } else {
             throw new Error('Must provide either conversationId OR threadId to build a link')

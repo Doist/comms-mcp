@@ -52,7 +52,7 @@ const getMentions = {
     parameters: ArgsSchema,
     outputSchema: GetMentionsOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-    async execute(args, client) {
+    async execute(args, client, context) {
         const { workspaceId, channelIds, authorIds, dateFrom, dateTo, limit, cursor } = args
 
         const response = await client.search.search({
@@ -175,33 +175,45 @@ const getMentions = {
             results: results.map((r) => {
                 let url: string
                 if (r.type === 'thread' && r.threadId !== undefined) {
-                    url = getFullCommsURL({
-                        workspaceId,
-                        threadId: r.threadId,
-                        channelId: r.channelId,
-                    })
+                    url = getFullCommsURL(
+                        {
+                            workspaceId,
+                            threadId: r.threadId,
+                            channelId: r.channelId,
+                        },
+                        context,
+                    )
                 } else if (
                     r.type === 'comment' &&
                     r.threadId !== undefined &&
                     r.channelId !== undefined
                 ) {
-                    url = getFullCommsURL({
-                        workspaceId,
-                        threadId: r.threadId,
-                        channelId: r.channelId,
-                        commentId: r.id,
-                    })
+                    url = getFullCommsURL(
+                        {
+                            workspaceId,
+                            threadId: r.threadId,
+                            channelId: r.channelId,
+                            commentId: r.id,
+                        },
+                        context,
+                    )
                 } else if (r.type === 'conversation' && r.conversationId !== undefined) {
-                    url = getFullCommsURL({
-                        workspaceId,
-                        conversationId: r.conversationId,
-                    })
+                    url = getFullCommsURL(
+                        {
+                            workspaceId,
+                            conversationId: r.conversationId,
+                        },
+                        context,
+                    )
                 } else if (r.type === 'message' && r.conversationId !== undefined) {
-                    url = getFullCommsURL({
-                        workspaceId,
-                        conversationId: r.conversationId,
-                        messageId: r.id,
-                    })
+                    url = getFullCommsURL(
+                        {
+                            workspaceId,
+                            conversationId: r.conversationId,
+                            messageId: r.id,
+                        },
+                        context,
+                    )
                 } else {
                     url = ''
                 }

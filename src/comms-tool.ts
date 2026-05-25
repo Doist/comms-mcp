@@ -5,6 +5,14 @@ import type { RequiredToolAnnotations } from './utils/required-tool-annotations.
 /**
  * A Comms tool that can be used in an MCP server or other conversational AI interfaces.
  */
+type CommsToolContext = {
+    /**
+     * Optional Comms web/API base URL used when a tool has to synthesize a URL
+     * instead of returning an SDK-provided entity URL.
+     */
+    baseUrl?: string
+}
+
 type CommsTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape = z.ZodRawShape> = {
     /**
      * The name of the tool.
@@ -47,9 +55,14 @@ type CommsTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape = z.Zo
      *
      * @param args - The arguments of the tool.
      * @param client - The Comms API client used to make requests to the Comms API.
+     * @param context - Optional execution context for non-API concerns like URL generation.
      * @returns The result of the tool.
      */
-    execute: (args: z.infer<z.ZodObject<Params>>, client: CommsApi) => Promise<unknown>
+    execute: (
+        args: z.infer<z.ZodObject<Params>>,
+        client: CommsApi,
+        context?: CommsToolContext,
+    ) => Promise<unknown>
 }
 
-export type { CommsTool }
+export type { CommsTool, CommsToolContext }

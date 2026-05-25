@@ -1,5 +1,6 @@
 // Kept separate from main.ts so the env wiring is unit-testable —
 // importing main.ts triggers server startup at module load.
+import { normalizeBaseUrl } from './url-helpers.js'
 
 export type ServerOptions = {
     commsApiKey: string
@@ -15,6 +16,6 @@ export function buildServerOptions(env: NodeJS.ProcessEnv = process.env): Server
     }
     // Trim before the falsy check so `COMMS_BASE_URL= ` (trailing
     // space, common in env files) doesn't pass garbage to the SDK.
-    const baseUrl = env.COMMS_BASE_URL?.trim() || undefined
+    const baseUrl = normalizeBaseUrl(env.COMMS_BASE_URL)
     return { commsApiKey, baseUrl }
 }

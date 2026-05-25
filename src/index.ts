@@ -14,7 +14,6 @@ import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
 import { updateObject } from './tools/update-object.js'
 import { userInfo } from './tools/user-info.js'
-import { configureBaseUrl } from './utils/url-helpers.js'
 
 const tools = {
     userInfo,
@@ -34,7 +33,7 @@ const tools = {
     getGroups,
 }
 
-export { tools, getMcpServer, configureBaseUrl }
+export { tools, getMcpServer }
 
 export {
     userInfo,

@@ -21,6 +21,22 @@ describe('buildLink', () => {
             expect(result.structuredContent?.url).toBe('https://comms.todoist.com/a/123/msg/456/')
         })
 
+        test('uses the execution baseUrl for full links', async () => {
+            const result = await buildLink.execute(
+                {
+                    workspaceId: 123,
+                    conversationId: 456,
+                    fullUrl: true,
+                },
+                {} as CommsApi,
+                { baseUrl: 'https://comms.staging.todoist.com' },
+            )
+
+            expect(extractTextContent(result)).toBe(
+                'https://comms.staging.todoist.com/a/123/msg/456/',
+            )
+        })
+
         test('builds a message link', async () => {
             const result = await buildLink.execute(
                 {

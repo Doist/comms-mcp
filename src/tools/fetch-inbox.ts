@@ -12,7 +12,7 @@ import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
 import { FetchInboxOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
+import { resolveCommsUrl } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     workspaceId: z.number().describe('The workspace ID to fetch inbox for.'),
@@ -135,7 +135,7 @@ const fetchInbox = {
     parameters: ArgsSchema,
     outputSchema: FetchInboxOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-    async execute(args, client) {
+    async execute(args, client, context) {
         const { workspaceId, sinceDate, untilDate, limit, onlyUnread } = args
         const archiveFilter = args.archiveFilter ?? 'active'
 
@@ -283,9 +283,11 @@ const fetchInbox = {
                 isUnread: t.isUnread,
                 isArchived: t.isArchived,
                 isStarred: Boolean(t.isSaved),
-                threadUrl: t.url
-                    ? rewriteToConfiguredHost(t.url)
-                    : getFullCommsURL({ workspaceId, channelId: t.channelId, threadId: t.id }),
+                threadUrl: resolveCommsUrl(
+                    t.url,
+                    { workspaceId, channelId: t.channelId, threadId: t.id },
+                    context,
+                ),
             })),
             conversations: conversationsWithDetails.map((cd) => {
                 const { conversation, participants } = cd
@@ -299,22 +301,18 @@ const fetchInbox = {
                     userIds: conversation.userIds,
                     participantNames,
                     isUnread: cd.isUnread,
-                    conversationUrl: conversation.url
-                        ? rewriteToConfiguredHost(conversation.url)
-                        : getFullCommsURL({
-                              workspaceId: conversation.workspaceId,
-                              conversationId: conversation.id,
-                          }),
+                    conversationUrl: resolveCommsUrl(
+                        conversation.url,
+                        {
+                            workspaceId: conversation.workspaceId,
+                            conversationId: conversation.id,
+                        },
+                        context,
+                    ),
                 }
             }),
             unreadCount: unreadThreads.length,
-            // InboxThread.url is hardcoded to the SDK prod host; rewrite
-            // so a staging-targeted server returns staging links here too.
-            // UnreadConversation has no url field, so no rewrite needed.
-            unreadThreads: unreadThreadsOriginal.map((t) => ({
-                ...t,
-                url: rewriteToConfiguredHost(t.url),
-            })),
+            unreadThreads: unreadThreadsOriginal,
             unreadConversations: unreadConversationsOriginal,
             totalThreads: threads.length,
             totalConversations: conversationsWithDetails.length,

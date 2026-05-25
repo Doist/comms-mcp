@@ -5,7 +5,7 @@ import { getToolOutput } from '../mcp-helpers.js'
 import { type ReplyOutput, ReplyOutputSchema } from '../utils/output-schemas.js'
 import { ReplyTargetTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
+import { resolveCommsUrl } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     targetType: ReplyTargetTypeSchema.describe(
@@ -40,7 +40,7 @@ const reply = {
     parameters: ArgsSchema,
     outputSchema: ReplyOutputSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
-    async execute(args, client) {
+    async execute(args, client, context) {
         const { targetType, targetId, content, recipients, groups, notifyAudience } = args
 
         if (targetType === 'conversation' && groups !== undefined) {
@@ -71,14 +71,15 @@ const reply = {
                 notifyAudience: appliedAudience,
             })
             replyId = comment.id
-            replyUrl = rewriteToConfiguredHost(
-                comment.url ??
-                    getFullCommsURL({
-                        workspaceId: comment.workspaceId,
-                        channelId: comment.channelId,
-                        threadId: comment.threadId,
-                        commentId: comment.id,
-                    }),
+            replyUrl = resolveCommsUrl(
+                comment.url,
+                {
+                    workspaceId: comment.workspaceId,
+                    channelId: comment.channelId,
+                    threadId: comment.threadId,
+                    commentId: comment.id,
+                },
+                context,
             )
             const postedValue = comment.posted
             created = postedValue
@@ -92,13 +93,14 @@ const reply = {
                 content,
             })
             replyId = message.id
-            replyUrl = rewriteToConfiguredHost(
-                message.url ??
-                    getFullCommsURL({
-                        workspaceId: message.workspaceId,
-                        conversationId: message.conversationId,
-                        messageId: message.id,
-                    }),
+            replyUrl = resolveCommsUrl(
+                message.url,
+                {
+                    workspaceId: message.workspaceId,
+                    conversationId: message.conversationId,
+                    messageId: message.id,
+                },
+                context,
             )
             const postedValue = message.posted
             created = postedValue

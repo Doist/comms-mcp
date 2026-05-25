@@ -11,7 +11,7 @@ import {
 } from '../utils/output-schemas.js'
 import { UpdateTargetTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
+import { resolveCommsUrl } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     targetType: UpdateTargetTypeSchema.describe(
@@ -36,8 +36,13 @@ const ArgsSchema = {
 
 type Args = z.infer<z.ZodObject<typeof ArgsSchema>>
 type Branch = { textContent: string; structuredContent: UpdateObjectStructured }
+type BranchContext = Parameters<CommsTool<typeof ArgsSchema>['execute']>[2]
 
-async function updateThreadBranch(args: Args, client: CommsApi): Promise<Branch> {
+async function updateThreadBranch(
+    args: Args,
+    client: CommsApi,
+    context?: BranchContext,
+): Promise<Branch> {
     const { targetId, title, content } = args
 
     if (title === undefined && content === undefined) {
@@ -46,13 +51,14 @@ async function updateThreadBranch(args: Args, client: CommsApi): Promise<Branch>
 
     const thread = await client.threads.updateThread({ id: targetId, title, content })
 
-    const threadUrl = rewriteToConfiguredHost(
-        thread.url ??
-            getFullCommsURL({
-                workspaceId: thread.workspaceId,
-                channelId: thread.channelId,
-                threadId: thread.id,
-            }),
+    const threadUrl = resolveCommsUrl(
+        thread.url,
+        {
+            workspaceId: thread.workspaceId,
+            channelId: thread.channelId,
+            threadId: thread.id,
+        },
+        context,
     )
 
     const lastEdited = thread.lastEdited ? thread.lastEdited.toISOString() : undefined
@@ -86,7 +92,11 @@ async function updateThreadBranch(args: Args, client: CommsApi): Promise<Branch>
     return { textContent: lines.join('\n'), structuredContent }
 }
 
-async function updateCommentBranch(args: Args, client: CommsApi): Promise<Branch> {
+async function updateCommentBranch(
+    args: Args,
+    client: CommsApi,
+    context?: BranchContext,
+): Promise<Branch> {
     const { targetId, content } = args
     if (content === undefined) {
         throw new Error('`content` is required when targetType is "comment".')
@@ -94,14 +104,15 @@ async function updateCommentBranch(args: Args, client: CommsApi): Promise<Branch
 
     const comment = await client.comments.updateComment({ id: targetId, content })
 
-    const commentUrl = rewriteToConfiguredHost(
-        comment.url ??
-            getFullCommsURL({
-                workspaceId: comment.workspaceId,
-                channelId: comment.channelId,
-                threadId: comment.threadId,
-                commentId: comment.id,
-            }),
+    const commentUrl = resolveCommsUrl(
+        comment.url,
+        {
+            workspaceId: comment.workspaceId,
+            channelId: comment.channelId,
+            threadId: comment.threadId,
+            commentId: comment.id,
+        },
+        context,
     )
 
     const lastEdited = comment.lastEdited ? comment.lastEdited.toISOString() : undefined
@@ -135,7 +146,11 @@ async function updateCommentBranch(args: Args, client: CommsApi): Promise<Branch
     return { textContent: lines.join('\n'), structuredContent }
 }
 
-async function updateMessageBranch(args: Args, client: CommsApi): Promise<Branch> {
+async function updateMessageBranch(
+    args: Args,
+    client: CommsApi,
+    context?: BranchContext,
+): Promise<Branch> {
     const { targetId, content } = args
     if (content === undefined) {
         throw new Error('`content` is required when targetType is "message".')
@@ -143,13 +158,14 @@ async function updateMessageBranch(args: Args, client: CommsApi): Promise<Branch
 
     const message = await client.conversationMessages.updateMessage({ id: targetId, content })
 
-    const messageUrl = rewriteToConfiguredHost(
-        message.url ??
-            getFullCommsURL({
-                workspaceId: message.workspaceId,
-                conversationId: message.conversationId,
-                messageId: message.id,
-            }),
+    const messageUrl = resolveCommsUrl(
+        message.url,
+        {
+            workspaceId: message.workspaceId,
+            conversationId: message.conversationId,
+            messageId: message.id,
+        },
+        context,
     )
 
     const lastEdited = message.lastEdited ? message.lastEdited.toISOString() : undefined
@@ -189,7 +205,7 @@ const updateObject = {
     parameters: ArgsSchema,
     outputSchema: UpdateObjectOutputSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
-    async execute(args, client) {
+    async execute(args, client, context) {
         const { targetType, title } = args
 
         if (targetType !== 'thread' && title !== undefined) {
@@ -198,10 +214,10 @@ const updateObject = {
 
         const branch =
             targetType === 'thread'
-                ? await updateThreadBranch(args, client)
+                ? await updateThreadBranch(args, client, context)
                 : targetType === 'comment'
-                  ? await updateCommentBranch(args, client)
-                  : await updateMessageBranch(args, client)
+                  ? await updateCommentBranch(args, client, context)
+                  : await updateMessageBranch(args, client, context)
 
         return getToolOutput({
             textContent: branch.textContent,

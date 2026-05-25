@@ -19,7 +19,7 @@ import { searchContent } from './tools/search-content.js'
 import { updateObject } from './tools/update-object.js'
 import { userInfo } from './tools/user-info.js'
 import type { ServerOptions } from './utils/server-options.js'
-import { configureBaseUrl } from './utils/url-helpers.js'
+import { normalizeBaseUrl } from './utils/url-helpers.js'
 
 const instructions = `
 ## Comms Communication Tools
@@ -61,11 +61,7 @@ Always provide clear context and maintain professional communication standards.
  * @returns the MCP server.
  */
 function getMcpServer({ commsApiKey, baseUrl }: ServerOptions) {
-    // Set up host rewriting for SDK + helper URLs before any tool runs.
-    // Idempotent and applies to every consumer of getMcpServer (CLI,
-    // importable-tools, future entry points).
-    configureBaseUrl(baseUrl)
-
+    const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
     const server = new McpServer(
         { name: 'comms-mcp-server', version: '0.1.0' },
         {
@@ -76,26 +72,27 @@ function getMcpServer({ commsApiKey, baseUrl }: ServerOptions) {
         },
     )
 
-    const comms = new CommsApi(commsApiKey, { baseUrl })
+    const comms = new CommsApi(commsApiKey, { baseUrl: normalizedBaseUrl })
+    const toolContext = normalizedBaseUrl ? { baseUrl: normalizedBaseUrl } : undefined
 
     // Register tools
-    registerTool(userInfo, server, comms)
-    registerTool(getWorkspaces, server, comms)
-    registerTool(getUsers, server, comms)
-    registerTool(getGroups, server, comms)
-    registerTool(fetchInbox, server, comms)
-    registerTool(loadThread, server, comms)
-    registerTool(loadConversation, server, comms)
-    registerTool(searchContent, server, comms)
-    registerTool(getMentions, server, comms)
-    registerTool(buildLink, server, comms)
-    registerTool(createThread, server, comms)
-    registerTool(updateObject, server, comms)
-    registerTool(deleteObject, server, comms)
-    registerTool(reply, server, comms)
-    registerTool(react, server, comms)
-    registerTool(markDone, server, comms)
-    registerTool(listChannels, server, comms)
+    registerTool(userInfo, server, comms, toolContext)
+    registerTool(getWorkspaces, server, comms, toolContext)
+    registerTool(getUsers, server, comms, toolContext)
+    registerTool(getGroups, server, comms, toolContext)
+    registerTool(fetchInbox, server, comms, toolContext)
+    registerTool(loadThread, server, comms, toolContext)
+    registerTool(loadConversation, server, comms, toolContext)
+    registerTool(searchContent, server, comms, toolContext)
+    registerTool(getMentions, server, comms, toolContext)
+    registerTool(buildLink, server, comms, toolContext)
+    registerTool(createThread, server, comms, toolContext)
+    registerTool(updateObject, server, comms, toolContext)
+    registerTool(deleteObject, server, comms, toolContext)
+    registerTool(reply, server, comms, toolContext)
+    registerTool(react, server, comms, toolContext)
+    registerTool(markDone, server, comms, toolContext)
+    registerTool(listChannels, server, comms, toolContext)
 
     return server
 }

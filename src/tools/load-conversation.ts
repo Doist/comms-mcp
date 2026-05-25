@@ -4,7 +4,7 @@ import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
+import { resolveCommsUrl } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     conversationId: z.string().describe('The conversation ID to load.'),
@@ -61,7 +61,7 @@ const loadConversation = {
     parameters: ArgsSchema,
     outputSchema: LoadConversationOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-    async execute(args, client) {
+    async execute(args, client, context) {
         const { conversationId, newerThanDate, olderThanDate, limit, includeParticipants } = args
 
         // Fetch conversation metadata and messages in parallel
@@ -131,12 +131,14 @@ const loadConversation = {
                 userIds: includeParticipants ? conversation.userIds : [],
                 archived: conversation.archived,
                 lastActive: conversation.lastActive.toISOString(),
-                conversationUrl: conversation.url
-                    ? rewriteToConfiguredHost(conversation.url)
-                    : getFullCommsURL({
-                          workspaceId: conversation.workspaceId,
-                          conversationId: conversation.id,
-                      }),
+                conversationUrl: resolveCommsUrl(
+                    conversation.url,
+                    {
+                        workspaceId: conversation.workspaceId,
+                        conversationId: conversation.id,
+                    },
+                    context,
+                ),
             },
             messages: messages.map((m) => ({
                 id: m.id,
@@ -145,13 +147,15 @@ const loadConversation = {
                 creatorName: userInfo[m.creator]?.fullName,
                 conversationId: m.conversationId,
                 posted: m.posted.toISOString(),
-                messageUrl: m.url
-                    ? rewriteToConfiguredHost(m.url)
-                    : getFullCommsURL({
-                          workspaceId: m.workspaceId,
-                          conversationId: m.conversationId,
-                          messageId: m.id,
-                      }),
+                messageUrl: resolveCommsUrl(
+                    m.url,
+                    {
+                        workspaceId: m.workspaceId,
+                        conversationId: m.conversationId,
+                        messageId: m.id,
+                    },
+                    context,
+                ),
             })),
             totalMessages: conversation.messageCount ?? 0,
         }

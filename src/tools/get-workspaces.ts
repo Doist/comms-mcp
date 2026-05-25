@@ -1,9 +1,9 @@
 import type { CommsApi, WorkspacePlan } from '@doist/comms-sdk'
-import type { CommsTool } from '../comms-tool.js'
+import type { CommsTool, CommsToolContext } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { GetWorkspacesOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getConversationUrl, getWorkspaceUrl } from '../utils/url-helpers.js'
+import { resolveCommsUrl } from '../utils/url-helpers.js'
 
 const ArgsSchema = {}
 
@@ -34,6 +34,7 @@ type GetWorkspacesStructured = Record<string, unknown> & {
 
 async function generateWorkspacesList(
     client: CommsApi,
+    context?: CommsToolContext,
 ): Promise<{ textContent: string; structuredContent: GetWorkspacesStructured }> {
     const workspaces = await client.workspaces.getWorkspaces()
 
@@ -64,7 +65,7 @@ async function generateWorkspacesList(
     }
 
     // Fetch default conversations
-    const conversationLookup: Record<string, string> = {}
+    const conversationLookup: Record<string, { title: string; url?: string }> = {}
     if (defaultConversationPairs.length > 0) {
         const conversations = await Promise.all(
             defaultConversationPairs.map(({ conversationId }) =>
@@ -78,7 +79,10 @@ async function generateWorkspacesList(
                 const title =
                     conversation.title ||
                     `Conversation with users: ${conversation.userIds.join(', ')}`
-                conversationLookup[pair.conversationId] = title
+                conversationLookup[pair.conversationId] = {
+                    title,
+                    url: conversation.url,
+                }
             }
         }
     }
@@ -108,10 +112,11 @@ async function generateWorkspacesList(
     for (const workspace of workspaces) {
         const creatorName = creatorLookup[workspace.creator]
         const defaultConversationTitle = workspace.defaultConversation
-            ? conversationLookup[workspace.defaultConversation]
+            ? conversationLookup[workspace.defaultConversation]?.title
             : undefined
+        const workspaceUrl = resolveCommsUrl(undefined, { workspaceId: workspace.id }, context)
 
-        lines.push(`## [${workspace.name}](${getWorkspaceUrl(workspace.id)})`)
+        lines.push(`## [${workspace.name}](${workspaceUrl})`)
         lines.push(`**ID:** ${workspace.id}`)
         lines.push(
             `**Creator:** ${creatorName ? `${creatorName} (${workspace.creator})` : workspace.creator}`,
@@ -119,7 +124,14 @@ async function generateWorkspacesList(
         lines.push(`**Created:** ${workspace.created.toISOString()}`)
 
         if (workspace.defaultConversation) {
-            const conversationUrl = getConversationUrl(workspace.id, workspace.defaultConversation)
+            const conversationUrl = resolveCommsUrl(
+                conversationLookup[workspace.defaultConversation]?.url,
+                {
+                    workspaceId: workspace.id,
+                    conversationId: workspace.defaultConversation,
+                },
+                context,
+            )
             lines.push(
                 `**Default Conversation:** ${defaultConversationTitle ? `[${defaultConversationTitle}](${conversationUrl}) (${workspace.defaultConversation})` : `[${workspace.defaultConversation}](${conversationUrl})`}`,
             )
@@ -144,18 +156,23 @@ async function generateWorkspacesList(
                 creatorName: creatorLookup[workspace.creator],
             }),
             created: workspace.created.toISOString(),
-            url: getWorkspaceUrl(workspace.id),
+            url: resolveCommsUrl(undefined, { workspaceId: workspace.id }, context),
             ...(workspace.defaultConversation && {
                 defaultConversation: workspace.defaultConversation,
             }),
             ...(workspace.defaultConversation &&
                 conversationLookup[workspace.defaultConversation] && {
-                    defaultConversationTitle: conversationLookup[workspace.defaultConversation],
+                    defaultConversationTitle:
+                        conversationLookup[workspace.defaultConversation]?.title,
                 }),
             ...(workspace.defaultConversation && {
-                defaultConversationUrl: getConversationUrl(
-                    workspace.id,
-                    workspace.defaultConversation,
+                defaultConversationUrl: resolveCommsUrl(
+                    conversationLookup[workspace.defaultConversation]?.url,
+                    {
+                        workspaceId: workspace.id,
+                        conversationId: workspace.defaultConversation,
+                    },
+                    context,
                 ),
             }),
             ...(workspace.plan && { plan: workspace.plan }),
@@ -174,8 +191,8 @@ const getWorkspaces = {
     parameters: ArgsSchema,
     outputSchema: GetWorkspacesOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-    async execute(_args, client) {
-        const result = await generateWorkspacesList(client)
+    async execute(_args, client, context) {
+        const result = await generateWorkspacesList(client, context)
 
         return getToolOutput({
             textContent: result.textContent,

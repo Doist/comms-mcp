@@ -4,7 +4,7 @@ import { getToolOutput } from '../mcp-helpers.js'
 import { ReactOutputSchema } from '../utils/output-schemas.js'
 import { type ReactionTargetType, ReactionTargetTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getFullCommsURL, rewriteToConfiguredHost } from '../utils/url-helpers.js'
+import { resolveCommsUrl } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     targetType: ReactionTargetTypeSchema.describe(
@@ -35,7 +35,7 @@ const react = {
     parameters: ArgsSchema,
     outputSchema: ReactOutputSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
-    async execute(args, client) {
+    async execute(args, client, context) {
         const { targetType, targetId, emoji, operation } = args
 
         let targetUrl: string
@@ -43,35 +43,38 @@ const react = {
         // Fetch target metadata to get URL
         if (targetType === 'thread') {
             const thread = await client.threads.getThread(targetId)
-            targetUrl = rewriteToConfiguredHost(
-                thread.url ??
-                    getFullCommsURL({
-                        workspaceId: thread.workspaceId,
-                        channelId: thread.channelId,
-                        threadId: thread.id,
-                    }),
+            targetUrl = resolveCommsUrl(
+                thread.url,
+                {
+                    workspaceId: thread.workspaceId,
+                    channelId: thread.channelId,
+                    threadId: thread.id,
+                },
+                context,
             )
         } else if (targetType === 'comment') {
             const comment = await client.comments.getComment(targetId)
-            targetUrl = rewriteToConfiguredHost(
-                comment.url ??
-                    getFullCommsURL({
-                        workspaceId: comment.workspaceId,
-                        channelId: comment.channelId,
-                        threadId: comment.threadId,
-                        commentId: comment.id,
-                    }),
+            targetUrl = resolveCommsUrl(
+                comment.url,
+                {
+                    workspaceId: comment.workspaceId,
+                    channelId: comment.channelId,
+                    threadId: comment.threadId,
+                    commentId: comment.id,
+                },
+                context,
             )
         } else {
             // message
             const message = await client.conversationMessages.getMessage(targetId)
-            targetUrl = rewriteToConfiguredHost(
-                message.url ??
-                    getFullCommsURL({
-                        workspaceId: message.workspaceId,
-                        conversationId: message.conversationId,
-                        messageId: message.id,
-                    }),
+            targetUrl = resolveCommsUrl(
+                message.url,
+                {
+                    workspaceId: message.workspaceId,
+                    conversationId: message.conversationId,
+                    messageId: message.id,
+                },
+                context,
             )
         }
 

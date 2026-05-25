@@ -1,11 +1,11 @@
 import type { Channel, CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
-import type { CommsTool } from '../comms-tool.js'
+import type { CommsTool, CommsToolContext } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
 import { ListChannelsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { getChannelUrl } from '../utils/url-helpers.js'
+import { resolveCommsUrl } from '../utils/url-helpers.js'
 
 const ArgsSchema = {
     workspaceId: z.number().describe('The workspace ID to list channels from.'),
@@ -41,6 +41,7 @@ async function generateChannelsList(
     client: CommsApi,
     workspaceId: number,
     includeArchived: boolean,
+    context?: CommsToolContext,
 ): Promise<{ textContent: string; structuredContent: ListChannelsStructured }> {
     // By default only fetch active channels; optionally include archived ones too
     let channels: Channel[]
@@ -100,7 +101,11 @@ async function generateChannelsList(
 
     for (const channel of channels) {
         const creatorName = creatorLookup[channel.creator]
-        const channelUrl = getChannelUrl(workspaceId, channel.id)
+        const channelUrl = resolveCommsUrl(
+            channel.url,
+            { workspaceId, channelId: channel.id },
+            context,
+        )
 
         lines.push(`## [${channel.name}](${channelUrl})`)
         lines.push(`**ID:** ${channel.id}`)
@@ -134,7 +139,11 @@ async function generateChannelsList(
                 creatorName: creatorLookup[channel.creator],
             }),
             created: channel.created.toISOString(),
-            channelUrl: getChannelUrl(workspaceId, channel.id),
+            channelUrl: resolveCommsUrl(
+                channel.url,
+                { workspaceId, channelId: channel.id },
+                context,
+            ),
             ...(channel.color != null && { color: channel.color }),
         })),
         totalChannels: channels.length,
@@ -150,9 +159,9 @@ const listChannels = {
     parameters: ArgsSchema,
     outputSchema: ListChannelsOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-    async execute(args, client) {
+    async execute(args, client, context) {
         const { workspaceId, includeArchived = false } = args
-        const result = await generateChannelsList(client, workspaceId, includeArchived)
+        const result = await generateChannelsList(client, workspaceId, includeArchived, context)
 
         return getToolOutput({
             textContent: result.textContent,

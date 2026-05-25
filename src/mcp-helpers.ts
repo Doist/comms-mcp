@@ -2,7 +2,7 @@ import type { CommsApi } from '@doist/comms-sdk'
 import type { McpServer, ToolCallback } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
-import type { CommsTool } from './comms-tool.js'
+import type { CommsTool, CommsToolContext } from './comms-tool.js'
 import { formatToolTitle } from './utils/required-tool-annotations.js'
 import { removeNullFields } from './utils/sanitize-data.js'
 
@@ -90,11 +90,12 @@ function registerTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape
     tool: CommsTool<Params, Output>,
     server: McpServer,
     client: CommsApi,
+    context?: CommsToolContext,
 ) {
     // @ts-expect-error I give up
     const cb: ToolCallback<Params> = async (args: z.infer<z.ZodObject<Params>>, _context) => {
         try {
-            const result = await tool.execute(args as z.infer<z.ZodObject<Params>>, client)
+            const result = await tool.execute(args as z.infer<z.ZodObject<Params>>, client, context)
             return result
         } catch (error) {
             console.error(`Error executing tool ${tool.name}:`, {

@@ -43,6 +43,18 @@ describe('buildServerOptions', () => {
         })
     })
 
+    it('removes trailing slashes from COMMS_BASE_URL', () => {
+        expect(
+            buildServerOptions({
+                COMMS_API_KEY: 'k',
+                COMMS_BASE_URL: 'https://comms.staging.todoist.com//',
+            }),
+        ).toEqual({
+            commsApiKey: 'k',
+            baseUrl: 'https://comms.staging.todoist.com',
+        })
+    })
+
     it('throws when COMMS_API_KEY is missing', () => {
         expect(() => buildServerOptions({})).toThrow('COMMS_API_KEY is not set')
     })

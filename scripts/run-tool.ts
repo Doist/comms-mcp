@@ -17,6 +17,7 @@
 import { readFileSync } from 'node:fs'
 import { CommsApi } from '@doist/comms-sdk'
 import { config } from 'dotenv'
+import type { CommsToolContext } from '../src/comms-tool.js'
 import { buildLink } from '../src/tools/build-link.js'
 import { createThread } from '../src/tools/create-thread.js'
 import { deleteObject } from '../src/tools/delete-object.js'
@@ -35,7 +36,6 @@ import { searchContent } from '../src/tools/search-content.js'
 import { updateObject } from '../src/tools/update-object.js'
 import { userInfo } from '../src/tools/user-info.js'
 import { buildServerOptions } from '../src/utils/server-options.js'
-import { configureBaseUrl } from '../src/utils/url-helpers.js'
 
 // Define a minimal type for tool execution that works with any tool
 type ExecutableTool = {
@@ -45,6 +45,7 @@ type ExecutableTool = {
         // oxlint-disable-next-line @typescript-eslint/no-explicit-any -- tools have varying parameter schemas
         args: any,
         client: CommsApi,
+        context?: CommsToolContext,
     ) => Promise<{
         content?: Array<{ type: string; text: string }>
         structuredContent?: unknown
@@ -147,15 +148,15 @@ async function main() {
         console.error(e instanceof Error ? e.message : String(e))
         process.exit(1)
     }
-    configureBaseUrl(baseUrl)
     const client = new CommsApi(commsApiKey, { baseUrl })
+    const toolContext = baseUrl ? { baseUrl } : undefined
 
     console.log(`Running ${toolName} with args:`)
     console.log(JSON.stringify(parsedArgs, null, 2))
     console.log('---')
 
     try {
-        const result = await tool.execute(parsedArgs, client)
+        const result = await tool.execute(parsedArgs, client, toolContext)
 
         if (result.content?.[0]?.text) {
             console.log('\nText output:')

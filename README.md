@@ -17,12 +17,8 @@ npm install @doist/comms-mcp
 Example with [Vercel's AI SDK](https://ai-sdk.dev/docs/ai-sdk-core/generating-text#streamtext):
 
 ```js
-import { configureBaseUrl, fetchInbox, reply, markDone } from '@doist/comms-mcp'
+import { fetchInbox, reply, markDone } from '@doist/comms-mcp'
 import { streamText } from 'ai'
-
-// Required if your CommsApi targets staging / a custom deployment.
-// `getMcpServer` calls this for you; standalone tool consumers must.
-configureBaseUrl(process.env.COMMS_BASE_URL)
 
 const result = streamText({
     model: yourModel,
@@ -158,6 +154,12 @@ exec npx -y @doist/comms-mcp
 
 The server logs `Comms MCP targeting <baseUrl>` to stderr on startup so
 you can confirm at a glance which environment it's hitting.
+
+Imported Comms tools must only be executed from a server-side service
+when handling real user data, never from browser or local client code.
+In those server-side integrations, pass the same `baseUrl` to `CommsApi`
+and as the optional third `execute` argument so URLs the MCP layer builds
+itself use the same host.
 
 ### Getting a Comms API key
 
