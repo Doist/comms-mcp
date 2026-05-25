@@ -5,6 +5,8 @@ export const ToolNames = {
     LOAD_CONVERSATION: 'load-conversation',
     SEARCH_CONTENT: 'search-content',
     GET_MENTIONS: 'get-mentions',
+    CREATE_CHANNEL: 'create-channel',
+    UPDATE_CHANNEL: 'update-channel',
     CREATE_THREAD: 'create-thread',
     UPDATE_OBJECT: 'update-object',
     DELETE_OBJECT: 'delete-object',

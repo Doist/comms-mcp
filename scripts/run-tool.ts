@@ -18,6 +18,7 @@ import { readFileSync } from 'node:fs'
 import { CommsApi } from '@doist/comms-sdk'
 import { config } from 'dotenv'
 import { buildLink } from '../src/tools/build-link.js'
+import { createChannel } from '../src/tools/create-channel.js'
 import { createThread } from '../src/tools/create-thread.js'
 import { deleteObject } from '../src/tools/delete-object.js'
 import { fetchInbox } from '../src/tools/fetch-inbox.js'
@@ -32,6 +33,7 @@ import { markDone } from '../src/tools/mark-done.js'
 import { react } from '../src/tools/react.js'
 import { reply } from '../src/tools/reply.js'
 import { searchContent } from '../src/tools/search-content.js'
+import { updateChannel } from '../src/tools/update-channel.js'
 import { updateObject } from '../src/tools/update-object.js'
 import { userInfo } from '../src/tools/user-info.js'
 
@@ -56,6 +58,8 @@ const tools: Record<string, ExecutableTool> = {
     'load-conversation': loadConversation,
     'search-content': searchContent,
     'get-mentions': getMentions,
+    'create-channel': createChannel,
+    'update-channel': updateChannel,
     'create-thread': createThread,
     'update-object': updateObject,
     'delete-object': deleteObject,
