@@ -13,6 +13,9 @@ const mockCommsApi = {
     threads: {
         createThread: jest.fn(),
     },
+    inbox: {
+        unarchiveThread: jest.fn(),
+    },
 } as unknown as jest.Mocked<CommsApi>
 
 const { CREATE_THREAD } = ToolNames
@@ -20,6 +23,7 @@ const { CREATE_THREAD } = ToolNames
 describe(`${CREATE_THREAD} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        delete process.env.COMMS_CREATE_THREAD_DISPLAY_IN_INBOX
     })
 
     describe('creating threads', () => {
@@ -46,6 +50,7 @@ describe(`${CREATE_THREAD} tool`, () => {
                 recipients: undefined,
                 groups: undefined,
             })
+            expect(mockCommsApi.inbox.unarchiveThread).not.toHaveBeenCalled()
 
             expect(extractTextContent(result)).toMatchSnapshot()
 
@@ -88,6 +93,7 @@ describe(`${CREATE_THREAD} tool`, () => {
                 recipients: [TEST_IDS.USER_1, TEST_IDS.USER_2],
                 groups: undefined,
             })
+            expect(mockCommsApi.inbox.unarchiveThread).not.toHaveBeenCalled()
 
             expect(extractTextContent(result)).toMatchSnapshot()
 
@@ -185,6 +191,105 @@ describe(`${CREATE_THREAD} tool`, () => {
             const structuredContent = extractStructuredContent(result)
             expect(structuredContent.recipients).toEqual([TEST_IDS.USER_1])
             expect(structuredContent.groups).toEqual([100])
+        })
+
+        it('should unarchive the thread when displayInInbox is true', async () => {
+            const mockThread = createMockThread({
+                title: 'Inbox Thread',
+                content: 'Should appear in Inbox',
+            })
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
+            mockCommsApi.inbox.unarchiveThread.mockResolvedValue(undefined as never)
+
+            const result = await createThread.execute(
+                {
+                    channelId: TEST_IDS.CHANNEL_1,
+                    title: 'Inbox Thread',
+                    content: 'Should appear in Inbox',
+                    displayInInbox: true,
+                },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.inbox.unarchiveThread).toHaveBeenCalledWith(mockThread.id)
+            expect(extractTextContent(result)).toMatchSnapshot()
+        })
+
+        it('should unarchive the thread when COMMS_CREATE_THREAD_DISPLAY_IN_INBOX env var is set', async () => {
+            process.env.COMMS_CREATE_THREAD_DISPLAY_IN_INBOX = 'true'
+
+            const mockThread = createMockThread({
+                title: 'Env Var Thread',
+                content: 'Should appear in Inbox via env var',
+            })
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
+            mockCommsApi.inbox.unarchiveThread.mockResolvedValue(undefined as never)
+
+            const result = await createThread.execute(
+                {
+                    channelId: TEST_IDS.CHANNEL_1,
+                    title: 'Env Var Thread',
+                    content: 'Should appear in Inbox via env var',
+                },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.inbox.unarchiveThread).toHaveBeenCalledWith(mockThread.id)
+            expect(extractTextContent(result)).toMatchSnapshot()
+        })
+
+        it('should not unarchive when displayInInbox is false even if env var is set', async () => {
+            process.env.COMMS_CREATE_THREAD_DISPLAY_IN_INBOX = 'true'
+
+            const mockThread = createMockThread({
+                title: 'Explicit False Thread',
+                content: 'Should not unarchive',
+            })
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
+
+            await createThread.execute(
+                {
+                    channelId: TEST_IDS.CHANNEL_1,
+                    title: 'Explicit False Thread',
+                    content: 'Should not unarchive',
+                    displayInInbox: false,
+                },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.inbox.unarchiveThread).not.toHaveBeenCalled()
+        })
+
+        it('should still return a successful result when unarchiveThread fails', async () => {
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+            const mockThread = createMockThread({
+                title: 'Unarchive Fails',
+                content: 'Thread created but unarchive failed',
+            })
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
+            mockCommsApi.inbox.unarchiveThread.mockRejectedValue(new Error('Unarchive failed'))
+
+            const result = await createThread.execute(
+                {
+                    channelId: TEST_IDS.CHANNEL_1,
+                    title: 'Unarchive Fails',
+                    content: 'Thread created but unarchive failed',
+                    displayInInbox: true,
+                },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.inbox.unarchiveThread).toHaveBeenCalledWith(mockThread.id)
+            expect(consoleErrorSpy).toHaveBeenCalled()
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.success).toBe(true)
+            expect(structuredContent.threadId).toBe(mockThread.id)
+            // Note must not falsely claim the thread is in the Inbox when unarchive failed.
+            expect(extractTextContent(result)).toContain('do not appear in your own Inbox')
+            expect(extractTextContent(result)).not.toContain('Thread is in your Inbox')
+
+            consoleErrorSpy.mockRestore()
         })
     })
 
