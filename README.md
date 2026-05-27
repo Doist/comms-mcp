@@ -135,7 +135,7 @@ small number of calls.
 - **searchContent** — Search a workspace for threads, comments, and messages
 - **getMentions** — Threads, comments, and messages mentioning the current user
 - **create-channel** / **update-channel** — Create or update workspace channels through MCP
-- **createThread** — Start a new channel thread
+- **createThread** — Start a new channel thread. Accepts an optional `displayInInbox` boolean (default `false`). When `true`, the thread is unarchived after creation so it appears in the author's Inbox. See also [COMMS_CREATE_THREAD_DISPLAY_IN_INBOX](#environment-variables).
 - **updateObject** / **deleteObject** — Edit or remove a thread, comment, or message
 - **reply** — Reply to a thread or conversation
 - **react** — Add a reaction to a thread, comment, conversation, or message
@@ -144,6 +144,13 @@ small number of calls.
 - **listChannels** / **getGroups** / **getUsers** / **getWorkspaces** — Discovery helpers
 
 For details, see [src/tools](src/tools).
+
+## Environment Variables
+
+| Variable                               | Default      | Description                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `COMMS_API_KEY`                        | _(required)_ | Your Comms API key.                                                                                                                                                                                                                                                                                                          |
+| `COMMS_CREATE_THREAD_DISPLAY_IN_INBOX` | `false`      | Set to `true` to unarchive every newly-created thread so it appears in the author's Inbox, without needing to pass `displayInInbox: true` on each call. **Only takes effect when running the MCP locally.** The remote/hosted MCP does not have this variable set and will use the per-call `displayInInbox` parameter only. |
 
 ## Dependencies
 
