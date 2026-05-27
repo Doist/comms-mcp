@@ -47,18 +47,23 @@ const createThread = {
             groups,
         })
 
-        const shouldDisplayInInbox =
+        const wantsInboxDisplay =
             displayInInbox === true ||
             (displayInInbox === undefined &&
                 process.env.COMMS_CREATE_THREAD_DISPLAY_IN_INBOX === 'true')
 
-        if (shouldDisplayInInbox) {
+        let displayedInInbox = false
+        if (wantsInboxDisplay) {
             // Unarchive so the thread appears in the author's Inbox.
             // Failure here is non-fatal — the thread itself was created successfully.
             try {
                 await client.inbox.unarchiveThread(thread.id)
-            } catch {
-                // swallow — don't fail the tool because of an inbox visibility tweak
+                displayedInInbox = true
+            } catch (error) {
+                console.error(`Error unarchiving thread ${thread.id} for Inbox display:`, {
+                    threadId: thread.id,
+                    error,
+                })
             }
         }
 
@@ -77,7 +82,7 @@ const createThread = {
                 threadId: thread.id,
             })
 
-        const inboxNote = shouldDisplayInInbox
+        const inboxNote = displayedInInbox
             ? '> Thread is in your Inbox (auto-unarchived after creation).'
             : '> Note: Threads you create do not appear in your own Inbox by default — only recipients see them there. Find the thread in the channel view or via its URL.'
 
