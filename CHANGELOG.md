@@ -1,3 +1,9 @@
+## [5.6.0](https://github.com/Doist/comms-mcp/compare/v5.5.0...v5.6.0) (2026-05-27)
+
+### Features
+
+* **create-thread:** opt-in Inbox display via displayInInbox param + env var ([#6](https://github.com/Doist/comms-mcp/issues/6)) ([7ce6e27](https://github.com/Doist/comms-mcp/commit/7ce6e27024deacf0018363f4f1e530f01f43e906))
+
 ## [5.5.0](https://github.com/Doist/comms-mcp/compare/v5.4.0...v5.5.0) (2026-05-25)
 
 ### Features
