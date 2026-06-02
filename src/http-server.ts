@@ -2,6 +2,11 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { AuthInfo } from '@modelcontextprotocol/sdk/server/auth/types.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { getMcpServer } from './mcp-server.js'
+import {
+    createOAuthIntrospector,
+    type OAuthIntrospectionOptions,
+    type OAuthTokenPrechecker,
+} from './oauth-introspection.js'
 
 const DEFAULT_HTTP_PORT = 3000
 const DEFAULT_HTTP_HOST = '127.0.0.1'
@@ -29,15 +34,18 @@ type AuthenticatedRequest = IncomingMessage & { auth?: AuthInfo }
 type HttpServerOptions = {
     baseUrl?: string
     host?: string
+    oauthIntrospection?: OAuthIntrospectionOptions
     path?: string
     port?: number
     resourceUrl?: URL
+    tokenPrechecker?: OAuthTokenPrechecker
 }
 
 type HttpServerConfig = Required<Pick<HttpServerOptions, 'host' | 'path' | 'port'>> & {
     baseUrl?: string
     metadataUrl: URL
     resourceUrl: URL
+    tokenPrechecker?: OAuthTokenPrechecker
 }
 
 function getBearerToken(authorization: string | undefined): string | null {
@@ -74,6 +82,13 @@ function parsePort(value: string | undefined, fallback = DEFAULT_HTTP_PORT): num
     return port
 }
 
+function getRequiredEnv(env: NodeJS.ProcessEnv, name: string): string {
+    const value = env[name]
+    if (!value) throw new Error(`${name} is not set`)
+
+    return value
+}
+
 function getLocalResourceUrl(host: string, port: number, path: string): URL {
     const advertisedHost = host === '0.0.0.0' || host === '::' ? DEFAULT_HTTP_HOST : host
     const formattedHost = advertisedHost.includes(':') ? `[${advertisedHost}]` : advertisedHost
@@ -85,6 +100,10 @@ function getHttpServerOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): Http
     return {
         baseUrl: env.COMMS_BASE_URL,
         host: env.COMMS_MCP_HTTP_HOST ?? DEFAULT_HTTP_HOST,
+        oauthIntrospection: {
+            host: getRequiredEnv(env, 'TODOIST_ID_HOST'),
+            apiKey: getRequiredEnv(env, 'TODOIST_ID_API_KEY'),
+        },
         port: parsePort(env.COMMS_MCP_HTTP_PORT ?? env.PORT),
         resourceUrl: env.COMMS_MCP_RESOURCE_URL ? new URL(env.COMMS_MCP_RESOURCE_URL) : undefined,
     }
@@ -99,8 +118,13 @@ function getHttpServerConfig(options: HttpServerOptions): HttpServerConfig {
         getOAuthProtectedResourceMetadataPath(resourceUrl.pathname),
         resourceUrl.origin,
     )
+    const tokenPrechecker =
+        options.tokenPrechecker ??
+        (options.oauthIntrospection
+            ? createOAuthIntrospector(options.oauthIntrospection)
+            : undefined)
 
-    return { baseUrl: options.baseUrl, host, metadataUrl, path, port, resourceUrl }
+    return { baseUrl: options.baseUrl, host, metadataUrl, path, port, resourceUrl, tokenPrechecker }
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown, headers = {}) {
@@ -148,10 +172,18 @@ async function handleMcpRequest(
         return
     }
 
+    const precheck = config.tokenPrechecker ? await config.tokenPrechecker(token) : undefined
+    if (precheck?.kind === 'deny') {
+        sendUnauthorized(res, config.metadataUrl)
+        return
+    }
+
     req.auth = {
         token,
-        clientId: 'todoist-oauth',
-        scopes: [],
+        clientId:
+            precheck?.kind === 'allow' ? (precheck.clientId ?? 'todoist-oauth') : 'todoist-oauth',
+        scopes: precheck?.kind === 'allow' ? precheck.scopes : [],
+        expiresAt: precheck?.kind === 'allow' ? precheck.expiresAt : undefined,
         resource: config.resourceUrl,
     }
 

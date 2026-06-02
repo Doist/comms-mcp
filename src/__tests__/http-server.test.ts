@@ -51,20 +51,36 @@ describe('HTTP MCP auth helpers', () => {
             COMMS_MCP_HTTP_HOST: '0.0.0.0',
             COMMS_MCP_HTTP_PORT: '8787',
             COMMS_MCP_RESOURCE_URL: 'https://mcp.example.com/mcp',
+            TODOIST_ID_API_KEY: 'todoist-id-key',
+            TODOIST_ID_HOST: 'https://todoist-id.example.com',
         })
 
         expect(options).toEqual({
             baseUrl: 'https://comms.staging.todoist.com',
             host: '0.0.0.0',
+            oauthIntrospection: {
+                apiKey: 'todoist-id-key',
+                host: 'https://todoist-id.example.com',
+            },
             port: 8787,
             resourceUrl: new URL('https://mcp.example.com/mcp'),
         })
     })
 
     it('rejects invalid HTTP ports from environment variables', () => {
-        expect(() => getHttpServerOptionsFromEnv({ COMMS_MCP_HTTP_PORT: 'nope' })).toThrow(
-            'Invalid HTTP port: nope',
-        )
+        expect(() =>
+            getHttpServerOptionsFromEnv({
+                COMMS_MCP_HTTP_PORT: 'nope',
+                TODOIST_ID_API_KEY: 'todoist-id-key',
+                TODOIST_ID_HOST: 'https://todoist-id.example.com',
+            }),
+        ).toThrow('Invalid HTTP port: nope')
+    })
+
+    it('requires Todoist ID configuration for HTTP mode', () => {
+        expect(() =>
+            getHttpServerOptionsFromEnv({ TODOIST_ID_HOST: 'https://todoist-id' }),
+        ).toThrow('TODOIST_ID_API_KEY is not set')
     })
 
     it('serves health and OAuth metadata, and rejects unauthenticated MCP requests', async () => {
@@ -93,6 +109,59 @@ describe('HTTP MCP auth helpers', () => {
             expect(unauthenticated.headers.get('www-authenticate')).toBe(
                 'Bearer resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource/api/mcp"',
             )
+        } finally {
+            await closeServer(server)
+        }
+    })
+
+    it('rejects MCP requests denied by token introspection', async () => {
+        const tokenPrechecker = jest
+            .fn()
+            .mockResolvedValue({ kind: 'deny', reason: 'inactive_token' })
+        const server = await startHttpServer({
+            port: 0,
+            resourceUrl: new URL('https://mcp.example.com/mcp'),
+            tokenPrechecker,
+        })
+        const address = server.address()
+        if (typeof address !== 'object' || !address) throw new Error('Expected TCP server address')
+        const baseUrl = `http://127.0.0.1:${address.port}`
+
+        try {
+            const response = await fetch(`${baseUrl}/mcp`, {
+                method: 'POST',
+                headers: { Authorization: 'Bearer inactive-token' },
+            })
+
+            expect(response.status).toBe(401)
+            expect(tokenPrechecker).toHaveBeenCalledWith('inactive-token')
+        } finally {
+            await closeServer(server)
+        }
+    })
+
+    it('continues MCP handling when token introspection defers', async () => {
+        const tokenPrechecker = jest.fn().mockResolvedValue({
+            kind: 'defer',
+            reason: 'introspection_unavailable',
+        })
+        const server = await startHttpServer({
+            port: 0,
+            resourceUrl: new URL('https://mcp.example.com/mcp'),
+            tokenPrechecker,
+        })
+        const address = server.address()
+        if (typeof address !== 'object' || !address) throw new Error('Expected TCP server address')
+        const baseUrl = `http://127.0.0.1:${address.port}`
+
+        try {
+            const response = await fetch(`${baseUrl}/mcp`, {
+                method: 'POST',
+                headers: { Authorization: 'Bearer oauth-token' },
+            })
+
+            expect(response.status).not.toBe(401)
+            expect(tokenPrechecker).toHaveBeenCalledWith('oauth-token')
         } finally {
             await closeServer(server)
         }

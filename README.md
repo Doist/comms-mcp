@@ -130,9 +130,15 @@ COMMS_MCP_TRANSPORT=http npx @doist/comms-mcp
 ```
 
 HTTP mode listens on `127.0.0.1:3000` by default, serves MCP at `/mcp`,
-and requires `Authorization: Bearer <token>`. It also serves OAuth
-protected-resource metadata at `/.well-known/oauth-protected-resource`
-and `/.well-known/oauth-protected-resource/mcp`.
+and requires `Authorization: Bearer <token>`. Configure
+`TODOIST_ID_HOST` and `TODOIST_ID_API_KEY` so the server can introspect
+Todoist OAuth tokens before forwarding them to Comms. Todoist ID
+network errors and 5xx responses defer to Comms, preserving the original
+bearer token.
+
+It also serves OAuth protected-resource metadata at
+`/.well-known/oauth-protected-resource` and
+`/.well-known/oauth-protected-resource/mcp`.
 
 ## Features
 
@@ -168,6 +174,8 @@ For details, see [src/tools](src/tools).
 | `COMMS_MCP_HTTP_HOST`                  | `127.0.0.1`        | Host for HTTP mode.                                                                                                                                                                                                                                                                                                          |
 | `COMMS_MCP_HTTP_PORT`                  | `3000`             | Port for HTTP mode. `PORT` is also accepted.                                                                                                                                                                                                                                                                                 |
 | `COMMS_MCP_RESOURCE_URL`               | local `/mcp` URL   | Public MCP resource URL advertised in OAuth protected-resource metadata.                                                                                                                                                                                                                                                     |
+| `TODOIST_ID_HOST`                      | _(required HTTP)_  | Todoist ID service URL used to introspect OAuth bearer tokens in HTTP mode.                                                                                                                                                                                                                                                  |
+| `TODOIST_ID_API_KEY`                   | _(required HTTP)_  | Todoist ID service API key used for the introspection request.                                                                                                                                                                                                                                                               |
 | `COMMS_CREATE_THREAD_DISPLAY_IN_INBOX` | `false`            | Set to `true` to unarchive every newly-created thread so it appears in the author's Inbox, without needing to pass `displayInInbox: true` on each call. **Only takes effect when running the MCP locally.** The remote/hosted MCP does not have this variable set and will use the per-call `displayInInbox` parameter only. |
 
 ## Dependencies
