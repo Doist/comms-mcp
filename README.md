@@ -120,6 +120,20 @@ staging or a custom deployment, also set `COMMS_BASE_URL`:
 Generate a personal API token from the Comms app console, then export
 it as `COMMS_API_KEY` (or paste it into the MCP client config above).
 
+### HTTP bearer-token mode
+
+The default transport is stdio for local MCP clients. To run an HTTP MCP
+resource server that accepts per-request bearer tokens:
+
+```bash
+COMMS_MCP_TRANSPORT=http npx @doist/comms-mcp
+```
+
+HTTP mode listens on `127.0.0.1:3000` by default, serves MCP at `/mcp`,
+and requires `Authorization: Bearer <token>`. It also serves OAuth
+protected-resource metadata at `/.well-known/oauth-protected-resource`
+and `/.well-known/oauth-protected-resource/mcp`.
+
 ## Features
 
 The tools are intentionally workflow-shaped rather than 1:1 wrappers
@@ -147,10 +161,14 @@ For details, see [src/tools](src/tools).
 
 ## Environment Variables
 
-| Variable                               | Default      | Description                                                                                                                                                                                                                                                                                                                  |
-| -------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `COMMS_API_KEY`                        | _(required)_ | Your Comms API key.                                                                                                                                                                                                                                                                                                          |
-| `COMMS_CREATE_THREAD_DISPLAY_IN_INBOX` | `false`      | Set to `true` to unarchive every newly-created thread so it appears in the author's Inbox, without needing to pass `displayInInbox: true` on each call. **Only takes effect when running the MCP locally.** The remote/hosted MCP does not have this variable set and will use the per-call `displayInInbox` parameter only. |
+| Variable                               | Default            | Description                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `COMMS_API_KEY`                        | _(required stdio)_ | Your Comms API key for stdio mode. HTTP mode reads the bearer token from each request instead.                                                                                                                                                                                                                               |
+| `COMMS_MCP_TRANSPORT`                  | `stdio`            | Set to `http` to run the Streamable HTTP server.                                                                                                                                                                                                                                                                             |
+| `COMMS_MCP_HTTP_HOST`                  | `127.0.0.1`        | Host for HTTP mode.                                                                                                                                                                                                                                                                                                          |
+| `COMMS_MCP_HTTP_PORT`                  | `3000`             | Port for HTTP mode. `PORT` is also accepted.                                                                                                                                                                                                                                                                                 |
+| `COMMS_MCP_RESOURCE_URL`               | local `/mcp` URL   | Public MCP resource URL advertised in OAuth protected-resource metadata.                                                                                                                                                                                                                                                     |
+| `COMMS_CREATE_THREAD_DISPLAY_IN_INBOX` | `false`            | Set to `true` to unarchive every newly-created thread so it appears in the author's Inbox, without needing to pass `displayInInbox: true` on each call. **Only takes effect when running the MCP locally.** The remote/hosted MCP does not have this variable set and will use the per-call `displayInInbox` parameter only. |
 
 ## Dependencies
 
