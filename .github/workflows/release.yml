@@ -80,7 +80,12 @@ jobs:
                   GIT_COMMITTER_NAME: ${{ steps.generate_token.outputs.app-slug }}[bot]
                   GIT_COMMITTER_EMAIL: ${{ steps.bot_user.outputs.id }}+${{ steps.generate_token.outputs.app-slug }}[bot]@users.noreply.github.com
 
+            # `npm publish` happens before later semantic-release plugins, so the
+            # dispatch path runs even when the Release step fails partway: a new
+            # version may already be live on npm. The Release failure still fails
+            # the workflow.
             - name: Detect published version
+              if: ${{ !cancelled() && steps.previous_tag.conclusion == 'success' }}
               id: published
               env:
                   PREVIOUS_TAG: ${{ steps.previous_tag.outputs.tag }}
@@ -95,15 +100,14 @@ jobs:
 
                   package_version="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
                   if [ "${new_tag}" != "v${package_version}" ]; then
-                      echo "::warning::Newest tag ${new_tag} does not match package.json version ${package_version}; skipping dispatch"
-                      echo "released=false" >> "$GITHUB_OUTPUT"
-                      exit 0
+                      echo "Newest tag ${new_tag} does not match package.json version ${package_version}" >&2
+                      exit 1
                   fi
                   echo "released=true" >> "$GITHUB_OUTPUT"
                   echo "version=${package_version}" >> "$GITHUB_OUTPUT"
 
             - name: Generate todoist-ai-integrations token
-              if: ${{ steps.published.outputs.released == 'true' }}
+              if: ${{ !cancelled() && steps.published.outputs.released == 'true' }}
               id: integrations_token
               uses: actions/create-github-app-token@v3
               with:
@@ -114,7 +118,7 @@ jobs:
                   permission-contents: write
 
             - name: Trigger todoist-ai-integrations update
-              if: ${{ steps.published.outputs.released == 'true' }}
+              if: ${{ !cancelled() && steps.published.outputs.released == 'true' }}
               env:
                   GH_TOKEN: ${{ steps.integrations_token.outputs.token }}
                   VERSION: ${{ steps.published.outputs.version }}
@@ -130,7 +134,9 @@ jobs:
                         -f "client_payload[npm_tag]=latest"; then
                           exit 0
                       fi
-                      sleep 10
+                      if [ "$attempt" -lt 3 ]; then
+                          sleep 10
+                      fi
                   done
                   echo "Failed to send comms-mcp-updated dispatch to todoist-ai-integrations" >&2
                   exit 1
