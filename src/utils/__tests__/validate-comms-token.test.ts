@@ -13,7 +13,7 @@ describe('validateCommsToken', () => {
         const fn = jest.fn().mockResolvedValue({
             ok: status >= 200 && status < 300,
             status,
-            text: jest.fn().mockResolvedValue(''),
+            body: { cancel: jest.fn().mockResolvedValue(undefined) },
         })
         global.fetch = fn as unknown as typeof fetch
         return fn
@@ -48,6 +48,13 @@ describe('validateCommsToken', () => {
         await expect(validateCommsToken('tok', 'https://comms.test')).rejects.toMatchObject({
             httpStatusCode: 503,
         })
+    })
+
+    test('propagates fetch rejections (network/timeout) unchanged', async () => {
+        const networkError = new Error('network down')
+        global.fetch = jest.fn().mockRejectedValue(networkError) as unknown as typeof fetch
+
+        await expect(validateCommsToken('tok', 'https://comms.test')).rejects.toBe(networkError)
     })
 
     test('defaults to the production base URL when none is given', async () => {

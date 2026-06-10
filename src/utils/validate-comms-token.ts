@@ -27,9 +27,10 @@ export type CommsTokenValidationResult = 'valid' | 'invalid' | 'forbidden'
  * @param apiKey - The Comms API token to validate.
  * @param baseUrl - Optional Comms API base URL. Defaults to production.
  * @returns `'valid'`, `'invalid'` (401), or `'forbidden'` (403).
- * @throws {CommsRequestError} On a 5xx response, carrying the status code so
- * the caller can treat it as transient. Network/timeout errors propagate
- * unchanged.
+ * @throws {CommsRequestError} For any other/unexpected status — a 5xx, or e.g.
+ * a 404 from a misconfigured base URL — carrying the status code so the caller
+ * can decide how to react (for instance, treating 5xx as transient). Network
+ * and timeout errors propagate unchanged.
  */
 export async function validateCommsToken(
     apiKey: string,
@@ -40,8 +41,9 @@ export async function validateCommsToken(
         signal: AbortSignal.timeout(VALIDATION_TIMEOUT_MS),
     })
 
-    // Drain the body so undici can release the socket back to the pool.
-    await response.text().catch(() => undefined)
+    // Discard the body without decoding it — we only branch on the status —
+    // while still releasing the socket back to undici's pool.
+    await response.body?.cancel().catch(() => undefined)
 
     if (response.ok) {
         return 'valid'
