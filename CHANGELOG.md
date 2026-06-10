@@ -1,3 +1,9 @@
+## [5.7.0](https://github.com/Doist/comms-mcp/compare/v5.6.0...v5.7.0) (2026-06-10)
+
+### Features
+
+* export validateCommsToken for token validation ([#13](https://github.com/Doist/comms-mcp/issues/13)) ([3db54b0](https://github.com/Doist/comms-mcp/commit/3db54b0cfdd6b2c024699f11036faf7738407a54))
+
 ## [5.6.0](https://github.com/Doist/comms-mcp/compare/v5.5.0...v5.6.0) (2026-05-27)
 
 ### Features
