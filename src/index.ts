@@ -14,6 +14,7 @@ import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
 import { updateObject } from './tools/update-object.js'
 import { userInfo } from './tools/user-info.js'
+import { validateCommsToken } from './utils/validate-comms-token.js'
 
 const tools = {
     userInfo,
@@ -33,7 +34,11 @@ const tools = {
     getGroups,
 }
 
-export { tools, getMcpServer }
+export { tools, getMcpServer, validateCommsToken }
+export type { CommsTokenValidationResult } from './utils/validate-comms-token.js'
+// Re-exported so consumers can catch the documented throw type of
+// validateCommsToken without taking a direct @doist/comms-sdk dependency.
+export { CommsRequestError } from '@doist/comms-sdk'
 
 export {
     userInfo,
