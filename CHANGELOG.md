@@ -1,3 +1,9 @@
+## [5.7.2](https://github.com/Doist/comms-mcp/compare/v5.7.1...v5.7.2) (2026-06-15)
+
+### Bug Fixes
+
+* **deps:** bump @doist/comms-sdk to 0.4.6 ([#15](https://github.com/Doist/comms-mcp/issues/15)) ([39e97bc](https://github.com/Doist/comms-mcp/commit/39e97bcbdca11831d647e4cd846568a9eb67044d))
+
 ## [5.7.1](https://github.com/Doist/comms-mcp/compare/v5.7.0...v5.7.1) (2026-06-15)
 
 ### Bug Fixes
