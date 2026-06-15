@@ -7,7 +7,7 @@ exports[`update-object tool targetType: comment should update a comment content 
 **Thread ID:** thread-id-1
 **Channel ID:** channel-id-1
 **Last Edited:** 2025-02-03T12:34:56.000Z
-**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/c/comment-id-1
+**URL:** https://comms.todoist.com/11111/ch/channel-id-1/t/thread-id-1/c/comment-id-1
 
 ## Content
 
@@ -21,7 +21,7 @@ exports[`update-object tool targetType: message should update a conversation mes
 **Conversation ID:** conv-id-1
 **Workspace ID:** 11111
 **Last Edited:** 2025-02-03T12:34:56.000Z
-**URL:** https://comms.todoist.com/a/11111/msg/conv-id-1/m/msg-id-1
+**URL:** https://comms.todoist.com/11111/msg/conv-id-1/m/msg-id-1
 
 ## Content
 
@@ -35,7 +35,7 @@ exports[`update-object tool targetType: thread should update a thread title and 
 **Thread ID:** thread-id-1
 **Channel ID:** channel-id-1
 **Last Edited:** 2025-02-03T12:34:56.000Z
-**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
+**URL:** https://comms.todoist.com/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 
@@ -48,7 +48,7 @@ exports[`update-object tool targetType: thread should update only the thread con
 **Title:** Test Thread
 **Thread ID:** thread-id-1
 **Channel ID:** channel-id-1
-**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
+**URL:** https://comms.todoist.com/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 
@@ -61,7 +61,7 @@ exports[`update-object tool targetType: thread should update only the thread tit
 **Title:** New Title Only
 **Thread ID:** thread-id-1
 **Channel ID:** channel-id-1
-**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
+**URL:** https://comms.todoist.com/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 

@@ -78,7 +78,7 @@ describe(`${GET_WORKSPACES} tool`, () => {
         expect(textContent).toContain(`**ID:** ${TEST_IDS.WORKSPACE_2}`)
         expect(textContent).toContain(`**Creator:** Test User (${TEST_IDS.USER_1})`)
         expect(textContent).toContain(
-            `**Default Conversation:** [Team Discussion](https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/) (${TEST_IDS.CONVERSATION_1})`,
+            `**Default Conversation:** [Team Discussion](https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/) (${TEST_IDS.CONVERSATION_1})`,
         )
         expect(textContent).toContain(`**Plan:** free`)
         expect(textContent).toContain(`**Plan:** unlimited`)
@@ -93,10 +93,10 @@ describe(`${GET_WORKSPACES} tool`, () => {
                     creator: mockWorkspace1.creator,
                     creatorName: 'Test User',
                     created: mockWorkspace1.created.toISOString(),
-                    url: `https://comms.todoist.com/a/${mockWorkspace1.id}/`,
+                    url: `https://comms.todoist.com/${mockWorkspace1.id}/`,
                     defaultConversation: mockWorkspace1.defaultConversation,
                     defaultConversationTitle: 'Team Discussion',
-                    defaultConversationUrl: `https://comms.todoist.com/a/${mockWorkspace1.id}/msg/${mockWorkspace1.defaultConversation}/`,
+                    defaultConversationUrl: `https://comms.todoist.com/${mockWorkspace1.id}/msg/${mockWorkspace1.defaultConversation}/`,
                     plan: mockWorkspace1.plan,
                 }),
                 expect.objectContaining({
@@ -105,10 +105,10 @@ describe(`${GET_WORKSPACES} tool`, () => {
                     creator: mockWorkspace2.creator,
                     creatorName: 'Test User',
                     created: mockWorkspace2.created.toISOString(),
-                    url: `https://comms.todoist.com/a/${mockWorkspace2.id}/`,
+                    url: `https://comms.todoist.com/${mockWorkspace2.id}/`,
                     defaultConversation: mockWorkspace2.defaultConversation,
                     defaultConversationTitle: 'Team Discussion',
-                    defaultConversationUrl: `https://comms.todoist.com/a/${mockWorkspace2.id}/msg/${mockWorkspace2.defaultConversation}/`,
+                    defaultConversationUrl: `https://comms.todoist.com/${mockWorkspace2.id}/msg/${mockWorkspace2.defaultConversation}/`,
                     plan: mockWorkspace2.plan,
                 }),
             ],
@@ -174,7 +174,7 @@ describe(`${GET_WORKSPACES} tool`, () => {
 
         const textContent = extractTextContent(result)
         expect(textContent).toContain(
-            `**Default Conversation:** [Conversation with users: ${TEST_IDS.USER_1}, ${TEST_IDS.USER_2}](https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/) (${TEST_IDS.CONVERSATION_1})`,
+            `**Default Conversation:** [Conversation with users: ${TEST_IDS.USER_1}, ${TEST_IDS.USER_2}](https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/) (${TEST_IDS.CONVERSATION_1})`,
         )
     })
 

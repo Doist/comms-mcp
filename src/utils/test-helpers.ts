@@ -23,7 +23,7 @@ export function createMockChannel(overrides: Partial<Channel> = {}): Channel {
         archived: false,
         created: new Date('2024-01-01T00:00:00Z'),
         version: 1,
-        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/`,
+        url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/`,
         ...overrides,
     }
 }
@@ -54,7 +54,7 @@ export function createMockThread(overrides: Partial<Thread> = {}): Thread {
         isArchived: false,
         inInbox: true,
         participants: [TEST_IDS.USER_1],
-        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
+        url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
         ...overrides,
     }
 }
@@ -76,7 +76,7 @@ export function createMockComment(overrides: Partial<Comment> = {}): Comment {
         attachments: [],
         reactions: {},
         objIndex: 1,
-        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/c/${TEST_IDS.COMMENT_1}`,
+        url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/c/${TEST_IDS.COMMENT_1}`,
         ...overrides,
     }
 }
@@ -98,7 +98,7 @@ export function createMockConversation(overrides: Partial<Conversation> = {}): C
         creator: TEST_IDS.USER_1,
         created: new Date('2024-01-01T00:00:00Z'),
         lastActive: new Date('2024-01-01T00:00:00Z'),
-        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
+        url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
         ...overrides,
     }
 }
@@ -122,7 +122,7 @@ export function createMockConversationMessage(
         reactions: {},
         objIndex: 1,
         lastEdited: null,
-        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/m/${TEST_IDS.MESSAGE_1}`,
+        url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/m/${TEST_IDS.MESSAGE_1}`,
         ...overrides,
     }
 }
