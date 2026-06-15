@@ -45,7 +45,7 @@ function makeInboxThread(overrides: Partial<Record<string, unknown>> = {}) {
         isArchived: false,
         inInbox: true,
         closed: false,
-        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
+        url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
         ...overrides,
     }
 }
@@ -80,7 +80,7 @@ describe(`${FETCH_INBOX} tool`, () => {
                     creator: TEST_IDS.USER_2,
                     snippetCreator: TEST_IDS.USER_2,
                     isSaved: true,
-                    url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_2}/`,
+                    url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_2}/`,
                 }),
             ])
             mockCommsApi.inbox.getCount.mockResolvedValue(5)
@@ -150,7 +150,7 @@ describe(`${FETCH_INBOX} tool`, () => {
                     title: 'Read Thread',
                     creator: TEST_IDS.USER_2,
                     snippetCreator: TEST_IDS.USER_2,
-                    url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_2}/`,
+                    url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_2}/`,
                 }),
             ])
             mockCommsApi.inbox.getCount.mockResolvedValue(1)
@@ -252,7 +252,7 @@ describe(`${FETCH_INBOX} tool`, () => {
                         archived: false,
                         created: new Date(),
                         creator: TEST_IDS.USER_1,
-                        url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
+                        url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
                     }) as never
                 }
                 return Promise.resolve({
@@ -268,7 +268,7 @@ describe(`${FETCH_INBOX} tool`, () => {
                     archived: false,
                     created: new Date(),
                     creator: TEST_IDS.USER_1,
-                    url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_2}/`,
+                    url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_2}/`,
                 }) as never
             })
             mockCommsApi.workspaceUsers.getUserById.mockImplementation(
@@ -387,7 +387,7 @@ describe(`${FETCH_INBOX} tool`, () => {
                     isArchived,
                     closed: isArchived,
                     commentCount: 1,
-                    url: `https://comms.todoist.com/a/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${id}/`,
+                    url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${id}/`,
                 })
             }
 

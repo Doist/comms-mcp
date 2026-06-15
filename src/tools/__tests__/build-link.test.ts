@@ -15,10 +15,10 @@ describe('buildLink', () => {
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toBe('https://comms.todoist.com/a/123/msg/456/')
+            expect(textContent).toBe('https://comms.todoist.com/123/msg/456/')
             expect(result.structuredContent?.type).toBe('link_data')
             expect(result.structuredContent?.linkType).toBe('conversation')
-            expect(result.structuredContent?.url).toBe('https://comms.todoist.com/a/123/msg/456/')
+            expect(result.structuredContent?.url).toBe('https://comms.todoist.com/123/msg/456/')
         })
 
         test('builds a message link', async () => {
@@ -33,7 +33,7 @@ describe('buildLink', () => {
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toBe('https://comms.todoist.com/a/123/msg/456/m/789')
+            expect(textContent).toBe('https://comms.todoist.com/123/msg/456/m/789')
             expect(result.structuredContent?.linkType).toBe('message')
         })
 
@@ -48,7 +48,7 @@ describe('buildLink', () => {
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toBe('/a/123/msg/456/')
+            expect(textContent).toBe('/123/msg/456/')
         })
     })
 
@@ -65,7 +65,7 @@ describe('buildLink', () => {
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toBe('https://comms.todoist.com/a/123/ch/42/t/789/')
+            expect(textContent).toBe('https://comms.todoist.com/123/ch/42/t/789/')
             expect(result.structuredContent?.linkType).toBe('thread')
         })
 
@@ -80,7 +80,7 @@ describe('buildLink', () => {
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toBe('https://comms.todoist.com/a/123/inbox/t/789/')
+            expect(textContent).toBe('https://comms.todoist.com/123/inbox/t/789/')
             expect(result.structuredContent?.linkType).toBe('thread')
         })
 
@@ -97,7 +97,7 @@ describe('buildLink', () => {
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toBe('https://comms.todoist.com/a/123/ch/42/t/789/c/999')
+            expect(textContent).toBe('https://comms.todoist.com/123/ch/42/t/789/c/999')
             expect(result.structuredContent?.linkType).toBe('comment')
         })
 

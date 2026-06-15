@@ -7,7 +7,7 @@ exports[`create-thread tool creating threads should create a thread in a channel
 **Thread ID:** thread-id-1
 **Channel ID:** channel-id-1
 **Created:** 2024-01-01T00:00:00.000Z
-**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
+**URL:** https://comms.todoist.com/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 
@@ -23,7 +23,7 @@ exports[`create-thread tool creating threads should create a thread with recipie
 **Thread ID:** thread-id-1
 **Channel ID:** channel-id-1
 **Created:** 2024-01-01T00:00:00.000Z
-**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
+**URL:** https://comms.todoist.com/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 
@@ -39,7 +39,7 @@ exports[`create-thread tool creating threads should unarchive the thread when CO
 **Thread ID:** thread-id-1
 **Channel ID:** channel-id-1
 **Created:** 2024-01-01T00:00:00.000Z
-**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
+**URL:** https://comms.todoist.com/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 
@@ -55,7 +55,7 @@ exports[`create-thread tool creating threads should unarchive the thread when di
 **Thread ID:** thread-id-1
 **Channel ID:** channel-id-1
 **Created:** 2024-01-01T00:00:00.000Z
-**URL:** https://comms.todoist.com/a/11111/ch/channel-id-1/t/thread-id-1/
+**URL:** https://comms.todoist.com/11111/ch/channel-id-1/t/thread-id-1/
 
 ## Content
 
