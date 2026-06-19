@@ -10,21 +10,27 @@ const URL_SEPARATOR = ' — '
 
 /**
  * Coerce a raw `attachments` value from the Comms API into a list of attachment
- * objects, dropping anything that isn't a plain object. Returns `undefined` when
- * there are no attachments so callers can omit the field entirely.
+ * objects, dropping anything that doesn't carry the two fields every attachment
+ * is guaranteed to have (`attachmentId` and `urlType`). Returns `undefined` when
+ * nothing valid remains so callers can omit the field entirely rather than
+ * emitting an empty array or a malformed entry that fails the output schema.
  *
  * Note: an attachment's `url` points at the Comms file store and currently
  * requires a browser session cookie to download — there is no OAuth-authenticated
  * attachment download endpoint on the public Comms REST API today.
  */
 export function normalizeAttachments(value: unknown): Attachment[] | undefined {
-    if (!Array.isArray(value) || value.length === 0) {
+    if (!Array.isArray(value)) {
         return undefined
     }
-    return value.filter(
-        (item): item is Attachment =>
-            typeof item === 'object' && item !== null && !Array.isArray(item),
-    )
+    const attachments = value.filter((item): item is Attachment => {
+        if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+            return false
+        }
+        const candidate = item as Record<string, unknown>
+        return typeof candidate.attachmentId === 'string' && typeof candidate.urlType === 'string'
+    })
+    return attachments.length > 0 ? attachments : undefined
 }
 
 /**
