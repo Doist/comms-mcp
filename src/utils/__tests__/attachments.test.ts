@@ -60,7 +60,9 @@ describe('formatAttachmentsLine', () => {
     })
 
     it('omits the size segment when fileSize is missing', () => {
-        const line = formatAttachmentsLine([{ attachmentId: 'a', urlType: 'file', fileName: 'a.txt' }])
+        const line = formatAttachmentsLine([
+            { attachmentId: 'a', urlType: 'file', fileName: 'a.txt' },
+        ])
         expect(line).toBe('**Attachments (1):** a.txt')
     })
 
