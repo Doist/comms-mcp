@@ -2,7 +2,7 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
-import { MarkDoneOutputSchema } from '../utils/output-schemas.js'
+import { type MarkDoneOp, MarkDoneOutputSchema } from '../utils/output-schemas.js'
 import { type MarkDoneType, MarkDoneTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -46,8 +46,12 @@ type MarkDoneStructured = {
     itemType: MarkDoneType
     mode: 'individual' | 'bulk'
     completed: string[]
-    failed: Array<{ item: string; error: string }>
-    warnings: Array<{ item: string; op: string; error: string }>
+    failed: Array<{
+        item: string
+        error: string
+        opErrors: Array<{ op: MarkDoneOp; error: string }>
+    }>
+    warnings: Array<{ item: string; op: MarkDoneOp; error: string }>
     totalRequested: number
     successCount: number
     failureCount: number
@@ -81,8 +85,12 @@ const markDone = {
         } = args
 
         const completed: string[] = []
-        const failed: Array<{ item: string; error: string }> = []
-        const warnings: Array<{ item: string; op: string; error: string }> = []
+        const failed: Array<{
+            item: string
+            error: string
+            opErrors: Array<{ op: MarkDoneOp; error: string }>
+        }> = []
+        const warnings: Array<{ item: string; op: MarkDoneOp; error: string }> = []
         let mode: 'individual' | 'bulk' = 'individual'
 
         // Validate arguments
@@ -160,8 +168,8 @@ const markDone = {
                 // large — `limitedAll` keeps the burst inside the socket pool /
                 // rate limiter.
                 const results = await limitedAll(ids, async (id) => {
-                    const opErrors: Array<{ op: string; error: string }> = []
-                    const runOp = async (op: string, fn: () => Promise<unknown>) => {
+                    const opErrors: Array<{ op: MarkDoneOp; error: string }> = []
+                    const runOp = async (op: MarkDoneOp, fn: () => Promise<unknown>) => {
                         try {
                             await fn()
                         } catch (error) {
@@ -200,12 +208,12 @@ const markDone = {
                 // completed even if a secondary operation failed — the failure
                 // is surfaced as a non-fatal warning rather than failing the
                 // whole item (and breaking automations whose goal is archiving).
-                const doneOp = archive ? 'archive' : 'markRead'
+                const doneOp: MarkDoneOp = archive ? 'archive' : 'markRead'
                 for (const r of results) {
                     const doneFailure = r.opErrors.find((e) => e.op === doneOp)
                     if (doneFailure) {
                         const detail = r.opErrors.map((e) => `${e.op}: ${e.error}`).join('; ')
-                        failed.push({ item: r.id, error: detail })
+                        failed.push({ item: r.id, error: detail, opErrors: r.opErrors })
                     } else {
                         completed.push(r.id)
                         for (const e of r.opErrors) {
@@ -294,6 +302,14 @@ const markDone = {
             )
         } else if (failed.length > 0) {
             lines.push('Review failed items and retry if needed.')
+        }
+        // Warning items are archived but still unread. `fetch-inbox` defaults to
+        // `archiveFilter: "active"` and would hide them, so point callers at the
+        // archived view when they need to inspect or re-read those threads.
+        if (warnings.length > 0 && type === 'thread') {
+            lines.push(
+                'Warning threads are archived but still unread — use `fetch-inbox` with `archiveFilter: "all"` or `"archived"` to inspect them.',
+            )
         }
 
         const structuredContent: MarkDoneStructured = {

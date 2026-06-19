@@ -540,6 +540,17 @@ export const ReactOutputSchema = z.object({
 /**
  * Schema for mark-done tool output
  */
+// Per-item operations mark-done can run. Shared so the operation name can't
+// drift between the tool implementation and this schema.
+export const MARK_DONE_OPS = ['markRead', 'archive'] as const
+export const MarkDoneOpSchema = z.enum(MARK_DONE_OPS)
+export type MarkDoneOp = (typeof MARK_DONE_OPS)[number]
+
+const MarkDoneOpErrorSchema = z.object({
+    op: MarkDoneOpSchema,
+    error: z.string(),
+})
+
 export const MarkDoneOutputSchema = z.object({
     type: z.literal('mark_done_result'),
     itemType: z.enum(['thread', 'conversation']),
@@ -548,7 +559,11 @@ export const MarkDoneOutputSchema = z.object({
     failed: z.array(
         z.object({
             item: z.string(),
+            // Display text summarising which operation(s) failed.
             error: z.string(),
+            // Structured per-operation failures so callers don't have to parse
+            // `error`.
+            opErrors: z.array(MarkDoneOpErrorSchema),
         }),
     ),
     // Non-fatal per-item issues: a secondary operation failed (e.g. markRead)
@@ -557,7 +572,7 @@ export const MarkDoneOutputSchema = z.object({
     warnings: z.array(
         z.object({
             item: z.string(),
-            op: z.string(),
+            op: MarkDoneOpSchema,
             error: z.string(),
         }),
     ),

@@ -107,6 +107,32 @@ conv-id-1, conv-id-2
 Check your conversations for remaining unread messages."
 `;
 
+exports[`mark-done tool marking threads as done reports a warning (not a failure) when only the secondary markRead fails 1`] = `
+"# Mark Threads Done
+
+**Mode:** Individual IDs
+**Total Requested:** 3
+**Successful:** 3
+**Failed:** 0
+**Warnings:** 1
+**Mark Read:** Yes
+**Archive:** Yes
+
+## Completed
+
+thread-id-1, thread-id-2, thread-id-3
+
+## Warnings
+
+These threads were marked done (archived), but a secondary operation failed:
+- thread thread-id-2 (markRead): Thread not found
+
+## Next Steps
+
+Use \`fetch-inbox\` to see remaining unread threads.
+Warning threads are archived but still unread — use \`fetch-inbox\` with \`archiveFilter: "all"\` or \`"archived"\` to inspect them."
+`;
+
 exports[`mark-done tool marking threads as done should archive thread only 1`] = `
 "# Mark Threads Done
 

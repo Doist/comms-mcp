@@ -142,6 +142,7 @@ describe(`${MARK_DONE} tool`, () => {
                         expect.objectContaining({
                             item: TEST_IDS.THREAD_2,
                             error: 'archive: Thread not found',
+                            opErrors: [{ op: 'archive', error: 'Thread not found' }],
                         }),
                     ],
                     warnings: [],
@@ -178,6 +179,9 @@ describe(`${MARK_DONE} tool`, () => {
             // Archive still ran for every thread, including the one whose
             // markRead failed.
             expect(mockCommsApi.inbox.archiveThread).toHaveBeenCalledTimes(3)
+
+            // Pin the `## Warnings` text section and summary line the LLM sees.
+            expect(extractTextContent(result)).toMatchSnapshot()
 
             const { structuredContent } = result
             expect(structuredContent).toEqual(
@@ -274,6 +278,85 @@ describe(`${MARK_DONE} tool`, () => {
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
+        })
+
+        it('marks conversation as failed when the archive operation fails', async () => {
+            mockCommsApi.conversations.archiveConversation.mockImplementation(
+                async (id: string) => {
+                    if (id === TEST_IDS.CONVERSATION_2) {
+                        throw new Error('Conversation not found')
+                    }
+                    return undefined
+                },
+            )
+
+            const result = await markDone.execute(
+                {
+                    type: 'conversation',
+                    ids: [TEST_IDS.CONVERSATION_1, TEST_IDS.CONVERSATION_2],
+                    markRead: true,
+                    archive: true,
+                },
+                mockCommsApi,
+            )
+
+            const { structuredContent } = result
+            expect(structuredContent).toEqual(
+                expect.objectContaining({
+                    itemType: 'conversation',
+                    completed: [TEST_IDS.CONVERSATION_1],
+                    failed: [
+                        expect.objectContaining({
+                            item: TEST_IDS.CONVERSATION_2,
+                            error: 'archive: Conversation not found',
+                            opErrors: [{ op: 'archive', error: 'Conversation not found' }],
+                        }),
+                    ],
+                    warnings: [],
+                    successCount: 1,
+                    failureCount: 1,
+                }),
+            )
+        })
+
+        it('reports a warning when a conversation markRead fails but archive succeeds', async () => {
+            mockCommsApi.conversations.markRead.mockImplementation(async (args: { id: string }) => {
+                if (args.id === TEST_IDS.CONVERSATION_2) {
+                    throw new Error('Conversation not found')
+                }
+                return undefined
+            })
+
+            const result = await markDone.execute(
+                {
+                    type: 'conversation',
+                    ids: [TEST_IDS.CONVERSATION_1, TEST_IDS.CONVERSATION_2],
+                    markRead: true,
+                    archive: true,
+                },
+                mockCommsApi,
+            )
+
+            // Archive still ran for both conversations.
+            expect(mockCommsApi.conversations.archiveConversation).toHaveBeenCalledTimes(2)
+
+            const { structuredContent } = result
+            expect(structuredContent).toEqual(
+                expect.objectContaining({
+                    itemType: 'conversation',
+                    completed: [TEST_IDS.CONVERSATION_1, TEST_IDS.CONVERSATION_2],
+                    failed: [],
+                    warnings: [
+                        expect.objectContaining({
+                            item: TEST_IDS.CONVERSATION_2,
+                            op: 'markRead',
+                            error: 'Conversation not found',
+                        }),
+                    ],
+                    successCount: 2,
+                    failureCount: 0,
+                }),
+            )
         })
     })
 
