@@ -113,14 +113,14 @@ describe(`${MARK_DONE} tool`, () => {
         })
 
         it('should handle partial failures gracefully', async () => {
-            mockCommsApi.threads.markRead.mockImplementation(
-                async (args: { id: string; objIndex: number }) => {
-                    if (args.id === TEST_IDS.THREAD_2) {
-                        throw new Error('Thread not found')
-                    }
-                    return undefined
-                },
-            )
+            // The archive operation defines "done"; when it fails the item is
+            // reported as failed.
+            mockCommsApi.inbox.archiveThread.mockImplementation(async (id: string) => {
+                if (id === TEST_IDS.THREAD_2) {
+                    throw new Error('Thread not found')
+                }
+                return undefined
+            })
 
             const result = await markDone.execute(
                 {
@@ -141,9 +141,11 @@ describe(`${MARK_DONE} tool`, () => {
                     failed: [
                         expect.objectContaining({
                             item: TEST_IDS.THREAD_2,
-                            error: 'Thread not found',
+                            error: 'archive: Thread not found',
+                            opErrors: [{ op: 'archive', error: 'Thread not found' }],
                         }),
                     ],
+                    warnings: [],
                     totalRequested: 3,
                     successCount: 2,
                     failureCount: 1,
@@ -151,8 +153,60 @@ describe(`${MARK_DONE} tool`, () => {
             )
         })
 
+        it('reports a warning (not a failure) when only the secondary markRead fails', async () => {
+            // markRead is secondary to archive; if archive succeeds the thread
+            // is done, and the markRead failure is surfaced as a warning so
+            // automations whose goal is archiving don't see a false failure.
+            mockCommsApi.threads.markRead.mockImplementation(
+                async (args: { id: string; objIndex: number }) => {
+                    if (args.id === TEST_IDS.THREAD_2) {
+                        throw new Error('Thread not found')
+                    }
+                    return undefined
+                },
+            )
+
+            const result = await markDone.execute(
+                {
+                    type: 'thread',
+                    ids: [TEST_IDS.THREAD_1, TEST_IDS.THREAD_2, TEST_IDS.THREAD_3],
+                    markRead: true,
+                    archive: true,
+                },
+                mockCommsApi,
+            )
+
+            // Archive still ran for every thread, including the one whose
+            // markRead failed.
+            expect(mockCommsApi.inbox.archiveThread).toHaveBeenCalledTimes(3)
+
+            // Pin the `## Warnings` text section and summary line the LLM sees.
+            expect(extractTextContent(result)).toMatchSnapshot()
+
+            const { structuredContent } = result
+            expect(structuredContent).toEqual(
+                expect.objectContaining({
+                    completed: [TEST_IDS.THREAD_1, TEST_IDS.THREAD_2, TEST_IDS.THREAD_3],
+                    failed: [],
+                    warnings: [
+                        expect.objectContaining({
+                            item: TEST_IDS.THREAD_2,
+                            op: 'markRead',
+                            error: 'Thread not found',
+                        }),
+                    ],
+                    totalRequested: 3,
+                    successCount: 3,
+                    failureCount: 0,
+                }),
+            )
+        })
+
         it('should handle all threads failing', async () => {
             mockCommsApi.threads.markRead.mockRejectedValue(new Error('API Error: Network timeout'))
+            mockCommsApi.inbox.archiveThread.mockRejectedValue(
+                new Error('API Error: Network timeout'),
+            )
 
             const result = await markDone.execute(
                 {
@@ -165,6 +219,16 @@ describe(`${MARK_DONE} tool`, () => {
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
+
+            const { structuredContent } = result
+            expect(structuredContent).toEqual(
+                expect.objectContaining({
+                    completed: [],
+                    warnings: [],
+                    successCount: 0,
+                    failureCount: 2,
+                }),
+            )
         })
     })
 
@@ -214,6 +278,85 @@ describe(`${MARK_DONE} tool`, () => {
             )
 
             expect(extractTextContent(result)).toMatchSnapshot()
+        })
+
+        it('marks conversation as failed when the archive operation fails', async () => {
+            mockCommsApi.conversations.archiveConversation.mockImplementation(
+                async (id: string) => {
+                    if (id === TEST_IDS.CONVERSATION_2) {
+                        throw new Error('Conversation not found')
+                    }
+                    return undefined
+                },
+            )
+
+            const result = await markDone.execute(
+                {
+                    type: 'conversation',
+                    ids: [TEST_IDS.CONVERSATION_1, TEST_IDS.CONVERSATION_2],
+                    markRead: true,
+                    archive: true,
+                },
+                mockCommsApi,
+            )
+
+            const { structuredContent } = result
+            expect(structuredContent).toEqual(
+                expect.objectContaining({
+                    itemType: 'conversation',
+                    completed: [TEST_IDS.CONVERSATION_1],
+                    failed: [
+                        expect.objectContaining({
+                            item: TEST_IDS.CONVERSATION_2,
+                            error: 'archive: Conversation not found',
+                            opErrors: [{ op: 'archive', error: 'Conversation not found' }],
+                        }),
+                    ],
+                    warnings: [],
+                    successCount: 1,
+                    failureCount: 1,
+                }),
+            )
+        })
+
+        it('reports a warning when a conversation markRead fails but archive succeeds', async () => {
+            mockCommsApi.conversations.markRead.mockImplementation(async (args: { id: string }) => {
+                if (args.id === TEST_IDS.CONVERSATION_2) {
+                    throw new Error('Conversation not found')
+                }
+                return undefined
+            })
+
+            const result = await markDone.execute(
+                {
+                    type: 'conversation',
+                    ids: [TEST_IDS.CONVERSATION_1, TEST_IDS.CONVERSATION_2],
+                    markRead: true,
+                    archive: true,
+                },
+                mockCommsApi,
+            )
+
+            // Archive still ran for both conversations.
+            expect(mockCommsApi.conversations.archiveConversation).toHaveBeenCalledTimes(2)
+
+            const { structuredContent } = result
+            expect(structuredContent).toEqual(
+                expect.objectContaining({
+                    itemType: 'conversation',
+                    completed: [TEST_IDS.CONVERSATION_1, TEST_IDS.CONVERSATION_2],
+                    failed: [],
+                    warnings: [
+                        expect.objectContaining({
+                            item: TEST_IDS.CONVERSATION_2,
+                            op: 'markRead',
+                            error: 'Conversation not found',
+                        }),
+                    ],
+                    successCount: 2,
+                    failureCount: 0,
+                }),
+            )
         })
     })
 
@@ -474,14 +617,12 @@ describe(`${MARK_DONE} tool`, () => {
         })
 
         it('should suggest reviewing failures when mixed results', async () => {
-            mockCommsApi.threads.markRead.mockImplementation(
-                async (args: { id: string; objIndex: number }) => {
-                    if (args.id === TEST_IDS.THREAD_2) {
-                        throw new Error('Thread not found')
-                    }
-                    return undefined
-                },
-            )
+            mockCommsApi.inbox.archiveThread.mockImplementation(async (id: string) => {
+                if (id === TEST_IDS.THREAD_2) {
+                    throw new Error('Thread not found')
+                }
+                return undefined
+            })
 
             const result = await markDone.execute(
                 {
