@@ -1,3 +1,9 @@
+## [5.8.0](https://github.com/Doist/comms-mcp/compare/v5.7.2...v5.8.0) (2026-06-19)
+
+### Features
+
+* expose attachments in load-thread and load-conversation output ([#16](https://github.com/Doist/comms-mcp/issues/16)) ([9689639](https://github.com/Doist/comms-mcp/commit/9689639d44ddba382c7b74e3040307a5933f0fe5))
+
 ## [5.7.2](https://github.com/Doist/comms-mcp/compare/v5.7.1...v5.7.2) (2026-06-15)
 
 ### Bug Fixes
