@@ -2,6 +2,11 @@ import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
+import {
+    type Attachment,
+    formatAttachmentsLine,
+    normalizeAttachments,
+} from '../utils/attachments.js'
 import { LoadThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -48,6 +53,7 @@ type LoadThreadStructured = {
         participants?: number[]
         participantNames?: string[]
         threadUrl: string
+        attachments?: Attachment[]
     }
     comments: Array<{
         id: string
@@ -57,6 +63,7 @@ type LoadThreadStructured = {
         threadId: string
         posted: string
         commentUrl: string
+        attachments?: Attachment[]
     }>
     totalComments: number
 }
@@ -125,9 +132,18 @@ const loadThread = {
             '',
             thread.content,
             '',
-            `## Comments (${comments.length})`,
-            '',
         ]
+
+        const threadAttachmentsLine = formatAttachmentsLine(
+            normalizeAttachments(thread.attachments),
+        )
+        if (threadAttachmentsLine) {
+            lines.push(threadAttachmentsLine)
+            lines.push('')
+        }
+
+        lines.push(`## Comments (${comments.length})`)
+        lines.push('')
 
         for (const comment of comments) {
             const commentDate = comment.posted.toISOString()
@@ -138,6 +154,13 @@ const loadThread = {
             )
             lines.push('')
             lines.push(comment.content)
+            const commentAttachmentsLine = formatAttachmentsLine(
+                normalizeAttachments(comment.attachments),
+            )
+            if (commentAttachmentsLine) {
+                lines.push('')
+                lines.push(commentAttachmentsLine)
+            }
             lines.push('')
         }
 
@@ -179,6 +202,7 @@ const loadThread = {
                         channelId: thread.channelId,
                         threadId: thread.id,
                     }),
+                attachments: normalizeAttachments(thread.attachments),
             },
             comments: comments.map((c) => ({
                 id: c.id,
@@ -195,6 +219,7 @@ const loadThread = {
                         threadId: c.threadId,
                         commentId: c.id,
                     }),
+                attachments: normalizeAttachments(c.attachments),
             })),
             totalComments: thread.commentCount,
         }

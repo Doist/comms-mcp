@@ -180,6 +180,55 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
         })
     })
 
+    describe('attachments', () => {
+        it('surfaces message attachments in structured + text output', async () => {
+            const mockConversation = createMockConversation({
+                userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
+            })
+            const sampleAttachment = {
+                attachmentId: 'abc-123',
+                fileName: 'report.pdf',
+                fileSize: 4096,
+                title: 'report.pdf',
+                underlyingType: 'application/pdf',
+                uploadState: 'uploaded',
+                url: 'https://comms.todoist.com/files/abc/as/22222/report.pdf',
+                urlType: 'file',
+            }
+            const mockMessage = createMockConversationMessage({
+                id: TEST_IDS.MESSAGE_1,
+                attachments: [sampleAttachment],
+            })
+
+            mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
+            mockCommsApi.conversationMessages.getMessages.mockResolvedValue([mockMessage])
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            )
+
+            const result = await loadConversation.execute(
+                {
+                    conversationId: TEST_IDS.CONVERSATION_1,
+                    limit: 50,
+                    includeParticipants: true,
+                },
+                mockCommsApi,
+            )
+
+            const { structuredContent } = result
+            expect(structuredContent?.messages[0]?.attachments).toHaveLength(1)
+            expect(structuredContent?.messages[0]?.attachments?.[0]).toMatchObject({
+                fileName: 'report.pdf',
+                url: sampleAttachment.url,
+            })
+
+            const text = extractTextContent(result)
+            expect(text).toContain('**Attachments (1):**')
+            expect(text).toContain('report.pdf')
+            expect(text).toContain(sampleAttachment.url)
+        })
+    })
+
     describe('error handling', () => {
         it('should propagate conversation not found error', async () => {
             const apiError = new Error('Conversation not found')
