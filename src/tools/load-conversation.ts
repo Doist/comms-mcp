@@ -2,6 +2,11 @@ import { getFullCommsURL, type WorkspaceUser } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
+import {
+    type Attachment,
+    formatAttachmentsLine,
+    normalizeAttachments,
+} from '../utils/attachments.js'
 import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -49,6 +54,7 @@ type LoadConversationStructured = {
         conversationId: string
         posted: string
         messageUrl: string
+        attachments?: Attachment[]
     }>
     totalMessages: number
 }
@@ -118,6 +124,11 @@ const loadConversation = {
             )
             lines.push('')
             lines.push(message.content)
+            const attachmentsLine = formatAttachmentsLine(normalizeAttachments(message.attachments))
+            if (attachmentsLine) {
+                lines.push('')
+                lines.push(attachmentsLine)
+            }
             lines.push('')
         }
 
@@ -151,6 +162,7 @@ const loadConversation = {
                         conversationId: m.conversationId,
                         messageId: m.id,
                     }),
+                attachments: normalizeAttachments(m.attachments),
             })),
             totalMessages: conversation.messageCount ?? 0,
         }

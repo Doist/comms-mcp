@@ -195,6 +195,92 @@ describe(`${LOAD_THREAD} tool`, () => {
         })
     })
 
+    describe('attachments', () => {
+        const sampleAttachment = {
+            attachmentId: 'abc-123',
+            fileName: 'ssh-public-key.md',
+            fileSize: 580,
+            title: 'ssh-public-key.md',
+            underlyingType: 'application/octet-stream',
+            uploadState: 'uploaded',
+            url: 'https://comms.todoist.com/files/abc/as/22222/ssh-public-key.md',
+            urlType: 'file',
+        }
+
+        it('surfaces comment attachments in structured + text output', async () => {
+            const mockThread = createMockThread()
+            const mockComment = createMockComment({
+                id: TEST_IDS.COMMENT_1,
+                creator: TEST_IDS.USER_1,
+                attachments: [sampleAttachment],
+            })
+
+            mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
+            mockCommsApi.comments.getComments.mockResolvedValue([mockComment])
+            mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            )
+
+            const result = await loadThread.execute(
+                { threadId: TEST_IDS.THREAD_1, limit: 50, includeParticipants: true },
+                mockCommsApi,
+            )
+
+            const { structuredContent } = result
+            expect(structuredContent?.comments[0]?.attachments).toHaveLength(1)
+            expect(structuredContent?.comments[0]?.attachments?.[0]).toMatchObject({
+                fileName: 'ssh-public-key.md',
+                url: sampleAttachment.url,
+            })
+
+            const text = extractTextContent(result)
+            expect(text).toContain('**Attachments (1):**')
+            expect(text).toContain('ssh-public-key.md')
+            expect(text).toContain(sampleAttachment.url)
+        })
+
+        it('surfaces thread-body attachments', async () => {
+            const mockThread = createMockThread({ attachments: [sampleAttachment] })
+            mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
+            mockCommsApi.comments.getComments.mockResolvedValue([])
+            mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            )
+
+            const result = await loadThread.execute(
+                { threadId: TEST_IDS.THREAD_1, limit: 50, includeParticipants: true },
+                mockCommsApi,
+            )
+
+            const { structuredContent } = result
+            expect(structuredContent?.thread.attachments).toHaveLength(1)
+            expect(extractTextContent(result)).toContain('**Attachments (1):**')
+        })
+
+        it('omits attachments field when there are none', async () => {
+            const mockThread = createMockThread()
+            const mockComment = createMockComment({ attachments: [] })
+            mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
+            mockCommsApi.comments.getComments.mockResolvedValue([mockComment])
+            mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            )
+
+            const result = await loadThread.execute(
+                { threadId: TEST_IDS.THREAD_1, limit: 50, includeParticipants: true },
+                mockCommsApi,
+            )
+
+            const { structuredContent } = result
+            expect(structuredContent?.thread.attachments).toBeUndefined()
+            expect(structuredContent?.comments[0]?.attachments).toBeUndefined()
+            expect(extractTextContent(result)).not.toContain('**Attachments')
+        })
+    })
+
     describe('error handling', () => {
         it('should propagate thread not found error', async () => {
             const apiError = new Error('Thread not found')
