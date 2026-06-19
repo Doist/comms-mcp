@@ -551,6 +551,16 @@ export const MarkDoneOutputSchema = z.object({
             error: z.string(),
         }),
     ),
+    // Non-fatal per-item issues: a secondary operation failed (e.g. markRead)
+    // while the done-defining operation (archive) still succeeded, so the item
+    // is reported as completed rather than failed.
+    warnings: z.array(
+        z.object({
+            item: z.string(),
+            op: z.string(),
+            error: z.string(),
+        }),
+    ),
     totalRequested: z.number(),
     successCount: z.number(),
     failureCount: z.number(),

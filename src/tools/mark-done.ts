@@ -47,6 +47,7 @@ type MarkDoneStructured = {
     mode: 'individual' | 'bulk'
     completed: string[]
     failed: Array<{ item: string; error: string }>
+    warnings: Array<{ item: string; op: string; error: string }>
     totalRequested: number
     successCount: number
     failureCount: number
@@ -81,6 +82,7 @@ const markDone = {
 
         const completed: string[] = []
         const failed: Array<{ item: string; error: string }> = []
+        const warnings: Array<{ item: string; op: string; error: string }> = []
         let mode: 'individual' | 'bulk' = 'individual'
 
         // Validate arguments
@@ -152,40 +154,63 @@ const markDone = {
                 // Individual operations - run them in parallel
                 mode = 'individual'
 
-                // Try all operations with bounded concurrency; if any
-                // individual ID fails, record it but keep going. The `ids`
-                // list is user-supplied so it can be large — `limitedAll`
-                // keeps the burst inside the socket pool / rate limiter.
+                // Run each requested operation independently so a failure in
+                // one (e.g. markRead) never prevents the other (e.g. archive)
+                // from running. The `ids` list is user-supplied so it can be
+                // large — `limitedAll` keeps the burst inside the socket pool /
+                // rate limiter.
                 const results = await limitedAll(ids, async (id) => {
-                    try {
-                        if (type === 'thread') {
-                            if (markRead) {
-                                await client.threads.markRead({ id, objIndex: 0 })
-                            }
-                            if (archive) {
-                                await client.inbox.archiveThread(id)
-                            }
-                        } else {
-                            if (markRead) {
-                                await client.conversations.markRead({ id })
-                            }
-                            if (archive) {
-                                await client.conversations.archiveConversation(id)
-                            }
+                    const opErrors: Array<{ op: string; error: string }> = []
+                    const runOp = async (op: string, fn: () => Promise<unknown>) => {
+                        try {
+                            await fn()
+                        } catch (error) {
+                            opErrors.push({
+                                op,
+                                error: error instanceof Error ? error.message : 'Unknown error',
+                            })
                         }
-                        return { id, ok: true as const }
-                    } catch (error) {
-                        const errorMessage =
-                            error instanceof Error ? error.message : 'Unknown error'
-                        return { id, ok: false as const, errorMessage }
                     }
+
+                    if (type === 'thread') {
+                        if (markRead) {
+                            await runOp('markRead', () =>
+                                client.threads.markRead({ id, objIndex: 0 }),
+                            )
+                        }
+                        if (archive) {
+                            await runOp('archive', () => client.inbox.archiveThread(id))
+                        }
+                    } else {
+                        if (markRead) {
+                            await runOp('markRead', () => client.conversations.markRead({ id }))
+                        }
+                        if (archive) {
+                            await runOp('archive', () =>
+                                client.conversations.archiveConversation(id),
+                            )
+                        }
+                    }
+
+                    return { id, opErrors }
                 })
 
+                // "Done" is defined by the archive operation when requested;
+                // otherwise by markRead. If that operation succeeds the item is
+                // completed even if a secondary operation failed — the failure
+                // is surfaced as a non-fatal warning rather than failing the
+                // whole item (and breaking automations whose goal is archiving).
+                const doneOp = archive ? 'archive' : 'markRead'
                 for (const r of results) {
-                    if (r.ok) {
-                        completed.push(r.id)
+                    const doneFailure = r.opErrors.find((e) => e.op === doneOp)
+                    if (doneFailure) {
+                        const detail = r.opErrors.map((e) => `${e.op}: ${e.error}`).join('; ')
+                        failed.push({ item: r.id, error: detail })
                     } else {
-                        failed.push({ item: r.id, error: r.errorMessage })
+                        completed.push(r.id)
+                        for (const e of r.opErrors) {
+                            warnings.push({ item: r.id, op: e.op, error: e.error })
+                        }
                     }
                 }
             }
@@ -222,6 +247,9 @@ const markDone = {
             lines.push(`**Total Requested:** ${ids?.length ?? 0}`)
             lines.push(`**Successful:** ${completed.length}`)
             lines.push(`**Failed:** ${failed.length}`)
+            if (warnings.length > 0) {
+                lines.push(`**Warnings:** ${warnings.length}`)
+            }
             lines.push(`**Mark Read:** ${markRead ? 'Yes' : 'No'}`)
             lines.push(`**Archive:** ${archive ? 'Yes' : 'No'}`)
             lines.push('')
@@ -238,6 +266,18 @@ const markDone = {
                 lines.push('')
                 for (const failure of failed) {
                     lines.push(`- ${type} ${failure.item}: ${failure.error}`)
+                }
+                lines.push('')
+            }
+
+            if (warnings.length > 0) {
+                lines.push('## Warnings')
+                lines.push('')
+                lines.push(
+                    `These ${type}s were marked done (archived), but a secondary operation failed:`,
+                )
+                for (const warning of warnings) {
+                    lines.push(`- ${type} ${warning.item} (${warning.op}): ${warning.error}`)
                 }
                 lines.push('')
             }
@@ -262,6 +302,7 @@ const markDone = {
             mode,
             completed,
             failed,
+            warnings,
             totalRequested: ids?.length ?? 0,
             successCount: completed.length,
             failureCount: failed.length,
