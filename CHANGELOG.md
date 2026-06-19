@@ -1,3 +1,9 @@
+## [5.8.1](https://github.com/Doist/comms-mcp/compare/v5.8.0...v5.8.1) (2026-06-19)
+
+### Bug Fixes
+
+* **mark-done:** archive defines done; secondary failures become warnings ([#19](https://github.com/Doist/comms-mcp/issues/19)) ([14d63f3](https://github.com/Doist/comms-mcp/commit/14d63f30db237992220f318806dc23933c0fdcf1))
+
 ## [5.8.0](https://github.com/Doist/comms-mcp/compare/v5.7.2...v5.8.0) (2026-06-19)
 
 ### Features
