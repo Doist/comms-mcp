@@ -16,6 +16,7 @@ const mockCommsApi = {
     },
     workspaceUsers: {
         getUserById: jest.fn(),
+        getWorkspaceUsers: jest.fn(),
     },
 } as unknown as jest.Mocked<CommsApi>
 
@@ -282,11 +283,16 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledTimes(2)
         })
 
-        it('should fall back to participant ID when name lookup fails', async () => {
+        it('should fall back to participant ID when name lookup fails, preserving alignment', async () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
-                createMockConversation({ userIds: [TEST_IDS.USER_1] }),
+                createMockConversation({ userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2] }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockRejectedValue(new Error('User not found'))
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
+                async (args: { workspaceId: number; userId: number }) => {
+                    if (args.userId === TEST_IDS.USER_2) return { fullName: 'Bob' } as never
+                    throw new Error('User not found')
+                },
+            )
 
             const result = await listConversations.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -294,10 +300,17 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             )
 
             const textContent = extractTextContent(result)
-            expect(textContent).toContain(`**Participants:** ${TEST_IDS.USER_1}`)
+            expect(textContent).toContain(`**Participants:** ${TEST_IDS.USER_1}, Bob`)
 
+            // participantNames stays positionally aligned with userIds: the unresolved
+            // first user falls back to its stringified ID, the second resolves to a name.
             const structuredContent = extractStructuredContent(result)
-            expect(structuredContent.conversations[0]).not.toHaveProperty('participantNames')
+            const conversation = structuredContent.conversations[0] as {
+                userIds: number[]
+                participantNames: string[]
+            }
+            expect(conversation.userIds).toEqual([TEST_IDS.USER_1, TEST_IDS.USER_2])
+            expect(conversation.participantNames).toEqual([String(TEST_IDS.USER_1), 'Bob'])
         })
 
         it('should cap displayed participants at five and summarize the rest', async () => {
@@ -326,7 +339,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                 userIds: number[]
                 participantNames: string[]
             }
-            expect(conversation.userIds).toEqual([101, 102, 103, 104, 105])
+            // Full participant set is retained so the true count isn't ambiguous...
+            expect(conversation.userIds).toEqual([101, 102, 103, 104, 105, 106, 107])
+            // ...but only the first five are resolved to names.
             expect(conversation.participantNames).toEqual([
                 'User 101',
                 'User 102',
@@ -337,6 +352,36 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
 
             // Only the five displayed participants are resolved, not all seven
             expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledTimes(5)
+        })
+
+        it('should fetch the workspace roster once instead of per-user above the threshold', async () => {
+            // 25 conversations each with a distinct single participant → 25 unique IDs,
+            // above PARTICIPANT_ROSTER_THRESHOLD, so a single roster fetch is used.
+            const conversations = Array.from({ length: 25 }, (_, i) =>
+                createMockConversation({ id: `conv-${i}`, userIds: [1000 + i] }),
+            )
+            mockCommsApi.conversations.getConversations.mockResolvedValue(conversations)
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(
+                Array.from({ length: 25 }, (_, i) => ({
+                    id: 1000 + i,
+                    fullName: `User ${1000 + i}`,
+                })) as never,
+            )
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1 },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledTimes(1)
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledWith({
+                workspaceId: TEST_IDS.WORKSPACE_1,
+            })
+            expect(mockCommsApi.workspaceUsers.getUserById).not.toHaveBeenCalled()
+
+            const textContent = extractTextContent(result)
+            expect(textContent).toContain('User 1000')
+            expect(textContent).toContain('User 1024')
         })
     })
 

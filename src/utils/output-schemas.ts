@@ -621,6 +621,8 @@ export const ListConversationsOutputSchema = z.object({
             id: z.string(),
             workspaceId: z.number(),
             title: z.string().optional(),
+            // Full set of participant IDs. `participantNames` resolves only the first
+            // few, positionally aligned with the leading entries of this array.
             userIds: z.array(z.number()),
             participantNames: z.array(z.string()).optional(),
             archived: z.boolean(),

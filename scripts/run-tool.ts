@@ -27,6 +27,7 @@ import { getMentions } from '../src/tools/get-mentions.js'
 import { getUsers } from '../src/tools/get-users.js'
 import { getWorkspaces } from '../src/tools/get-workspaces.js'
 import { listChannels } from '../src/tools/list-channels.js'
+import { listConversations } from '../src/tools/list-conversations.js'
 import { loadConversation } from '../src/tools/load-conversation.js'
 import { loadThread } from '../src/tools/load-thread.js'
 import { markDone } from '../src/tools/mark-done.js'
@@ -71,6 +72,7 @@ const tools: Record<string, ExecutableTool> = {
     'get-users': getUsers,
     'get-groups': getGroups,
     'list-channels': listChannels,
+    'list-conversations': listConversations,
 }
 
 function printUsage() {

@@ -6,6 +6,7 @@ import { fetchInbox } from './tools/fetch-inbox.js'
 import { getGroups } from './tools/get-groups.js'
 import { getMentions } from './tools/get-mentions.js'
 import { listChannels } from './tools/list-channels.js'
+import { listConversations } from './tools/list-conversations.js'
 import { loadConversation } from './tools/load-conversation.js'
 import { loadThread } from './tools/load-thread.js'
 import { markDone } from './tools/mark-done.js'
@@ -31,6 +32,7 @@ const tools = {
     markDone,
     buildLink,
     listChannels,
+    listConversations,
     getGroups,
 }
 
@@ -55,5 +57,6 @@ export {
     markDone,
     buildLink,
     listChannels,
+    listConversations,
     getGroups,
 }
