@@ -1,3 +1,9 @@
+## [5.9.0](https://github.com/Doist/comms-mcp/compare/v5.8.1...v5.9.0) (2026-07-06)
+
+### Features
+
+* expose notifyAudience on create-thread ([#22](https://github.com/Doist/comms-mcp/issues/22)) ([25e4296](https://github.com/Doist/comms-mcp/commit/25e4296dc4f27e36314ccf0f783210db3d5e94a6))
+
 ## [5.8.1](https://github.com/Doist/comms-mcp/compare/v5.8.0...v5.8.1) (2026-06-19)
 
 ### Bug Fixes
