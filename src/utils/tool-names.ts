@@ -18,4 +18,5 @@ export const ToolNames = {
     GET_USERS: 'get-users',
     GET_GROUPS: 'get-groups',
     LIST_CHANNELS: 'list-channels',
+    LIST_CONVERSATIONS: 'list-conversations',
 } as const

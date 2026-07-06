@@ -611,6 +611,30 @@ export const ListChannelsOutputSchema = z.object({
 })
 
 /**
+ * Schema for list-conversations tool output
+ */
+export const ListConversationsOutputSchema = z.object({
+    type: z.literal('list_conversations'),
+    workspaceId: z.number(),
+    conversations: z.array(
+        z.object({
+            id: z.string(),
+            workspaceId: z.number(),
+            title: z.string().optional(),
+            // Full set of participant IDs. `participantNames` resolves only the first
+            // few, positionally aligned with the leading entries of this array.
+            userIds: z.array(z.number()),
+            participantNames: z.array(z.string()).optional(),
+            archived: z.boolean(),
+            lastActive: z.string(),
+            snippet: z.string().optional(),
+            conversationUrl: z.string(),
+        }),
+    ),
+    totalConversations: z.number(),
+})
+
+/**
  * Union of all possible structured outputs for type safety
  */
 export const StructuredOutputSchema = z.union([
@@ -636,6 +660,7 @@ export const StructuredOutputSchema = z.union([
     ReactOutputSchema,
     MarkDoneOutputSchema,
     ListChannelsOutputSchema,
+    ListConversationsOutputSchema,
 ])
 
 /**
@@ -678,4 +703,5 @@ export type ReplyOutput = z.infer<typeof ReplyOutputSchema>
 export type ReactOutput = z.infer<typeof ReactOutputSchema>
 export type MarkDoneOutput = z.infer<typeof MarkDoneOutputSchema>
 export type ListChannelsOutput = z.infer<typeof ListChannelsOutputSchema>
+export type ListConversationsOutput = z.infer<typeof ListConversationsOutputSchema>
 export type StructuredOutput = z.infer<typeof StructuredOutputSchema>

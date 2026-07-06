@@ -11,6 +11,7 @@ import { getMentions } from './tools/get-mentions.js'
 import { getUsers } from './tools/get-users.js'
 import { getWorkspaces } from './tools/get-workspaces.js'
 import { listChannels } from './tools/list-channels.js'
+import { listConversations } from './tools/list-conversations.js'
 import { loadConversation } from './tools/load-conversation.js'
 import { loadThread } from './tools/load-thread.js'
 import { markDone } from './tools/mark-done.js'
@@ -36,6 +37,7 @@ You have access to comprehensive Comms management tools for team communication a
 
 - **fetch-inbox**: Use to fetch inbox threads for a workspace, along with unread conversations and counts. Supports archiveFilter values of active, archived, or all; use all when the user needs both open and done threads. Optionally set onlyUnread to focus on unread items.
 - **list-channels**: Use to discover channels in a workspace. Requires a workspace ID. Optionally set includeArchived to true to also list archived channels. Returns channel names, IDs, descriptions, visibility, archive status, and URLs.
+- **list-conversations**: Use to discover conversations (direct messages) in a workspace. Requires a workspace ID. Optionally set includeArchived to true to also list archived conversations. Returns conversation IDs, titles, a partial list of participant user IDs and names, archive status, last-active timestamps, snippets, and URLs.
 - **get-groups**: Use to discover group IDs in a workspace before notifying groups from tools that support group notifications. Requires a workspace ID. Optionally filter by group IDs or search text. Returns group IDs, names, and member counts without member lists or descriptions.
 - **create-channel**: Use to create a channel in a workspace. Pass workspaceId, name, and optional description or public; omitting public creates a private channel. Pass numeric userIds to add initial members.
 - **update-channel**: Use to rename a channel or update its description/visibility. Pass channelId and at least one of name, description, or public. Pass description: null to clear the description.
@@ -95,6 +97,7 @@ function getMcpServer({ commsApiKey, baseUrl }: { commsApiKey: string; baseUrl?:
     registerTool(react, server, comms)
     registerTool(markDone, server, comms)
     registerTool(listChannels, server, comms)
+    registerTool(listConversations, server, comms)
 
     return server
 }
