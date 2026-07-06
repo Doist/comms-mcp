@@ -1,3 +1,9 @@
+## [5.10.0](https://github.com/Doist/comms-mcp/compare/v5.9.0...v5.10.0) (2026-07-06)
+
+### Features
+
+* add list-conversations tool ([#24](https://github.com/Doist/comms-mcp/issues/24)) ([dd04864](https://github.com/Doist/comms-mcp/commit/dd0486420406006666c3163a3b49fc58643cb04d))
+
 ## [5.9.0](https://github.com/Doist/comms-mcp/compare/v5.8.1...v5.9.0) (2026-07-06)
 
 ### Features
