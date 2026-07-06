@@ -135,8 +135,9 @@ async function generateConversationsList(
     // Names for the displayed participants, positionally aligned with the first
     // entries of the conversation's `userIds`. An ID that couldn't be resolved to a
     // name falls back to its stringified ID so alignment is preserved.
-    const displayNamesFor = (displayIds: number[]) =>
-        displayIds.map((id) => participantLookup[id] ?? String(id))
+    function displayNamesFor(displayIds: number[]): string[] {
+        return displayIds.map((id) => participantLookup[id] ?? String(id))
+    }
 
     const lines: string[] = ['# Conversations', '']
     lines.push(

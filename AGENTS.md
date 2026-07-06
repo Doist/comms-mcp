@@ -12,6 +12,12 @@ When adding a new tool, it must be registered in **all** of these locations:
 6. `src/tools/__tests__/tool-annotations.test.ts` — add annotation expectation entry
 7. `src/tools/__tests__/<tool-name>.test.ts` — create test file
 
+## Code Style
+
+- Prefer `function` declarations over `const` arrow-function assignments for named
+  helpers (module-level or nested). Reserve arrow functions for inline callbacks
+  (e.g. `.map()`, `.filter()`, `.catch()`).
+
 ## Testing Requirements
 
 When adding new tool parameters:
