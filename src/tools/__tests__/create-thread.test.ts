@@ -193,6 +193,116 @@ describe(`${CREATE_THREAD} tool`, () => {
             expect(structuredContent.groups).toEqual([100])
         })
 
+        it('should forward notifyAudience: channel to notify everyone in the channel', async () => {
+            const mockThread = createMockThread({
+                title: 'Everyone',
+                content: 'For the whole channel',
+            })
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
+
+            const result = await createThread.execute(
+                {
+                    channelId: TEST_IDS.CHANNEL_1,
+                    title: 'Everyone',
+                    content: 'For the whole channel',
+                    notifyAudience: 'channel',
+                },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.threads.createThread).toHaveBeenCalledWith({
+                channelId: TEST_IDS.CHANNEL_1,
+                title: 'Everyone',
+                content: 'For the whole channel',
+                recipients: undefined,
+                groups: undefined,
+                notifyAudience: 'channel',
+            })
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.notifyAudience).toBe('channel')
+            expect(extractTextContent(result)).toContain('Everyone in channel')
+        })
+
+        it('should forward notifyAudience alongside explicit recipients', async () => {
+            const mockThread = createMockThread({
+                title: 'Everyone plus one',
+                content: 'Channel and a guest',
+            })
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
+
+            const result = await createThread.execute(
+                {
+                    channelId: TEST_IDS.CHANNEL_1,
+                    title: 'Everyone plus one',
+                    content: 'Channel and a guest',
+                    recipients: [TEST_IDS.USER_1],
+                    notifyAudience: 'channel',
+                },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.threads.createThread).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    recipients: [TEST_IDS.USER_1],
+                    notifyAudience: 'channel',
+                }),
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.recipients).toEqual([TEST_IDS.USER_1])
+            expect(structuredContent.notifyAudience).toBe('channel')
+        })
+
+        it('should forward notifyAudience: thread but report it as not applied at creation', async () => {
+            const mockThread = createMockThread({
+                title: 'Interacted only',
+                content: 'No effect at creation',
+            })
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
+
+            const result = await createThread.execute(
+                {
+                    channelId: TEST_IDS.CHANNEL_1,
+                    title: 'Interacted only',
+                    content: 'No effect at creation',
+                    notifyAudience: 'thread',
+                },
+                mockCommsApi,
+            )
+
+            // The request is still forwarded to the SDK verbatim...
+            expect(mockCommsApi.threads.createThread).toHaveBeenCalledWith(
+                expect.objectContaining({ notifyAudience: 'thread' }),
+            )
+
+            // ...but 'thread' is discarded at thread creation, so it is not
+            // reported as an applied audience in the structured output.
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent).not.toHaveProperty('notifyAudience')
+            expect(extractTextContent(result)).toContain('no effect at thread creation')
+        })
+
+        it('should omit notifyAudience from output when not provided', async () => {
+            const mockThread = createMockThread({
+                title: 'No audience',
+                content: 'Defaults apply',
+            })
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
+
+            const result = await createThread.execute(
+                {
+                    channelId: TEST_IDS.CHANNEL_1,
+                    title: 'No audience',
+                    content: 'Defaults apply',
+                },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent).not.toHaveProperty('notifyAudience')
+        })
+
         it('should unarchive the thread when displayInInbox is true', async () => {
             const mockThread = createMockThread({
                 title: 'Inbox Thread',

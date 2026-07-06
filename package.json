@@ -33,6 +33,9 @@
         "access": "public",
         "provenance": true
     },
+    "engines": {
+        "node": ">=20.18.1"
+    },
     "scripts": {
         "test": "jest",
         "build": "rimraf dist && npx tsc --project tsconfig.json",
@@ -45,7 +48,7 @@
         "prepublishOnly": "npm run build && npm test"
     },
     "dependencies": {
-        "@doist/comms-sdk": "0.5.2",
+        "@doist/comms-sdk": "0.8.0",
         "dotenv": "17.4.2",
         "p-limit": "6.2.0",
         "zod": "4.1.13"

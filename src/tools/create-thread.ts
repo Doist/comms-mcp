@@ -1,4 +1,4 @@
-import { getFullCommsURL } from '@doist/comms-sdk'
+import { getFullCommsURL, NOTIFY_AUDIENCES } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
@@ -13,7 +13,7 @@ const ArgsSchema = {
         .array(z.number())
         .optional()
         .describe(
-            'Optional array of user IDs to notify. If omitted, Comms defaults to notifying all current members of the channel (equivalent to the API\'s "EVERYONE" default). Note: workspace users who have not joined this channel will not be notified — add their IDs explicitly if you want to reach them.',
+            "Optional array of individual user IDs to notify. To notify everyone in the channel, prefer notifyAudience: 'channel' instead of enumerating every member here. If omitted (with no groups and no notifyAudience), Comms applies the channel's defaults, which is everyone in the channel. Note: workspace users who have not joined this channel will not be notified — add their IDs explicitly if you want to reach them.",
         ),
     displayInInbox: z
         .boolean()
@@ -27,6 +27,12 @@ const ArgsSchema = {
         .describe(
             'Optional array of group IDs to notify. Use get-groups to discover group IDs before passing them here.',
         ),
+    notifyAudience: z
+        .enum(NOTIFY_AUDIENCES)
+        .optional()
+        .describe(
+            "Optional broader audience to notify in addition to recipients and groups. 'channel' tags the thread with \"Everyone in channel\" — use this to reach everyone instead of listing individual recipients. 'thread' (everyone who has interacted) has no effect when creating a thread, since a new thread has no interactions yet — use it on reply instead.",
+        ),
 }
 
 const createThread = {
@@ -37,7 +43,8 @@ const createThread = {
     outputSchema: CreateThreadOutputSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     async execute(args, client) {
-        const { channelId, title, content, recipients, groups, displayInInbox } = args
+        const { channelId, title, content, recipients, groups, notifyAudience, displayInInbox } =
+            args
 
         const thread = await client.threads.createThread({
             channelId,
@@ -45,6 +52,7 @@ const createThread = {
             content,
             recipients,
             groups,
+            notifyAudience,
         })
 
         const wantsInboxDisplay =
@@ -86,6 +94,20 @@ const createThread = {
             ? '> Thread is in your Inbox (auto-unarchived after creation).'
             : '> Note: Threads you create do not appear in your own Inbox by default — only recipients see them there. Find the thread in the channel view or via its URL.'
 
+        // Only 'channel' takes effect at thread creation. 'thread' (everyone who
+        // has interacted) is discarded by the backend — a new thread has no
+        // interactions yet — so it never becomes an applied audience here. Report
+        // the applied audience, not the request, so machine consumers aren't told
+        // an audience was notified when it wasn't.
+        const appliedAudience = notifyAudience === 'channel' ? notifyAudience : undefined
+
+        const audienceNote =
+            notifyAudience === 'channel'
+                ? 'Everyone in channel'
+                : notifyAudience === 'thread'
+                  ? 'Everyone who has interacted (no effect at thread creation)'
+                  : undefined
+
         const lines: string[] = [
             `# Thread Created`,
             '',
@@ -94,6 +116,7 @@ const createThread = {
             `**Channel ID:** ${thread.channelId}`,
             `**Created:** ${created.toISOString()}`,
             `**URL:** ${threadUrl}`,
+            ...(audienceNote ? [`**Notified:** ${audienceNote}`] : []),
             '',
             '## Content',
             '',
@@ -115,6 +138,7 @@ const createThread = {
             threadUrl,
             ...(recipients ? { recipients } : {}),
             ...(groups ? { groups } : {}),
+            ...(appliedAudience ? { notifyAudience: appliedAudience } : {}),
         }
 
         return getToolOutput({

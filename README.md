@@ -161,7 +161,7 @@ For details, see [src/tools](src/tools).
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20.18.1+
 - npm
 - A Comms API token
 
