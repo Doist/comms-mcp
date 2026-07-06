@@ -94,6 +94,13 @@ const createThread = {
             ? '> Thread is in your Inbox (auto-unarchived after creation).'
             : '> Note: Threads you create do not appear in your own Inbox by default — only recipients see them there. Find the thread in the channel view or via its URL.'
 
+        // Only 'channel' takes effect at thread creation. 'thread' (everyone who
+        // has interacted) is discarded by the backend — a new thread has no
+        // interactions yet — so it never becomes an applied audience here. Report
+        // the applied audience, not the request, so machine consumers aren't told
+        // an audience was notified when it wasn't.
+        const appliedAudience = notifyAudience === 'channel' ? notifyAudience : undefined
+
         const audienceNote =
             notifyAudience === 'channel'
                 ? 'Everyone in channel'
@@ -131,7 +138,7 @@ const createThread = {
             threadUrl,
             ...(recipients ? { recipients } : {}),
             ...(groups ? { groups } : {}),
-            ...(notifyAudience ? { notifyAudience } : {}),
+            ...(appliedAudience ? { notifyAudience: appliedAudience } : {}),
         }
 
         return getToolOutput({

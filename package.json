@@ -33,6 +33,9 @@
         "access": "public",
         "provenance": true
     },
+    "engines": {
+        "node": ">=20.18.1"
+    },
     "scripts": {
         "test": "jest",
         "build": "rimraf dist && npx tsc --project tsconfig.json",

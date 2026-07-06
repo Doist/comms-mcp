@@ -254,6 +254,35 @@ describe(`${CREATE_THREAD} tool`, () => {
             expect(structuredContent.notifyAudience).toBe('channel')
         })
 
+        it('should forward notifyAudience: thread but report it as not applied at creation', async () => {
+            const mockThread = createMockThread({
+                title: 'Interacted only',
+                content: 'No effect at creation',
+            })
+            mockCommsApi.threads.createThread.mockResolvedValue(mockThread)
+
+            const result = await createThread.execute(
+                {
+                    channelId: TEST_IDS.CHANNEL_1,
+                    title: 'Interacted only',
+                    content: 'No effect at creation',
+                    notifyAudience: 'thread',
+                },
+                mockCommsApi,
+            )
+
+            // The request is still forwarded to the SDK verbatim...
+            expect(mockCommsApi.threads.createThread).toHaveBeenCalledWith(
+                expect.objectContaining({ notifyAudience: 'thread' }),
+            )
+
+            // ...but 'thread' is discarded at thread creation, so it is not
+            // reported as an applied audience in the structured output.
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent).not.toHaveProperty('notifyAudience')
+            expect(extractTextContent(result)).toContain('no effect at thread creation')
+        })
+
         it('should omit notifyAudience from output when not provided', async () => {
             const mockThread = createMockThread({
                 title: 'No audience',
