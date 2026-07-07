@@ -1,3 +1,9 @@
+## [5.11.0](https://github.com/Doist/comms-mcp/compare/v5.10.0...v5.11.0) (2026-07-07)
+
+### Features
+
+* clarify search-content and get-mentions result id contract ([#25](https://github.com/Doist/comms-mcp/issues/25)) ([8f297e2](https://github.com/Doist/comms-mcp/commit/8f297e2733fc674d981509edbef3d17338f65c4b))
+
 ## [5.10.0](https://github.com/Doist/comms-mcp/compare/v5.9.0...v5.10.0) (2026-07-06)
 
 ### Features
