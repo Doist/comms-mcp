@@ -304,6 +304,53 @@ describe(`${SEARCH_CONTENT} tool`, () => {
         })
     })
 
+    describe('comment matches without a channel', () => {
+        it('falls back to the thread URL instead of an invalid comment link', async () => {
+            mockCommsApi.search.search.mockResolvedValue({
+                items: [
+                    {
+                        id: `thread_${TEST_IDS.THREAD_1}`,
+                        type: 'thread' as const,
+                        snippet: 'Comment match without channel',
+                        snippetCreatorId: TEST_IDS.USER_1,
+                        snippetLastUpdated: new Date('2024-01-01T00:00:00Z'),
+                        threadId: TEST_IDS.THREAD_1,
+                        commentId: TEST_IDS.COMMENT_1,
+                    },
+                ],
+                hasMore: false,
+                isPlanRestricted: false,
+            })
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                id: TEST_IDS.USER_1,
+                fullName: 'Test User 1',
+                shortName: 'TU1',
+                email: 'user1@test.com',
+                userType: 'USER' as const,
+                removed: false,
+                timezone: 'UTC',
+                version: 1,
+            } as never)
+
+            const result = await searchContent.execute(
+                {
+                    query: 'test',
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    limit: 50,
+                },
+                mockCommsApi,
+            )
+
+            const { structuredContent } = result
+            expect(structuredContent?.results[0]).toEqual(
+                expect.objectContaining({
+                    commentId: TEST_IDS.COMMENT_1,
+                    url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/inbox/t/${TEST_IDS.THREAD_1}/`,
+                }),
+            )
+        })
+    })
+
     describe('malformed results', () => {
         it('should drop results without a container id', async () => {
             mockCommsApi.search.search.mockResolvedValue({
@@ -324,6 +371,14 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                         snippetCreatorId: TEST_IDS.USER_1,
                         snippetLastUpdated: new Date('2024-01-01T00:00:00Z'),
                         threadId: null,
+                    },
+                    {
+                        id: 'conversation_orphaned',
+                        type: 'conversation' as const,
+                        snippet: 'Malformed result without conversationId',
+                        snippetCreatorId: TEST_IDS.USER_1,
+                        snippetLastUpdated: new Date('2024-01-01T00:00:00Z'),
+                        conversationId: null,
                     },
                 ],
                 hasMore: false,

@@ -1,12 +1,8 @@
-import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import {
-    type SearchContentOutput,
-    SearchContentOutputSchema,
-    type SearchResultItem,
-} from '../utils/output-schemas.js'
+import { type SearchContentOutput, SearchContentOutputSchema } from '../utils/output-schemas.js'
+import { toRawSearchResults, toSearchResultItems } from '../utils/search-results.js'
 import { ToolNames } from '../utils/tool-names.js'
 
 const ArgsSchema = {
@@ -29,12 +25,6 @@ const ArgsSchema = {
 }
 
 type SearchContentStructured = SearchContentOutput
-
-// Search result before URL/name enrichment, discriminated the same way as the output.
-type RawSearchResult = { id: string; content: string; creatorId: number; created: string } & (
-    | { type: 'thread'; threadId: string; commentId?: string; channelId?: string }
-    | { type: 'conversation'; conversationId: string }
-)
 
 const searchContent = {
     name: ToolNames.SEARCH_CONTENT,
@@ -69,43 +59,7 @@ const searchContent = {
             cursor,
         })
 
-        // The search API only emits 'thread' and 'conversation' results, each with its
-        // container id set; a comment match is a 'thread' result with commentId set.
-        const results = response.items.flatMap((r): RawSearchResult[] => {
-            const common = {
-                id: r.id,
-                content: r.snippet,
-                creatorId: r.snippetCreatorId,
-                created: r.snippetLastUpdated.toISOString(),
-            }
-            if (r.type === 'thread' && r.threadId != null) {
-                return [
-                    {
-                        ...common,
-                        type: 'thread' as const,
-                        threadId: r.threadId,
-                        commentId: r.commentId ?? undefined,
-                        channelId: r.channelId ?? undefined,
-                    },
-                ]
-            }
-            if (r.type === 'conversation' && r.conversationId != null) {
-                return [
-                    {
-                        ...common,
-                        type: 'conversation' as const,
-                        conversationId: r.conversationId,
-                    },
-                ]
-            }
-            return []
-        })
-
-        if (results.length < response.items.length) {
-            console.error('search-content: dropped search result(s) without a container id', {
-                dropped: response.items.length - results.length,
-            })
-        }
+        const results = toRawSearchResults(response.items, 'search-content')
 
         const hasMore = response.hasMore
         const responseCursor = response.nextCursorMark
@@ -211,33 +165,7 @@ const searchContent = {
             type: 'search_results',
             query,
             workspaceId,
-            results: results.map((r): SearchResultItem => {
-                const common = {
-                    creatorName: userLookup[r.creatorId],
-                    workspaceId,
-                }
-                if (r.type === 'thread') {
-                    return {
-                        ...r,
-                        ...common,
-                        channelName: r.channelId ? channelLookup[r.channelId] : undefined,
-                        url: getFullCommsURL({
-                            workspaceId,
-                            threadId: r.threadId,
-                            channelId: r.channelId,
-                            commentId: r.commentId,
-                        }),
-                    }
-                }
-                return {
-                    ...r,
-                    ...common,
-                    url: getFullCommsURL({
-                        workspaceId,
-                        conversationId: r.conversationId,
-                    }),
-                }
-            }),
+            results: toSearchResultItems(results, { workspaceId, userLookup, channelLookup }),
             totalResults: results.length,
             hasMore,
             cursor: responseCursor,
