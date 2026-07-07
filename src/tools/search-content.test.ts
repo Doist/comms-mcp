@@ -1,8 +1,8 @@
 import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
-import { extractTextContent, TEST_IDS } from '../../utils/test-helpers.js'
-import { ToolNames } from '../../utils/tool-names.js'
-import { searchContent } from '../search-content.js'
+import { extractTextContent, TEST_IDS } from '../utils/test-helpers.js'
+import { ToolNames } from '../utils/tool-names.js'
+import { searchContent } from './search-content.js'
 
 // Mock the Comms API
 const mockCommsApi = {

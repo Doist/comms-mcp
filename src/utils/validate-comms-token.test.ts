@@ -1,5 +1,5 @@
 import { CommsRequestError } from '@doist/comms-sdk'
-import { validateCommsToken } from '../validate-comms-token.js'
+import { validateCommsToken } from './validate-comms-token.js'
 
 describe('validateCommsToken', () => {
     const originalFetch = global.fetch

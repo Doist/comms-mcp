@@ -6,9 +6,9 @@ import {
     extractTextContent,
     TEST_ERRORS,
     TEST_IDS,
-} from '../../utils/test-helpers.js'
-import { ToolNames } from '../../utils/tool-names.js'
-import { listChannels } from '../list-channels.js'
+} from '../utils/test-helpers.js'
+import { ToolNames } from '../utils/tool-names.js'
+import { listChannels } from './list-channels.js'
 
 const mockCommsApi = {
     channels: {

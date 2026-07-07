@@ -5,9 +5,9 @@ import {
     createMockConversationMessage,
     extractTextContent,
     TEST_IDS,
-} from '../../utils/test-helpers.js'
-import { ToolNames } from '../../utils/tool-names.js'
-import { loadConversation } from '../load-conversation.js'
+} from '../utils/test-helpers.js'
+import { ToolNames } from '../utils/tool-names.js'
+import { loadConversation } from './load-conversation.js'
 
 // Mock the Comms API
 const mockCommsApi = {

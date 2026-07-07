@@ -5,9 +5,9 @@ import {
     extractTextContent,
     TEST_ERRORS,
     TEST_IDS,
-} from '../../utils/test-helpers.js'
-import { ToolNames } from '../../utils/tool-names.js'
-import { getGroups } from '../get-groups.js'
+} from '../utils/test-helpers.js'
+import { ToolNames } from '../utils/tool-names.js'
+import { getGroups } from './get-groups.js'
 
 const mockCommsApi = {
     groups: {

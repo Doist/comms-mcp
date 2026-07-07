@@ -5,9 +5,9 @@ import {
     extractTextContent,
     TEST_ERRORS,
     TEST_IDS,
-} from '../../utils/test-helpers.js'
-import { ToolNames } from '../../utils/tool-names.js'
-import { getUsers } from '../get-users.js'
+} from '../utils/test-helpers.js'
+import { ToolNames } from '../utils/tool-names.js'
+import { getUsers } from './get-users.js'
 
 // Mock the Comms API
 const mockCommsApi = {

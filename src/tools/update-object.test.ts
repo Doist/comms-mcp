@@ -6,9 +6,9 @@ import {
     createMockThread,
     extractTextContent,
     TEST_IDS,
-} from '../../utils/test-helpers.js'
-import { ToolNames } from '../../utils/tool-names.js'
-import { updateObject } from '../update-object.js'
+} from '../utils/test-helpers.js'
+import { ToolNames } from '../utils/tool-names.js'
+import { updateObject } from './update-object.js'
 
 const mockCommsApi = {
     threads: {
