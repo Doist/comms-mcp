@@ -1,8 +1,8 @@
-import { type SearchResultType, getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import { SearchContentOutputSchema } from '../utils/output-schemas.js'
+import { type SearchContentOutput, SearchContentOutputSchema } from '../utils/output-schemas.js'
+import { toRawSearchResults, toSearchResultItems } from '../utils/search-results.js'
 import { ToolNames } from '../utils/tool-names.js'
 
 const ArgsSchema = {
@@ -24,28 +24,7 @@ const ArgsSchema = {
     cursor: z.string().optional().describe('Cursor for pagination.'),
 }
 
-type SearchContentStructured = {
-    type: 'search_results'
-    query: string
-    workspaceId: number
-    results: Array<{
-        id: string
-        type: SearchResultType
-        content: string
-        creatorId: number
-        creatorName?: string
-        created: string
-        threadId?: string
-        conversationId?: string
-        channelId?: string
-        channelName?: string
-        workspaceId: number
-        url: string
-    }>
-    totalResults: number
-    hasMore: boolean
-    cursor?: string
-}
+type SearchContentStructured = SearchContentOutput
 
 const searchContent = {
     name: ToolNames.SEARCH_CONTENT,
@@ -80,17 +59,7 @@ const searchContent = {
             cursor,
         })
 
-        const results = response.items.map((r) => ({
-            id: r.id,
-            type: r.type,
-            content: r.snippet,
-            creatorId: r.snippetCreatorId,
-            created: r.snippetLastUpdated.toISOString(),
-            threadId: r.threadId ?? undefined,
-            conversationId: r.conversationId ?? undefined,
-            channelId: r.channelId ?? undefined,
-            workspaceId,
-        }))
+        const results = toRawSearchResults(response.items, 'search-content')
 
         const hasMore = response.hasMore
         const responseCursor = response.nextCursorMark
@@ -106,7 +75,7 @@ const searchContent = {
             const channelIdSet = new Set<string>()
             for (const result of results) {
                 userIds.add(result.creatorId)
-                if (result.channelId) {
+                if (result.type === 'thread' && result.channelId) {
                     channelIdSet.add(result.channelId)
                 }
             }
@@ -162,15 +131,18 @@ const searchContent = {
                     `**Created:** ${date} | **Creator:** ${creatorName} (${result.creatorId})`,
                 )
 
-                if (result.threadId) {
+                if (result.type === 'thread') {
                     lines.push(`**Thread:** ${result.threadId}`)
-                }
-                if (result.conversationId) {
+                    if (result.commentId) {
+                        lines.push(`**Comment:** ${result.commentId}`)
+                    }
+                    if (result.channelId) {
+                        const channelName = channelLookup[result.channelId]
+                        lines.push(`**Channel:** ${channelName} (${result.channelId})`)
+                    }
+                } else {
                     lines.push(`**Conversation:** ${result.conversationId}`)
-                }
-                if (result.channelId) {
-                    const channelName = channelLookup[result.channelId]
-                    lines.push(`**Channel:** ${channelName} (${result.channelId})`)
+                    lines.push(`**Message:** ${result.messageId}`)
                 }
 
                 lines.push('')
@@ -194,47 +166,7 @@ const searchContent = {
             type: 'search_results',
             query,
             workspaceId,
-            results: results.map((r) => {
-                let url: string
-                if (r.type === 'thread' && r.threadId !== undefined) {
-                    url = getFullCommsURL({
-                        workspaceId,
-                        threadId: r.threadId,
-                        channelId: r.channelId,
-                    })
-                } else if (
-                    r.type === 'comment' &&
-                    r.threadId !== undefined &&
-                    r.channelId !== undefined
-                ) {
-                    url = getFullCommsURL({
-                        workspaceId,
-                        threadId: r.threadId,
-                        channelId: r.channelId,
-                        commentId: r.id,
-                    })
-                } else if (r.type === 'conversation' && r.conversationId !== undefined) {
-                    url = getFullCommsURL({
-                        workspaceId,
-                        conversationId: r.conversationId,
-                    })
-                } else if (r.type === 'message' && r.conversationId !== undefined) {
-                    url = getFullCommsURL({
-                        workspaceId,
-                        conversationId: r.conversationId,
-                        messageId: r.id,
-                    })
-                } else {
-                    // Fallback - shouldn't happen but provides safety
-                    url = ''
-                }
-                return {
-                    ...r,
-                    creatorName: userLookup[r.creatorId],
-                    channelName: r.channelId ? channelLookup[r.channelId] : undefined,
-                    url,
-                }
-            }),
+            results: toSearchResultItems(results, { workspaceId, userLookup, channelLookup }),
             totalResults: results.length,
             hasMore,
             cursor: responseCursor,
