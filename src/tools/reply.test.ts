@@ -6,9 +6,9 @@ import {
     extractStructuredContent,
     extractTextContent,
     TEST_IDS,
-} from '../../utils/test-helpers.js'
-import { ToolNames } from '../../utils/tool-names.js'
-import { reply } from '../reply.js'
+} from '../utils/test-helpers.js'
+import { ToolNames } from '../utils/tool-names.js'
+import { reply } from './reply.js'
 
 // Mock the Comms API
 const mockCommsApi = {

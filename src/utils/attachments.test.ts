@@ -1,4 +1,4 @@
-import { formatAttachmentsLine, normalizeAttachments } from '../attachments.js'
+import { formatAttachmentsLine, normalizeAttachments } from './attachments.js'
 
 const validAttachment = {
     attachmentId: 'abc-123',

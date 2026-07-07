@@ -33,5 +33,5 @@
         "declarationMap": false
     },
     "include": ["src"],
-    "exclude": ["**/*.test.ts", "**/*.spec.ts", "**/__tests__"]
+    "exclude": ["**/*.test.ts", "**/*.spec.ts"]
 }

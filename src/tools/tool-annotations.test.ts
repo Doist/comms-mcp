@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
-import { getMcpServer } from '../../mcp-server.js'
-import { ToolNames } from '../../utils/tool-names.js'
+import { getMcpServer } from '../mcp-server.js'
+import { ToolNames } from '../utils/tool-names.js'
 
 type ToolExpectation = {
     name: string

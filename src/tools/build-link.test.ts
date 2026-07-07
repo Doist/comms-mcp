@@ -1,6 +1,6 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { extractTextContent } from '../../utils/test-helpers.js'
-import { buildLink } from '../build-link.js'
+import { extractTextContent } from '../utils/test-helpers.js'
+import { buildLink } from './build-link.js'
 
 describe('buildLink', () => {
     describe('conversation links', () => {

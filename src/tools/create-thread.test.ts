@@ -5,9 +5,9 @@ import {
     extractStructuredContent,
     extractTextContent,
     TEST_IDS,
-} from '../../utils/test-helpers.js'
-import { ToolNames } from '../../utils/tool-names.js'
-import { createThread } from '../create-thread.js'
+} from '../utils/test-helpers.js'
+import { ToolNames } from '../utils/tool-names.js'
+import { createThread } from './create-thread.js'
 
 const mockCommsApi = {
     threads: {

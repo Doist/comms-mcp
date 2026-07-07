@@ -5,9 +5,9 @@ import {
     createMockThread,
     extractTextContent,
     TEST_IDS,
-} from '../../utils/test-helpers.js'
-import { ToolNames } from '../../utils/tool-names.js'
-import { loadThread } from '../load-thread.js'
+} from '../utils/test-helpers.js'
+import { ToolNames } from '../utils/tool-names.js'
+import { loadThread } from './load-thread.js'
 
 // Mock the Comms API
 const mockCommsApi = {
