@@ -9,15 +9,16 @@ export type RawSearchResult = {
     created: string
 } & (
     | { type: 'thread'; threadId: string; commentId?: string; channelId?: string }
-    | { type: 'conversation'; conversationId: string }
+    | { type: 'conversation'; conversationId: string; messageId: string }
 )
 
 /**
  * Normalizes SDK search results into the discriminated shape shared by
  * search-content and get-mentions. The search API only emits 'thread' and
  * 'conversation' results, each with its container id set; a comment match is a
- * 'thread' result with commentId set. Results missing their container id are
- * dropped with a logged warning.
+ * 'thread' result with commentId set, a message match a 'conversation' result
+ * with messageId set. Results missing a required id are dropped with a logged
+ * warning.
  */
 export function toRawSearchResults(items: SearchResult[], toolName: string): RawSearchResult[] {
     const results = items.flatMap((r): RawSearchResult[] => {
@@ -38,12 +39,13 @@ export function toRawSearchResults(items: SearchResult[], toolName: string): Raw
                 },
             ]
         }
-        if (r.type === 'conversation' && r.conversationId != null) {
+        if (r.type === 'conversation' && r.conversationId != null && r.messageId != null) {
             return [
                 {
                     ...common,
                     type: 'conversation' as const,
                     conversationId: r.conversationId,
+                    messageId: r.messageId,
                 },
             ]
         }
@@ -51,7 +53,7 @@ export function toRawSearchResults(items: SearchResult[], toolName: string): Raw
     })
 
     if (results.length < items.length) {
-        console.error(`${toolName}: dropped search result(s) without a container id`, {
+        console.error(`${toolName}: dropped search result(s) missing a required id`, {
             dropped: items.length - results.length,
         })
     }
@@ -100,6 +102,7 @@ export function toSearchResultItems(
             url: getFullCommsURL({
                 workspaceId,
                 conversationId: r.conversationId,
+                messageId: r.messageId,
             }),
         }
     })

@@ -122,6 +122,7 @@ const getMentions = {
                     }
                 } else {
                     lines.push(`**Conversation:** ${result.conversationId}`)
+                    lines.push(`**Message:** ${result.messageId}`)
                 }
 
                 lines.push('')

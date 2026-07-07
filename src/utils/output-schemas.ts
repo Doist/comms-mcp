@@ -188,7 +188,7 @@ const searchResultItemBaseShape = {
     id: z
         .string()
         .describe(
-            'Opaque search-result key (`thread_<threadId>` or `conversation_<conversationId>`). Not a Comms object id — use the typed id fields (threadId, commentId, conversationId) instead.',
+            'Opaque search-result key (`thread_<threadId>` or `conversation_<conversationId>`). Not a Comms object id — use the typed id fields (threadId, commentId, conversationId, messageId) instead.',
         ),
     content: z.string(),
     creatorId: z.number(),
@@ -214,6 +214,7 @@ export const SearchResultItemSchema = z.discriminatedUnion('type', [
         ...searchResultItemBaseShape,
         type: z.literal('conversation'),
         conversationId: z.string().describe('The matched conversation id.'),
+        messageId: z.string().describe('The matched message id within the conversation.'),
     }),
 ])
 
