@@ -91,7 +91,7 @@ describe(`${GET_MENTIONS} tool`, () => {
         mockCommsApi.search.search.mockResolvedValue({
             items: [
                 {
-                    id: 'thread-123',
+                    id: `thread_${TEST_IDS.THREAD_1}`,
                     type: 'thread' as const,
                     snippet: 'You were mentioned here',
                     snippetCreatorId: TEST_IDS.USER_1,
@@ -159,9 +159,10 @@ describe(`${GET_MENTIONS} tool`, () => {
     it('exposes pagination cursor when hasMore is true', async () => {
         mockCommsApi.search.search.mockResolvedValue({
             items: [
+                // A comment mention: still a 'thread' result, with commentId set
                 {
-                    id: 'comment-1',
-                    type: 'comment' as const,
+                    id: `thread_${TEST_IDS.THREAD_1}`,
+                    type: 'thread' as const,
                     snippet: 'A mention',
                     snippetCreatorId: TEST_IDS.USER_1,
                     snippetLastUpdated: new Date('2024-01-01T00:00:00Z'),
@@ -206,7 +207,77 @@ describe(`${GET_MENTIONS} tool`, () => {
 
         expect(result.structuredContent?.hasMore).toBe(true)
         expect(result.structuredContent?.cursor).toBe('next-cursor-xyz')
+        expect(result.structuredContent?.results[0]).toEqual(
+            expect.objectContaining({
+                type: 'thread',
+                threadId: TEST_IDS.THREAD_1,
+                commentId: TEST_IDS.COMMENT_1,
+                url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/c/${TEST_IDS.COMMENT_1}`,
+            }),
+        )
         expect(extractTextContent(result)).toContain('More results available')
+    })
+
+    it('drops results without a container id', async () => {
+        mockCommsApi.search.search.mockResolvedValue({
+            items: [
+                {
+                    id: `thread_${TEST_IDS.THREAD_1}`,
+                    type: 'thread' as const,
+                    snippet: 'Valid mention',
+                    snippetCreatorId: TEST_IDS.USER_1,
+                    snippetLastUpdated: new Date('2024-01-01T00:00:00Z'),
+                    channelId: TEST_IDS.CHANNEL_1,
+                    threadId: TEST_IDS.THREAD_1,
+                },
+                {
+                    id: 'thread_orphaned',
+                    type: 'thread' as const,
+                    snippet: 'Malformed mention without threadId',
+                    snippetCreatorId: TEST_IDS.USER_1,
+                    snippetLastUpdated: new Date('2024-01-01T00:00:00Z'),
+                    threadId: null,
+                },
+            ],
+            hasMore: false,
+            isPlanRestricted: false,
+        })
+        mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+            id: TEST_IDS.USER_1,
+            fullName: 'Test User 1',
+            shortName: 'TU1',
+            email: 'user1@test.com',
+            userType: 'USER' as const,
+            removed: false,
+            timezone: 'UTC',
+            version: 1,
+        } as never)
+        mockCommsApi.channels.getChannel.mockResolvedValue({
+            id: TEST_IDS.CHANNEL_1,
+            name: 'Test Channel',
+            workspaceId: TEST_IDS.WORKSPACE_1,
+            created: new Date(),
+            archived: false,
+            public: true,
+            color: 0,
+            creator: TEST_IDS.USER_1,
+            version: 1,
+        })
+
+        const result = await getMentions.execute(
+            {
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                limit: 50,
+            },
+            mockCommsApi,
+        )
+
+        const { structuredContent } = result
+        expect(structuredContent?.results).toHaveLength(1)
+        expect(structuredContent?.totalResults).toBe(1)
+        expect(structuredContent?.results[0]).toEqual(
+            expect.objectContaining({ threadId: TEST_IDS.THREAD_1 }),
+        )
     })
 
     it('handles no results found', async () => {

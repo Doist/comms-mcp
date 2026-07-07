@@ -39,7 +39,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
             mockCommsApi.search.search.mockResolvedValue({
                 items: [
                     {
-                        id: 'thread-123',
+                        id: `thread_${TEST_IDS.THREAD_1}`,
                         type: 'thread' as const,
                         snippet: 'Test thread matching query',
                         snippetCreatorId: TEST_IDS.USER_1,
@@ -51,13 +51,15 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                         title: 'Test Thread',
                         closed: false,
                     },
+                    // A comment match: still a 'thread' result, with commentId set
                     {
-                        id: 'comment-456',
-                        type: 'comment' as const,
+                        id: `thread_${TEST_IDS.THREAD_2}`,
+                        type: 'thread' as const,
                         snippet: 'Test comment matching query',
                         snippetCreatorId: TEST_IDS.USER_1,
                         snippetLastUpdated: new Date('2024-01-01T00:00:00Z'),
-                        threadId: TEST_IDS.THREAD_1,
+                        channelId: TEST_IDS.CHANNEL_1,
+                        threadId: TEST_IDS.THREAD_2,
                         commentId: TEST_IDS.COMMENT_1,
                     },
                 ],
@@ -118,26 +120,34 @@ describe(`${SEARCH_CONTENT} tool`, () => {
             expect(structuredContent?.results).toHaveLength(2)
             expect(structuredContent?.results[0]).toEqual(
                 expect.objectContaining({
+                    id: `thread_${TEST_IDS.THREAD_1}`,
                     type: 'thread',
+                    threadId: TEST_IDS.THREAD_1,
                     content: 'Test thread matching query',
+                    created: '2024-01-01T00:00:00.000Z',
+                    creatorName: 'Test User 1',
+                    channelName: 'Test Channel',
+                    url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_1}/`,
                 }),
             )
-            const { results } = structuredContent || {}
-            if (results?.[0] && results[1]) {
-                expect(results[0].created).toBe('2024-01-01T00:00:00.000Z')
-                expect(results[1].created).toBe('2024-01-01T00:00:00.000Z')
-                expect(results[0].creatorName).toBe('Test User 1')
-                expect(results[0].channelName).toBe('Test Channel')
-                expect(results[1].creatorName).toBe('Test User 1')
-                expect(results[1].channelName).toBeUndefined()
-            }
+            // The comment match keeps the thread as container and deep-links to the comment
+            expect(structuredContent?.results[1]).toEqual(
+                expect.objectContaining({
+                    id: `thread_${TEST_IDS.THREAD_2}`,
+                    type: 'thread',
+                    threadId: TEST_IDS.THREAD_2,
+                    commentId: TEST_IDS.COMMENT_1,
+                    creatorName: 'Test User 1',
+                    url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/ch/${TEST_IDS.CHANNEL_1}/t/${TEST_IDS.THREAD_2}/c/${TEST_IDS.COMMENT_1}`,
+                }),
+            )
         })
 
         it('should search with filters', async () => {
             mockCommsApi.search.search.mockResolvedValue({
                 items: [
                     {
-                        id: 'thread-789',
+                        id: `thread_${TEST_IDS.THREAD_1}`,
                         type: 'thread' as const,
                         snippet: 'Filtered result',
                         snippetCreatorId: TEST_IDS.USER_1,
@@ -204,8 +214,8 @@ describe(`${SEARCH_CONTENT} tool`, () => {
             mockCommsApi.search.search.mockResolvedValue({
                 items: [
                     {
-                        id: 'result-1',
-                        type: 'message' as const,
+                        id: `conversation_${TEST_IDS.CONVERSATION_1}`,
+                        type: 'conversation' as const,
                         snippet: 'Page 1 result',
                         snippetCreatorId: TEST_IDS.USER_1,
                         snippetLastUpdated: new Date('2024-01-01T00:00:00Z'),
@@ -249,7 +259,7 @@ describe(`${SEARCH_CONTENT} tool`, () => {
             mockCommsApi.search.search.mockResolvedValue({
                 items: [
                     {
-                        id: 'conversation-33333',
+                        id: `conversation_${TEST_IDS.CONVERSATION_1}`,
                         type: 'conversation' as const,
                         snippet: 'Conversation matching query',
                         snippetCreatorId: TEST_IDS.USER_1,
@@ -284,13 +294,78 @@ describe(`${SEARCH_CONTENT} tool`, () => {
             expect(structuredContent?.results).toHaveLength(1)
             expect(structuredContent?.results[0]).toEqual(
                 expect.objectContaining({
+                    id: `conversation_${TEST_IDS.CONVERSATION_1}`,
                     type: 'conversation',
+                    conversationId: TEST_IDS.CONVERSATION_1,
                     content: 'Conversation matching query',
+                    url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
                 }),
             )
-            // Conversation URL should not include a messageId
-            expect(structuredContent?.results[0]?.url).toContain(`${TEST_IDS.CONVERSATION_1}`)
-            expect(structuredContent?.results[0]?.url).not.toContain('conversation-33333')
+        })
+    })
+
+    describe('malformed results', () => {
+        it('should drop results without a container id', async () => {
+            mockCommsApi.search.search.mockResolvedValue({
+                items: [
+                    {
+                        id: `thread_${TEST_IDS.THREAD_1}`,
+                        type: 'thread' as const,
+                        snippet: 'Valid result',
+                        snippetCreatorId: TEST_IDS.USER_1,
+                        snippetLastUpdated: new Date('2024-01-01T00:00:00Z'),
+                        channelId: TEST_IDS.CHANNEL_1,
+                        threadId: TEST_IDS.THREAD_1,
+                    },
+                    {
+                        id: 'thread_orphaned',
+                        type: 'thread' as const,
+                        snippet: 'Malformed result without threadId',
+                        snippetCreatorId: TEST_IDS.USER_1,
+                        snippetLastUpdated: new Date('2024-01-01T00:00:00Z'),
+                        threadId: null,
+                    },
+                ],
+                hasMore: false,
+                isPlanRestricted: false,
+            })
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                id: TEST_IDS.USER_1,
+                fullName: 'Test User 1',
+                shortName: 'TU1',
+                email: 'user1@test.com',
+                userType: 'USER' as const,
+                removed: false,
+                timezone: 'UTC',
+                version: 1,
+            } as never)
+            mockCommsApi.channels.getChannel.mockResolvedValue({
+                id: TEST_IDS.CHANNEL_1,
+                name: 'Test Channel',
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                created: new Date(),
+                archived: false,
+                public: true,
+                color: 0,
+                creator: TEST_IDS.USER_1,
+                version: 1,
+            })
+
+            const result = await searchContent.execute(
+                {
+                    query: 'test',
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    limit: 50,
+                },
+                mockCommsApi,
+            )
+
+            const { structuredContent } = result
+            expect(structuredContent?.results).toHaveLength(1)
+            expect(structuredContent?.totalResults).toBe(1)
+            expect(structuredContent?.results[0]).toEqual(
+                expect.objectContaining({ threadId: TEST_IDS.THREAD_1 }),
+            )
         })
     })
 

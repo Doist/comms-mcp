@@ -6,7 +6,6 @@ import {
     ConversationSchema,
     InboxThreadSchema,
     NOTIFY_AUDIENCES,
-    SEARCH_RESULT_TYPES,
     SearchResultSchema,
     ThreadSchema,
     UnreadConversationSchema,
@@ -179,28 +178,53 @@ export const FetchInboxOutputSchema = z.object({
 })
 
 /**
+ * Shared result item for search-content and get-mentions output.
+ *
+ * The search API only emits 'thread' and 'conversation' results: a match inside a
+ * comment is a 'thread' result with `commentId` set. `id` is an opaque result key,
+ * not a Comms object id — use the typed id fields to reference objects.
+ */
+const searchResultItemBaseShape = {
+    id: z
+        .string()
+        .describe(
+            'Opaque search-result key (`thread_<threadId>` or `conversation_<conversationId>`). Not a Comms object id — use the typed id fields (threadId, commentId, conversationId) instead.',
+        ),
+    content: z.string(),
+    creatorId: z.number(),
+    creatorName: z.string().optional(),
+    created: z.string(),
+    workspaceId: z.number(),
+    url: z.string(),
+}
+
+export const SearchResultItemSchema = z.discriminatedUnion('type', [
+    z.object({
+        ...searchResultItemBaseShape,
+        type: z.literal('thread'),
+        threadId: z.string().describe('The matched thread id.'),
+        commentId: z
+            .string()
+            .optional()
+            .describe('The matched comment id, set when the match is a comment in the thread.'),
+        channelId: z.string().optional(),
+        channelName: z.string().optional(),
+    }),
+    z.object({
+        ...searchResultItemBaseShape,
+        type: z.literal('conversation'),
+        conversationId: z.string().describe('The matched conversation id.'),
+    }),
+])
+
+/**
  * Schema for search-content tool output
  */
 export const SearchContentOutputSchema = z.object({
     type: z.literal('search_results'),
     query: z.string(),
     workspaceId: z.number(),
-    results: z.array(
-        z.object({
-            id: z.string(),
-            type: z.enum(SEARCH_RESULT_TYPES),
-            content: z.string(),
-            creatorId: z.number(),
-            creatorName: z.string().optional(),
-            created: z.string(),
-            threadId: z.string().optional(),
-            conversationId: z.string().optional(),
-            channelId: z.string().optional(),
-            channelName: z.string().optional(),
-            workspaceId: z.number(),
-            url: z.string(),
-        }),
-    ),
+    results: z.array(SearchResultItemSchema),
     totalResults: z.number(),
     hasMore: z.boolean(),
     cursor: z.string().optional(),
@@ -212,22 +236,7 @@ export const SearchContentOutputSchema = z.object({
 export const GetMentionsOutputSchema = z.object({
     type: z.literal('mentions_results'),
     workspaceId: z.number(),
-    results: z.array(
-        z.object({
-            id: z.string(),
-            type: z.enum(SEARCH_RESULT_TYPES),
-            content: z.string(),
-            creatorId: z.number(),
-            creatorName: z.string().optional(),
-            created: z.string(),
-            threadId: z.string().optional(),
-            conversationId: z.string().optional(),
-            channelId: z.string().optional(),
-            channelName: z.string().optional(),
-            workspaceId: z.number(),
-            url: z.string(),
-        }),
-    ),
+    results: z.array(SearchResultItemSchema),
     totalResults: z.number(),
     hasMore: z.boolean(),
     cursor: z.string().optional(),
@@ -694,6 +703,8 @@ export type LoadThreadOutput = z.infer<typeof LoadThreadOutputSchema>
 export type LoadConversationOutput = z.infer<typeof LoadConversationOutputSchema>
 export type FetchInboxOutput = z.infer<typeof FetchInboxOutputSchema>
 export type SearchContentOutput = z.infer<typeof SearchContentOutputSchema>
+export type GetMentionsOutput = z.infer<typeof GetMentionsOutputSchema>
+export type SearchResultItem = z.infer<typeof SearchResultItemSchema>
 export type GetWorkspacesOutput = z.infer<typeof GetWorkspacesOutputSchema>
 export type GetUsersOutput = z.infer<typeof GetUsersOutputSchema>
 export type GetGroupsOutput = z.infer<typeof GetGroupsOutputSchema>
