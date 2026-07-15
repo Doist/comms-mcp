@@ -3,6 +3,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { registerTool } from './mcp-helpers.js'
 import { buildLink } from './tools/build-link.js'
 import { createChannel } from './tools/create-channel.js'
+import { createConversation } from './tools/create-conversation.js'
 import { createThread } from './tools/create-thread.js'
 import { deleteObject } from './tools/delete-object.js'
 import { fetchInbox } from './tools/fetch-inbox.js'
@@ -42,6 +43,7 @@ You have access to comprehensive Comms management tools for team communication a
 - **create-channel**: Use to create a channel in a workspace. Pass workspaceId, name, and optional description or public; omitting public creates a private channel. Pass numeric userIds to add initial members.
 - **update-channel**: Use to rename a channel or update its description/visibility. Pass channelId and at least one of name, description, or public. Pass description: null to clear the description.
 - **create-thread**: Use to create a new channel thread. Optionally pass recipients for user IDs and groups for group IDs; call get-users or get-groups first when resolving names. To notify everyone in the channel, pass notifyAudience: "channel" (tags the thread with "Everyone in channel") instead of listing every member as recipients; "thread" has no effect at thread creation. Pass displayInInbox: true to unarchive the thread after creation so it appears in the author's own Inbox (defaults to false).
+- **create-conversation**: Use to start a direct or group conversation with one or more users and post an initial message. Pass workspaceId, recipients (user IDs, excluding yourself), and content; call get-users first when resolving names. Reuses an existing conversation when one already exists for the same set of users rather than creating a duplicate.
 - **reply**: Use to reply to a thread or conversation. Thread replies notify everyone who has interacted with the thread by default. Optionally pass recipients for user IDs or groups for group IDs to override that default, and/or notifyAudience ("channel" | "thread") to add a broader audience on top of recipients/groups. Passing groups or notifyAudience to a conversation reply is rejected.
 - **get-mentions**: Use to fetch threads, comments, and messages that mention the current user. Prefer this over search-content when no keyword query is needed (search-content requires a non-empty query). Supports filtering by channel, author, and date range, and exposes a cursor for pagination.
 - **update-object**: Use to edit something you previously sent. Pass targetType ("thread", "comment", or "message"), targetId, and the new content. For threads you may also pass title (and may pass title without content). title is only valid for threads.
@@ -91,6 +93,7 @@ function getMcpServer({ commsApiKey, baseUrl }: { commsApiKey: string; baseUrl?:
     registerTool(createChannel, server, comms)
     registerTool(updateChannel, server, comms)
     registerTool(createThread, server, comms)
+    registerTool(createConversation, server, comms)
     registerTool(updateObject, server, comms)
     registerTool(deleteObject, server, comms)
     registerTool(reply, server, comms)

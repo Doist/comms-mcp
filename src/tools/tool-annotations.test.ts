@@ -104,6 +104,13 @@ const TOOL_EXPECTATIONS: ToolExpectation[] = [
         idempotentHint: false,
     },
     {
+        name: ToolNames.CREATE_CONVERSATION,
+        title: 'Comms: Create Conversation',
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+    },
+    {
         name: ToolNames.UPDATE_OBJECT,
         title: 'Comms: Update Object',
         readOnlyHint: false,

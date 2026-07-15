@@ -8,6 +8,7 @@ export const ToolNames = {
     CREATE_CHANNEL: 'create-channel',
     UPDATE_CHANNEL: 'update-channel',
     CREATE_THREAD: 'create-thread',
+    CREATE_CONVERSATION: 'create-conversation',
     UPDATE_OBJECT: 'update-object',
     DELETE_OBJECT: 'delete-object',
     REPLY: 'reply',
