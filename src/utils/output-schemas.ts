@@ -395,6 +395,23 @@ export const CreateThreadOutputSchema = z.object({
 })
 
 /**
+ * Schema for create-conversation tool output
+ */
+export const CreateConversationOutputSchema = z.object({
+    type: z.literal('create_conversation_result'),
+    success: z.boolean(),
+    conversationId: z.string(),
+    messageId: z.string(),
+    workspaceId: z.number(),
+    content: z.string(),
+    recipients: z.array(z.number()),
+    participants: z.array(z.number()),
+    created: z.string(),
+    conversationUrl: z.string(),
+    messageUrl: z.string(),
+})
+
+/**
  * Schema for update-thread tool output
  */
 export const UpdateThreadOutputSchema = z.object({
@@ -660,6 +677,7 @@ export const StructuredOutputSchema = z.union([
     CreateChannelOutputSchema,
     UpdateChannelOutputSchema,
     CreateThreadOutputSchema,
+    CreateConversationOutputSchema,
     UpdateThreadOutputSchema,
     UpdateCommentOutputSchema,
     UpdateMessageOutputSchema,
@@ -680,6 +698,7 @@ export type CreateChannelOutput = z.infer<typeof CreateChannelOutputSchema>
 export type UpdateChannelOutput = z.infer<typeof UpdateChannelOutputSchema>
 export type ChannelOutputFields = z.infer<typeof ChannelOutputFieldsSchema>
 export type CreateThreadOutput = z.infer<typeof CreateThreadOutputSchema>
+export type CreateConversationOutput = z.infer<typeof CreateConversationOutputSchema>
 export type UpdateThreadOutput = z.infer<typeof UpdateThreadOutputSchema>
 export type UpdateCommentOutput = z.infer<typeof UpdateCommentOutputSchema>
 export type UpdateMessageOutput = z.infer<typeof UpdateMessageOutputSchema>

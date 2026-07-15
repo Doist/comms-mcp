@@ -1,0 +1,15 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`create-conversation tool creating conversations should start a conversation and post the initial message 1`] = `
+"# Conversation Started
+
+**Conversation ID:** conv-id-1
+**Message ID:** msg-id-1
+**Participants:** 22222, 44444
+**Created:** 2024-01-01T00:00:00.000Z
+**URL:** https://comms.todoist.com/11111/msg/conv-id-1/
+
+## Message
+
+Hello there"
+`;
