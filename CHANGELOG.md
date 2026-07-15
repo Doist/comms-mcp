@@ -1,3 +1,9 @@
+## [5.12.0](https://github.com/Doist/comms-mcp/compare/v5.11.0...v5.12.0) (2026-07-15)
+
+### Features
+
+* add create-conversation tool ([#27](https://github.com/Doist/comms-mcp/issues/27)) ([e509afb](https://github.com/Doist/comms-mcp/commit/e509afbcb01c9d41b617003de1d03d8a3c5fb5e5))
+
 ## [5.11.0](https://github.com/Doist/comms-mcp/compare/v5.10.0...v5.11.0) (2026-07-07)
 
 ### Features
