@@ -1,3 +1,13 @@
+## [6.0.0](https://github.com/Doist/comms-mcp/compare/v5.12.0...v6.0.0) (2026-07-16)
+
+### ⚠ BREAKING CHANGES
+
+* require node >=24, test on 24 & 26, support npm >=11 (#28)
+
+### Features
+
+* require node >=24, test on 24 & 26, support npm >=11 ([#28](https://github.com/Doist/comms-mcp/issues/28)) ([251db80](https://github.com/Doist/comms-mcp/commit/251db8068447d813ffd79df544da421c1f9e8b17))
+
 ## [5.12.0](https://github.com/Doist/comms-mcp/compare/v5.11.0...v5.12.0) (2026-07-15)
 
 ### Features
