@@ -295,6 +295,16 @@ export const GetUsersOutputSchema = z.object({
 })
 
 /**
+ * A group member. `name`/`email` are omitted when the user ID cannot be resolved
+ * against the workspace directory (e.g. the member has since been removed).
+ */
+export const GroupMemberSchema = z.object({
+    id: z.number(),
+    name: z.string().optional(),
+    email: z.string().optional(),
+})
+
+/**
  * Schema for get-groups tool output
  */
 export const GetGroupsOutputSchema = z.object({
@@ -306,6 +316,7 @@ export const GetGroupsOutputSchema = z.object({
             name: z.string(),
             workspaceId: z.number(),
             memberCount: z.number(),
+            members: z.array(GroupMemberSchema).optional(),
         }),
     ),
     totalGroups: z.number(),
@@ -728,6 +739,7 @@ export type SearchResultItem = z.infer<typeof SearchResultItemSchema>
 export type GetWorkspacesOutput = z.infer<typeof GetWorkspacesOutputSchema>
 export type GetUsersOutput = z.infer<typeof GetUsersOutputSchema>
 export type GetGroupsOutput = z.infer<typeof GetGroupsOutputSchema>
+export type GroupMember = z.infer<typeof GroupMemberSchema>
 export type UserInfoOutput = z.infer<typeof UserInfoOutputSchema>
 export type BuildLinkOutput = z.infer<typeof BuildLinkOutputSchema>
 export type ReplyOutput = z.infer<typeof ReplyOutputSchema>

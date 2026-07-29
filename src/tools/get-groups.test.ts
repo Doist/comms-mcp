@@ -1,6 +1,7 @@
 import type { Group, CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import {
+    createMockUser,
     extractStructuredContent,
     extractTextContent,
     TEST_ERRORS,
@@ -13,6 +14,9 @@ const mockCommsApi = {
     groups: {
         getGroups: jest.fn(),
         getGroup: jest.fn(),
+    },
+    workspaceUsers: {
+        getWorkspaceUsers: jest.fn(),
     },
 } as unknown as jest.Mocked<CommsApi>
 
@@ -85,6 +89,8 @@ describe(`${GET_GROUPS} tool`, () => {
             expect(structuredContent.groups[0]).not.toHaveProperty('description')
             expect(structuredContent.groups[0]).not.toHaveProperty('userIds')
             expect(structuredContent.groups[0]).not.toHaveProperty('version')
+            expect(structuredContent.groups[0]).not.toHaveProperty('members')
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).not.toHaveBeenCalled()
         })
 
         it('should handle empty groupIds array by fetching all groups', async () => {
@@ -219,6 +225,193 @@ describe(`${GET_GROUPS} tool`, () => {
             const structuredContent = extractStructuredContent(result)
             expect(structuredContent.totalGroups).toBe(1)
             expect(structuredContent.filteredGroups).toBe(0)
+            expect(structuredContent.groups).toHaveLength(0)
+        })
+    })
+
+    describe('including members', () => {
+        it('should list resolved members when includeMembers is true', async () => {
+            mockCommsApi.groups.getGroups.mockResolvedValue([
+                createMockGroup({ userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2] }),
+            ])
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue([
+                createMockUser({
+                    id: TEST_IDS.USER_1,
+                    fullName: 'Ada Lovelace',
+                    email: 'ada@example.com',
+                }),
+                createMockUser({
+                    id: TEST_IDS.USER_2,
+                    fullName: 'Grace Hopper',
+                    email: 'grace@example.com',
+                }),
+                createMockUser({ id: TEST_IDS.USER_3, fullName: 'Not In Group' }),
+            ])
+
+            const result = await getGroups.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, includeMembers: true },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledTimes(1)
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledWith({
+                workspaceId: TEST_IDS.WORKSPACE_1,
+            })
+
+            const textContent = extractTextContent(result)
+            expect(textContent).toContain('**Members:** 2')
+            expect(textContent).toContain(
+                `- Ada Lovelace (id:${TEST_IDS.USER_1}) <ada@example.com>`,
+            )
+            expect(textContent).toContain(
+                `- Grace Hopper (id:${TEST_IDS.USER_2}) <grace@example.com>`,
+            )
+            expect(textContent).not.toContain('Not In Group')
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.groups[0]?.members).toEqual([
+                { id: TEST_IDS.USER_1, name: 'Ada Lovelace', email: 'ada@example.com' },
+                { id: TEST_IDS.USER_2, name: 'Grace Hopper', email: 'grace@example.com' },
+            ])
+        })
+
+        it('should fetch workspace users only once and map each member to its own group', async () => {
+            mockCommsApi.groups.getGroups.mockResolvedValue([
+                createMockGroup({ userIds: [TEST_IDS.USER_1] }),
+                createMockGroup({
+                    id: TEST_IDS.GROUP_2,
+                    name: 'Engineering',
+                    userIds: [TEST_IDS.USER_2],
+                }),
+            ])
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue([
+                createMockUser({
+                    id: TEST_IDS.USER_1,
+                    fullName: 'Ada Lovelace',
+                    email: 'ada@example.com',
+                }),
+                createMockUser({
+                    id: TEST_IDS.USER_2,
+                    fullName: 'Grace Hopper',
+                    email: 'grace@example.com',
+                }),
+            ])
+
+            const result = await getGroups.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, includeMembers: true },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledTimes(1)
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.groups[0]?.members).toEqual([
+                { id: TEST_IDS.USER_1, name: 'Ada Lovelace', email: 'ada@example.com' },
+            ])
+            expect(structuredContent.groups[1]?.members).toEqual([
+                { id: TEST_IDS.USER_2, name: 'Grace Hopper', email: 'grace@example.com' },
+            ])
+        })
+
+        it('should return the bare ID for unresolvable members', async () => {
+            const unknownUserId = 99999
+            mockCommsApi.groups.getGroups.mockResolvedValue([
+                createMockGroup({ userIds: [TEST_IDS.USER_1, unknownUserId] }),
+            ])
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue([
+                createMockUser({ id: TEST_IDS.USER_1, fullName: 'Ada Lovelace' }),
+            ])
+
+            const result = await getGroups.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, includeMembers: true },
+                mockCommsApi,
+            )
+
+            const textContent = extractTextContent(result)
+            expect(textContent).toContain(`- user:${unknownUserId} (id:${unknownUserId})`)
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.groups[0]?.members?.[1]).toEqual({ id: unknownUserId })
+        })
+
+        it('should include members for groups fetched by ID', async () => {
+            mockCommsApi.groups.getGroup.mockResolvedValue(
+                createMockGroup({ userIds: [TEST_IDS.USER_1] }),
+            )
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue([
+                createMockUser({
+                    id: TEST_IDS.USER_1,
+                    fullName: 'Ada Lovelace',
+                    email: 'ada@example.com',
+                }),
+            ])
+
+            const result = await getGroups.execute(
+                {
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    groupIds: [TEST_IDS.GROUP_1],
+                    includeMembers: true,
+                },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.groups[0]?.members).toEqual([
+                { id: TEST_IDS.USER_1, name: 'Ada Lovelace', email: 'ada@example.com' },
+            ])
+        })
+
+        it('should return an empty member list without a directory read for empty groups', async () => {
+            mockCommsApi.groups.getGroups.mockResolvedValue([createMockGroup({ userIds: [] })])
+
+            const result = await getGroups.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, includeMembers: true },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).not.toHaveBeenCalled()
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.groups[0]?.members).toEqual([])
+            expect(extractTextContent(result)).not.toContain('could not be looked up')
+        })
+
+        it('should degrade to user IDs and say so when the directory is unreadable', async () => {
+            mockCommsApi.groups.getGroups.mockResolvedValue([
+                createMockGroup({ userIds: [TEST_IDS.USER_1] }),
+            ])
+            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockRejectedValue(
+                new Error(TEST_ERRORS.API_UNAUTHORIZED),
+            )
+
+            const result = await getGroups.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, includeMembers: true },
+                mockCommsApi,
+            )
+
+            const textContent = extractTextContent(result)
+            expect(textContent).toContain('**Note:** Member names could not be looked up')
+            expect(textContent).toContain(`- user:${TEST_IDS.USER_1} (id:${TEST_IDS.USER_1})`)
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.groups[0]?.members).toEqual([{ id: TEST_IDS.USER_1 }])
+        })
+
+        it('should skip the user fetch when no groups match', async () => {
+            mockCommsApi.groups.getGroups.mockResolvedValue([createMockGroup()])
+
+            const result = await getGroups.execute(
+                {
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    searchText: 'nonexistent',
+                    includeMembers: true,
+                },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).not.toHaveBeenCalled()
+
+            const structuredContent = extractStructuredContent(result)
             expect(structuredContent.groups).toHaveLength(0)
         })
     })
