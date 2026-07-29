@@ -21,7 +21,7 @@ const ArgsSchema = {
         .string()
         .min(1)
         .describe(
-            'The content of the first message to post. Markdown. Mention people with the link syntax [Name](comms-mention://USER_ID) — e.g. [Afzal](comms-mention://29367677) — never @Name or [[Name|id]], which post as literal text. Do not put "@" in the label; the client adds it. Channels can be referenced as [#name](comms-channel://CHANNEL_ID). Resolve IDs with get-users/list-channels first — everyone in recipients is notified regardless of who is mentioned inline.',
+            'The content of the first message to post. Markdown. Mention people with the link syntax [Name](comms-mention://USER_ID) — e.g. [Afzal](comms-mention://29367677) — never @Name or [[Name|id]], which post as literal text. Do not put "@" in the label; the client adds it. Groups use [Name](comms-group-mention://GROUP_ID), channels [#name](comms-channel://CHANNEL_ID), threads [Title](comms-thread://THREAD_ID). Resolve IDs with get-users/get-groups/list-channels first. Everyone in recipients is notified regardless of who is mentioned inline; a mentioned person who is not a participant is not notified.',
         ),
 }
 

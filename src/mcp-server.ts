@@ -64,7 +64,7 @@ Rules:
 2. Never put \`@\` inside the label — the client adds it when rendering. \`[Afzal](comms-mention://29367677)\` renders as \`@Afzal\`.
 3. The label is a display fallback only. The client resolves the current name from the ID, so the ID must be correct; a wrong ID mentions the wrong person no matter what the label says.
 4. Resolve IDs with get-users, get-groups, or list-channels before writing content. Never guess an ID.
-5. Mentions control rendering, not delivery. To actually notify someone, pass their numeric ID in \`recipients\` (or use \`groups\` / \`notifyAudience\`) in addition to mentioning them inline.
+5. Mentions control rendering, not delivery, and notification support varies by tool. create-thread and thread replies take \`recipients\`, \`groups\`, and \`notifyAudience\` — pass a mentioned user's numeric ID (or group ID) there to actually notify them. Conversation messages (create-conversation, conversation replies) notify all participants automatically and take no notification parameters — a mentioned person must be a participant to be notified. update-object has no notification parameters; adding a mention while editing does not notify anyone.
 
 ### Best Practices:
 

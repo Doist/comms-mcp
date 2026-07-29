@@ -12,7 +12,7 @@ const ArgsSchema = {
         .string()
         .min(1)
         .describe(
-            'The content/body of the thread. Markdown. Mention people with the link syntax [Name](comms-mention://USER_ID) — e.g. [Afzal](comms-mention://29367677) — never @Name or [[Name|id]], which post as literal text. Do not put "@" in the label; the client adds it. Groups use [Name](comms-group-mention://GROUP_ID), channels [#name](comms-channel://CHANNEL_ID). Resolve IDs with get-users/get-groups/list-channels first. Mentioning inline does not notify anyone — also pass the user IDs in recipients.',
+            'The content/body of the thread. Markdown. Mention people with the link syntax [Name](comms-mention://USER_ID) — e.g. [Afzal](comms-mention://29367677) — never @Name or [[Name|id]], which post as literal text. Do not put "@" in the label; the client adds it. Groups use [Name](comms-group-mention://GROUP_ID), channels [#name](comms-channel://CHANNEL_ID), threads [Title](comms-thread://THREAD_ID). Resolve IDs with get-users/get-groups/list-channels first. Mentioning inline does not notify anyone — also pass mentioned user IDs in recipients and mentioned group IDs in groups.',
         ),
     recipients: z
         .array(z.number())
