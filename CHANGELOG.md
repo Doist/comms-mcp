@@ -1,3 +1,9 @@
+## [6.2.0](https://github.com/Doist/comms-mcp/compare/v6.1.0...v6.2.0) (2026-07-29)
+
+### Features
+
+* document Comms mention and reference syntax for LLM clients ([#34](https://github.com/Doist/comms-mcp/issues/34)) ([aea2eb9](https://github.com/Doist/comms-mcp/commit/aea2eb95bf19a3aed6e3fcaa6627795486e8f699))
+
 ## [6.1.0](https://github.com/Doist/comms-mcp/compare/v6.0.0...v6.1.0) (2026-07-29)
 
 ### Features
