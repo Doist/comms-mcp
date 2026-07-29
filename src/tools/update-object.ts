@@ -24,7 +24,7 @@ const ArgsSchema = {
         .min(1)
         .optional()
         .describe(
-            'The new content/body. Required for comments and messages; for threads, optional if title is provided.',
+            'The new content/body. Required for comments and messages; for threads, optional if title is provided. Markdown. Mention people with the link syntax [Name](comms-mention://USER_ID) — e.g. [Afzal](comms-mention://29367677) — never @Name or [[Name|id]], which post as literal text. Do not put "@" in the label; the client adds it. Groups use [Name](comms-group-mention://GROUP_ID), channels [#name](comms-channel://CHANNEL_ID). Resolve IDs with get-users/get-groups/list-channels first. Preserve any existing mention links you are not deliberately changing — rewriting them as plain text drops the mention.',
         ),
     title: z
         .string()

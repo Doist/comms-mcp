@@ -11,7 +11,12 @@ const ArgsSchema = {
         'The type of object to reply to: thread (posts a comment) or conversation (posts a message).',
     ),
     targetId: z.string().describe('The ID of the thread or conversation to reply to.'),
-    content: z.string().min(1).describe('The content of the reply.'),
+    content: z
+        .string()
+        .min(1)
+        .describe(
+            'The content of the reply. Markdown. Mention people with the link syntax [Name](comms-mention://USER_ID) — e.g. [Afzal](comms-mention://29367677) — never @Name or [[Name|id]], which post as literal text. Do not put "@" in the label; the client adds it. Groups use [Name](comms-group-mention://GROUP_ID), channels [#name](comms-channel://CHANNEL_ID). Resolve IDs with get-users/get-groups/list-channels first. Mentioning inline does not notify anyone — also pass the user IDs in recipients.',
+        ),
     recipients: z
         .array(z.number())
         .optional()
