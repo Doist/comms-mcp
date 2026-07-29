@@ -295,9 +295,6 @@ export const GetUsersOutputSchema = z.object({
 })
 
 /**
- * Schema for get-groups tool output
- */
-/**
  * A group member. `name`/`email` are omitted when the user ID cannot be resolved
  * against the workspace directory (e.g. the member has since been removed).
  */
@@ -307,6 +304,9 @@ export const GroupMemberSchema = z.object({
     email: z.string().optional(),
 })
 
+/**
+ * Schema for get-groups tool output
+ */
 export const GetGroupsOutputSchema = z.object({
     type: z.literal('get_groups'),
     workspaceId: z.number(),

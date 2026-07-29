@@ -34,12 +34,21 @@ type GetGroupsStructured = GetGroupsOutput
 /**
  * Resolves member user IDs to names/emails with a single workspace-users fetch,
  * so member lists cost one request regardless of how many groups are returned.
+ *
+ * Returns null when the directory is unreadable (e.g. a token without user
+ * scope). Callers degrade to bare user IDs rather than failing the whole
+ * listing, but say so in the output — unlike list-conversations, where names
+ * are decoration, here the member list is what was asked for, so a silent
+ * drop to IDs would misrepresent the answer.
  */
 async function fetchMemberLookup(
     client: CommsApi,
     workspaceId: number,
-): Promise<Map<number, GroupMember>> {
-    const users = await client.workspaceUsers.getWorkspaceUsers({ workspaceId })
+): Promise<Map<number, GroupMember> | null> {
+    const users = await client.workspaceUsers.getWorkspaceUsers({ workspaceId }).catch(() => null)
+    if (!users) {
+        return null
+    }
     return new Map(
         users.map((user) => [
             user.id,
@@ -48,8 +57,11 @@ async function fetchMemberLookup(
     )
 }
 
-function toMembers(userIds: number[], lookup: Map<number, GroupMember>): GroupMember[] {
-    return userIds.map((id) => lookup.get(id) ?? { id })
+function toMembers(
+    userIds: number[],
+    lookup: Map<number, GroupMember> | null | undefined,
+): GroupMember[] {
+    return userIds.map((id) => lookup?.get(id) ?? { id })
 }
 
 const getGroups = {
@@ -85,10 +97,13 @@ const getGroups = {
             )
         }
 
+        // Nothing to resolve if every matched group is empty, so skip the directory read.
+        const hasMembersToResolve = filteredGroups.some((group) => group.userIds.length > 0)
         const memberLookup =
-            includeMembers && filteredGroups.length > 0
+            includeMembers && hasMembersToResolve
                 ? await fetchMemberLookup(client, workspaceId)
                 : undefined
+        const membersUnresolved = memberLookup === null
 
         const lines: string[] = ['# Workspace Groups', '']
 
@@ -96,6 +111,11 @@ const getGroups = {
         lines.push(
             `**Total Groups:** ${totalGroups}${searchText ? ` (${filteredGroups.length} matching search)` : ''}`,
         )
+        if (membersUnresolved) {
+            lines.push(
+                '**Note:** Member names could not be looked up (the workspace directory was unavailable), so members are listed by user ID only.',
+            )
+        }
         lines.push('')
 
         if (filteredGroups.length === 0) {
@@ -105,7 +125,7 @@ const getGroups = {
                 lines.push(`## ${group.name}`)
                 lines.push(`**ID:** ${group.id}`)
                 lines.push(`**Members:** ${group.userIds.length}`)
-                if (memberLookup) {
+                if (includeMembers) {
                     for (const member of toMembers(group.userIds, memberLookup)) {
                         const name = member.name ?? `user:${member.id}`
                         const email = member.email ? ` <${member.email}>` : ''
@@ -126,7 +146,7 @@ const getGroups = {
                 name: group.name,
                 workspaceId: group.workspaceId,
                 memberCount: group.userIds.length,
-                ...(memberLookup && { members: toMembers(group.userIds, memberLookup) }),
+                ...(includeMembers && { members: toMembers(group.userIds, memberLookup) }),
             })),
             totalGroups,
             filteredGroups: filteredGroups.length,
