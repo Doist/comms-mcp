@@ -1,3 +1,9 @@
+## [6.1.0](https://github.com/Doist/comms-mcp/compare/v6.0.0...v6.1.0) (2026-07-29)
+
+### Features
+
+* **get-groups:** add includeMembers to list group members ([#33](https://github.com/Doist/comms-mcp/issues/33))` ([b792192](https://github.com/Doist/comms-mcp/commit/b792192438b8d264cc49e9be3605ab98314d5f59))
+
 ## [6.0.0](https://github.com/Doist/comms-mcp/compare/v5.12.0...v6.0.0) (2026-07-16)
 
 ### ⚠ BREAKING CHANGES
