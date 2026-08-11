@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
-import { degradeWithLog } from '../utils/degrade.js'
+import { degradeAllWithLog, degradeWithLog } from '../utils/degrade.js'
 import { ListConversationsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getConversationUrl } from '../utils/url-helpers.js'
@@ -81,17 +81,12 @@ async function resolveParticipantNames(
 
     // Tolerate individual failures so a single deleted/inaccessible user doesn't fail
     // the whole list; bounded concurrency keeps the socket pool / rate limiter happy.
-    const users = await limitedAll(userIds, (userId) =>
-        client.workspaceUsers
-            .getUserById({ workspaceId, userId })
-            .catch(
-                degradeWithLog(
-                    ToolNames.LIST_CONVERSATIONS,
-                    'failed to resolve conversation participant',
-                    { workspaceId, userId },
-                    null,
-                ),
-            ),
+    const users = await degradeAllWithLog(
+        ToolNames.LIST_CONVERSATIONS,
+        'failed to resolve conversation participant',
+        userIds,
+        (userId) => client.workspaceUsers.getUserById({ workspaceId, userId }),
+        { runner: limitedAll },
     )
     userIds.forEach((userId, i) => {
         const user = users[i]

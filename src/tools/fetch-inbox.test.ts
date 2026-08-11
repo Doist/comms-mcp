@@ -390,10 +390,12 @@ describe(`${FETCH_INBOX} tool`, () => {
             expect(conversations).toHaveLength(1)
             expect(conversations?.[0]?.participantNames).toEqual(['Alice'])
 
-            // A dropped participant must leave an operational trace.
+            // A dropped participant must leave an operational trace, reported once
+            // for the batch rather than once per participant.
+            expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
             expect(consoleErrorSpy).toHaveBeenCalledWith(
                 expect.stringContaining('failed to resolve conversation participant'),
-                expect.objectContaining({ userId: TEST_IDS.USER_2 }),
+                expect.objectContaining({ failed: 1, of: 2, sample: [TEST_IDS.USER_2] }),
             )
             consoleErrorSpy.mockRestore()
         })

@@ -2,7 +2,7 @@ import type { CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import { degradeWithLog } from '../utils/degrade.js'
+import { degradeAllWithLog, degradeWithLog } from '../utils/degrade.js'
 import {
     type GetGroupsOutput,
     GetGroupsOutputSchema,
@@ -88,19 +88,11 @@ const getGroups = {
             groupIds && groupIds.length > 0 ? [...new Set(groupIds)] : undefined
         const groups = requestedGroupIds
             ? (
-                  await Promise.all(
-                      requestedGroupIds.map((id) =>
-                          client.groups
-                              .getGroup({ id, workspaceId })
-                              .catch(
-                                  degradeWithLog(
-                                      ToolNames.GET_GROUPS,
-                                      'failed to resolve group',
-                                      { workspaceId, groupId: id },
-                                      null,
-                                  ),
-                              ),
-                      ),
+                  await degradeAllWithLog(
+                      ToolNames.GET_GROUPS,
+                      'failed to resolve group',
+                      requestedGroupIds,
+                      (id) => client.groups.getGroup({ id, workspaceId }),
                   )
               )
                   .filter((g): g is NonNullable<typeof g> => g !== null)

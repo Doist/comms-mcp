@@ -10,7 +10,7 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
-import { degradeWithLog } from '../utils/degrade.js'
+import { degradeAllWithLog } from '../utils/degrade.js'
 import { FetchInboxOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -120,19 +120,11 @@ async function loadConversationDetails(
     // A participant that cannot be resolved is dropped rather than failing the
     // whole inbox: one unreachable user should not cost the caller every thread.
     // Logged so a dropped name stays distinguishable from a backend outage.
-    const users = await Promise.all(
-        Array.from(allUserIds).map((userId) =>
-            client.workspaceUsers
-                .getUserById({ workspaceId, userId })
-                .catch(
-                    degradeWithLog(
-                        ToolNames.FETCH_INBOX,
-                        'failed to resolve conversation participant',
-                        { workspaceId, userId },
-                        null,
-                    ),
-                ),
-        ),
+    const users = await degradeAllWithLog(
+        ToolNames.FETCH_INBOX,
+        'failed to resolve conversation participant',
+        Array.from(allUserIds),
+        (userId) => client.workspaceUsers.getUserById({ workspaceId, userId }),
     )
     const userMap = users.reduce<Record<number, VisibleWorkspaceUser>>((acc, user) => {
         if (user) {
@@ -233,17 +225,12 @@ const fetchInbox = {
         // even when the inbox page is dominated by threads from the same channel.
         // `limitedAll` caps the burst on a large inbox page.
         const uniqueChannelIds = Array.from(new Set(threads.map((t) => t.channelId)))
-        const channelResponses = await limitedAll(uniqueChannelIds, (channelId) =>
-            client.channels
-                .getChannel(channelId)
-                .catch(
-                    degradeWithLog(
-                        ToolNames.FETCH_INBOX,
-                        'failed to resolve channel',
-                        { workspaceId, channelId },
-                        null,
-                    ),
-                ),
+        const channelResponses = await degradeAllWithLog(
+            ToolNames.FETCH_INBOX,
+            'failed to resolve channel',
+            uniqueChannelIds,
+            (channelId) => client.channels.getChannel(channelId),
+            { runner: limitedAll },
         )
         const channelInfo: Record<Channel['id'], Channel> = channelResponses.reduce<
             Record<Channel['id'], Channel>

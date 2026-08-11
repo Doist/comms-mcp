@@ -8,7 +8,7 @@ import {
     normalizeAttachments,
 } from '../utils/attachments.js'
 import { UNKNOWN_USER } from '../utils/constants.js'
-import { degradeWithLog } from '../utils/degrade.js'
+import { degradeAllWithLog } from '../utils/degrade.js'
 import { LoadThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -108,19 +108,15 @@ const loadThread = {
             client.channels.getChannel(thread.channelId),
             // IDs that can't be resolved are simply absent from the lookup, so a
             // single inaccessible user doesn't fail the whole thread.
-            Promise.all(
-                uniqueUserIds.map((id) =>
-                    client.workspaceUsers
-                        .getUserById({ workspaceId: thread.workspaceId, userId: id })
-                        .catch(
-                            degradeWithLog(
-                                ToolNames.LOAD_THREAD,
-                                'failed to resolve thread participant',
-                                { workspaceId: thread.workspaceId, userId: id },
-                                null,
-                            ),
-                        ),
-                ),
+            degradeAllWithLog(
+                ToolNames.LOAD_THREAD,
+                'failed to resolve thread participant',
+                uniqueUserIds,
+                (id) =>
+                    client.workspaceUsers.getUserById({
+                        workspaceId: thread.workspaceId,
+                        userId: id,
+                    }),
             ),
         ])
 

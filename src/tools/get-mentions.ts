@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import { degradeWithLog } from '../utils/degrade.js'
+import { degradeAllWithLog } from '../utils/degrade.js'
 import { type GetMentionsOutput, GetMentionsOutputSchema } from '../utils/output-schemas.js'
 import { toRawSearchResults, toSearchResultItems } from '../utils/search-results.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -67,33 +67,17 @@ const getMentions = {
             const uniqueUserIds = Array.from(userIds)
             const uniqueChannelIds = Array.from(channelIdSet)
             const [users, channels] = await Promise.all([
-                Promise.all(
-                    uniqueUserIds.map((id) =>
-                        client.workspaceUsers
-                            .getUserById({ workspaceId, userId: id })
-                            .catch(
-                                degradeWithLog(
-                                    ToolNames.GET_MENTIONS,
-                                    'failed to resolve mention author',
-                                    { workspaceId, userId: id },
-                                    null,
-                                ),
-                            ),
-                    ),
+                degradeAllWithLog(
+                    ToolNames.GET_MENTIONS,
+                    'failed to resolve mention author',
+                    uniqueUserIds,
+                    (id) => client.workspaceUsers.getUserById({ workspaceId, userId: id }),
                 ),
-                Promise.all(
-                    uniqueChannelIds.map((id) =>
-                        client.channels
-                            .getChannel(id)
-                            .catch(
-                                degradeWithLog(
-                                    ToolNames.GET_MENTIONS,
-                                    'failed to resolve channel',
-                                    { workspaceId, channelId: id },
-                                    null,
-                                ),
-                            ),
-                    ),
+                degradeAllWithLog(
+                    ToolNames.GET_MENTIONS,
+                    'failed to resolve channel',
+                    uniqueChannelIds,
+                    (id) => client.channels.getChannel(id),
                 ),
             ])
 
