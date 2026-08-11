@@ -285,9 +285,12 @@ export const GetUsersOutputSchema = z.object({
             name: z.string(),
             shortName: z.string(),
             email: z.string().optional(),
-            userType: z.string(),
+            // Absent on a restricted profile, which the API sends in place of the
+            // full one when the viewer may not see the user.
+            userType: z.string().optional(),
             removed: z.boolean(),
-            timezone: z.string(),
+            timezone: z.string().optional(),
+            restricted: z.boolean().optional(),
         }),
     ),
     totalUsers: z.number(),

@@ -334,6 +334,110 @@ describe(`${FETCH_INBOX} tool`, () => {
             }
         })
 
+        it('should keep the inbox when a participant cannot be resolved', async () => {
+            mockCommsApi.inbox.getInbox.mockResolvedValue([])
+            mockCommsApi.inbox.getCount.mockResolvedValue(0)
+            mockCommsApi.threads.getUnread.mockResolvedValue({ data: [], version: 1 })
+            mockCommsApi.conversations.getUnread.mockResolvedValue({
+                data: [
+                    {
+                        conversationId: TEST_IDS.CONVERSATION_1,
+                        objIndex: 5,
+                        directMention: false,
+                    },
+                ],
+                version: 1,
+            })
+            mockCommsApi.conversations.getConversation.mockResolvedValue({
+                id: TEST_IDS.CONVERSATION_1,
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
+                messageCount: 10,
+                lastObjIndex: 5,
+                snippet: 'Latest message',
+                snippetCreators: [TEST_IDS.USER_2],
+                lastActive: new Date(),
+                archived: false,
+                created: new Date(),
+                creator: TEST_IDS.USER_1,
+                url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
+            } as never)
+            // The second participant has left the workspace and can no longer be read.
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
+                (args: { workspaceId: number; userId: number }) => {
+                    if (args.userId === TEST_IDS.USER_1) {
+                        return Promise.resolve({
+                            id: TEST_IDS.USER_1,
+                            fullName: 'Alice',
+                            shortName: 'Alice',
+                            timezone: 'UTC',
+                            removed: false,
+                            userType: 'USER' as const,
+                            version: 1,
+                        }) as never
+                    }
+                    return Promise.reject(new Error('User not found')) as never
+                },
+            )
+
+            const result = await fetchInbox.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
+                mockCommsApi,
+            )
+
+            const { conversations } = result.structuredContent || {}
+            expect(conversations).toHaveLength(1)
+            expect(conversations?.[0]?.participantNames).toEqual(['Alice'])
+        })
+
+        it('should surface a restricted participant by name', async () => {
+            mockCommsApi.inbox.getInbox.mockResolvedValue([])
+            mockCommsApi.inbox.getCount.mockResolvedValue(0)
+            mockCommsApi.threads.getUnread.mockResolvedValue({ data: [], version: 1 })
+            mockCommsApi.conversations.getUnread.mockResolvedValue({
+                data: [
+                    {
+                        conversationId: TEST_IDS.CONVERSATION_1,
+                        objIndex: 5,
+                        directMention: false,
+                    },
+                ],
+                version: 1,
+            })
+            mockCommsApi.conversations.getConversation.mockResolvedValue({
+                id: TEST_IDS.CONVERSATION_1,
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                userIds: [TEST_IDS.USER_1],
+                messageCount: 1,
+                lastObjIndex: 1,
+                snippet: 'Latest message',
+                snippetCreators: [TEST_IDS.USER_1],
+                lastActive: new Date(),
+                archived: false,
+                created: new Date(),
+                creator: TEST_IDS.USER_1,
+                url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
+            } as never)
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                id: TEST_IDS.USER_1,
+                fullName: 'Alex',
+                firstName: 'Alex',
+                shortName: 'Alex',
+                removed: true,
+                restricted: true as const,
+                setupPending: false,
+                version: 0,
+            } as never)
+
+            const result = await fetchInbox.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
+                mockCommsApi,
+            )
+
+            const { conversations } = result.structuredContent || {}
+            expect(conversations?.[0]?.participantNames).toEqual(['Alex'])
+        })
+
         it('should not display conversations when none are unread', async () => {
             mockCommsApi.inbox.getInbox.mockResolvedValue([makeInboxThread()])
             mockCommsApi.inbox.getCount.mockResolvedValue(1)

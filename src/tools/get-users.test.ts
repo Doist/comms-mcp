@@ -31,6 +31,19 @@ const createMockWorkspaceUser = (overrides: Partial<Record<string, unknown>> = {
     ...overrides,
 })
 
+// The reduced profile the API sends when the viewer may not see a user in full.
+const createMockRestrictedUser = (overrides: Partial<Record<string, unknown>> = {}) => ({
+    id: TEST_IDS.USER_2,
+    fullName: 'Alex',
+    firstName: 'Alex',
+    shortName: 'Alex',
+    removed: true,
+    restricted: true as const,
+    setupPending: false,
+    version: 0,
+    ...overrides,
+})
+
 describe(`${GET_USERS} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
@@ -169,6 +182,49 @@ describe(`${GET_USERS} tool`, () => {
             )
 
             expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledTimes(1)
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.users).toHaveLength(1)
+            expect(structuredContent.users[0]?.id).toBe(TEST_IDS.USER_1)
+        })
+
+        it('should report a restricted user without a user type or timezone', async () => {
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
+                createMockRestrictedUser() as never,
+            )
+
+            const result = await getUsers.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [TEST_IDS.USER_2] },
+                mockCommsApi,
+            )
+
+            const textContent = extractTextContent(result)
+            expect(textContent).toContain('## Alex')
+            expect(textContent).toContain('**Profile:** Restricted')
+            expect(textContent).not.toContain('**User Type:**')
+            expect(textContent).not.toContain('**Timezone:**')
+
+            const user = extractStructuredContent(result).users[0]
+            expect(user?.restricted).toBe(true)
+            expect(user?.userType).toBeUndefined()
+            expect(user?.timezone).toBeUndefined()
+            expect(user?.email).toBeUndefined()
+        })
+
+        it('should skip a user that cannot be fetched rather than failing', async () => {
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
+                async (args: { workspaceId: number; userId: number }) => {
+                    if (args.userId === TEST_IDS.USER_1) {
+                        return createMockWorkspaceUser() as never
+                    }
+                    throw new Error(TEST_ERRORS.API_ERROR)
+                },
+            )
+
+            const result = await getUsers.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2] },
+                mockCommsApi,
+            )
 
             const structuredContent = extractStructuredContent(result)
             expect(structuredContent.users).toHaveLength(1)

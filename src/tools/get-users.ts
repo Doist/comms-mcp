@@ -1,4 +1,8 @@
-import type { UserType } from '@doist/comms-sdk'
+import {
+    isRestrictedWorkspaceUser,
+    type UserType,
+    type VisibleWorkspaceUser,
+} from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
@@ -24,9 +28,10 @@ type UserData = {
     name: string
     shortName: string
     email?: string
-    userType: UserType
+    userType?: UserType
     removed: boolean
-    timezone: string
+    timezone?: string
+    restricted?: boolean
 }
 
 type GetUsersStructured = Record<string, unknown> & {
@@ -35,6 +40,26 @@ type GetUsersStructured = Record<string, unknown> & {
     users: UserData[]
     totalUsers: number
     filteredUsers: number
+}
+
+// A restricted profile carries no email, user type or timezone, so those stay
+// absent rather than being filled with a placeholder.
+function toUserData(user: VisibleWorkspaceUser): UserData {
+    const base = {
+        id: user.id,
+        name: user.fullName,
+        shortName: user.shortName,
+        removed: user.removed,
+    }
+    if (isRestrictedWorkspaceUser(user)) {
+        return { ...base, restricted: true }
+    }
+    return {
+        ...base,
+        ...(user.email && { email: user.email }),
+        userType: user.userType,
+        timezone: user.timezone,
+    }
 }
 
 const getUsers = {
@@ -48,23 +73,27 @@ const getUsers = {
         const { workspaceId, userIds, searchText } = args
 
         // Fetch users based on userIds parameter
-        const users =
+        const users: VisibleWorkspaceUser[] =
             !userIds || userIds.length === 0
                 ? await client.workspaceUsers.getWorkspaceUsers({ workspaceId })
-                : await Promise.all(
-                      userIds.map((userId) =>
-                          client.workspaceUsers.getUserById({ workspaceId, userId }),
-                      ),
-                  )
+                : (
+                      await Promise.all(
+                          userIds.map((userId) =>
+                              client.workspaceUsers
+                                  .getUserById({ workspaceId, userId })
+                                  .catch(() => null),
+                          ),
+                      )
+                  ).filter((user) => user !== null)
 
         const totalUsers = users.length
 
         // Apply search filter if provided
-        let filteredUsers = users
+        let filteredUsers = users.map(toUserData)
         if (searchText) {
             const searchLower = searchText.toLowerCase()
-            filteredUsers = users.filter((user) => {
-                const nameMatch = user.fullName.toLowerCase().includes(searchLower)
+            filteredUsers = filteredUsers.filter((user) => {
+                const nameMatch = user.name.toLowerCase().includes(searchLower)
                 const emailMatch = user.email?.toLowerCase().includes(searchLower) || false
                 return nameMatch || emailMatch
             })
@@ -83,13 +112,20 @@ const getUsers = {
             lines.push('No users found.')
         } else {
             for (const user of filteredUsers) {
-                lines.push(`## ${user.fullName}`)
+                lines.push(`## ${user.name}`)
                 lines.push(`**ID:** ${user.id}`)
                 if (user.email) {
                     lines.push(`**Email:** ${user.email}`)
                 }
-                lines.push(`**User Type:** ${user.userType}`)
-                lines.push(`**Timezone:** ${user.timezone}`)
+                if (user.userType) {
+                    lines.push(`**User Type:** ${user.userType}`)
+                }
+                if (user.timezone) {
+                    lines.push(`**Timezone:** ${user.timezone}`)
+                }
+                if (user.restricted) {
+                    lines.push('**Profile:** Restricted, limited visibility of this user')
+                }
                 lines.push(`**Status:** ${user.removed ? 'Removed' : 'Active'}`)
                 lines.push('')
             }
@@ -100,15 +136,7 @@ const getUsers = {
         const structuredContent: GetUsersStructured = {
             type: 'get_users',
             workspaceId,
-            users: filteredUsers.map((user) => ({
-                id: user.id,
-                name: user.fullName,
-                shortName: user.shortName,
-                ...(user.email && { email: user.email }),
-                userType: user.userType,
-                removed: user.removed,
-                timezone: user.timezone,
-            })),
+            users: filteredUsers,
             totalUsers,
             filteredUsers: filteredUsers.length,
         }

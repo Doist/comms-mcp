@@ -10,7 +10,7 @@ exports[`load-conversation tool loading conversations successfully should filter
 
 ## Participants
 
-Test User 1, 
+Test User 1, Unknown user
 
 ## Messages (0)
 "
@@ -26,7 +26,7 @@ exports[`load-conversation tool loading conversations successfully should handle
 
 ## Participants
 
-Test User 1, 
+Test User 1, Unknown user
 
 ## Messages (0)
 "

@@ -3,7 +3,7 @@ import type {
     Conversation,
     InboxThread,
     UnreadConversation,
-    WorkspaceUser,
+    VisibleWorkspaceUser,
 } from '@doist/comms-sdk'
 import { ARCHIVE_FILTER_VALUES, getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
@@ -82,7 +82,7 @@ async function loadConversationDetails(
 ): Promise<
     Array<{
         conversation: Conversation
-        participants: WorkspaceUser[]
+        participants: VisibleWorkspaceUser[]
     }>
 > {
     if (conversationIds.length === 0) {
@@ -108,13 +108,17 @@ async function loadConversationDetails(
         return conversations.map((conversation) => ({ conversation, participants: [] }))
     }
 
+    // A participant that cannot be resolved is dropped rather than failing the
+    // whole inbox: one unreachable user should not cost the caller every thread.
     const users = await Promise.all(
         Array.from(allUserIds).map((userId) =>
-            client.workspaceUsers.getUserById({ workspaceId, userId }),
+            client.workspaceUsers.getUserById({ workspaceId, userId }).catch(() => null),
         ),
     )
-    const userMap = users.reduce<Record<number, WorkspaceUser>>((acc, user) => {
-        acc[user.id] = user
+    const userMap = users.reduce<Record<number, VisibleWorkspaceUser>>((acc, user) => {
+        if (user) {
+            acc[user.id] = user
+        }
         return acc
     }, {})
 
@@ -123,7 +127,7 @@ async function loadConversationDetails(
         conversation,
         participants: conversation.userIds
             .map((id) => userMap[id])
-            .filter((user): user is WorkspaceUser => !!user),
+            .filter((user): user is VisibleWorkspaceUser => !!user),
     }))
 }
 
@@ -175,7 +179,7 @@ const fetchInbox = {
 
         let conversationsWithDetails: Array<{
             conversation: Conversation
-            participants: WorkspaceUser[]
+            participants: VisibleWorkspaceUser[]
             isUnread: boolean
         }> = []
 

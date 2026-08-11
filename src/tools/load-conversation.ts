@@ -1,4 +1,4 @@
-import { getFullCommsURL, type WorkspaceUser } from '@doist/comms-sdk'
+import { getFullCommsURL, type VisibleWorkspaceUser } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
@@ -9,6 +9,9 @@ import {
 } from '../utils/attachments.js'
 import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
+
+// Shown in place of a name when a user ID can't be resolved.
+const UNKNOWN_USER = 'Unknown user'
 
 const ArgsSchema = {
     conversationId: z.string().describe('The conversation ID to load.'),
@@ -81,18 +84,27 @@ const loadConversation = {
         ])
 
         const { userIds } = conversation
+        // A participant that cannot be resolved is dropped rather than failing the
+        // whole conversation; the message list matters more than every name.
         const users = await Promise.all(
             userIds.map((id) =>
-                client.workspaceUsers.getUserById({
-                    workspaceId: conversation.workspaceId,
-                    userId: id,
-                }),
+                client.workspaceUsers
+                    .getUserById({
+                        workspaceId: conversation.workspaceId,
+                        userId: id,
+                    })
+                    .catch(() => null),
             ),
         )
-        const userInfo = users.reduce<Record<WorkspaceUser['id'], WorkspaceUser>>((acc, user) => {
-            acc[user.id] = user
-            return acc
-        }, {})
+        const userInfo = users.reduce<Record<VisibleWorkspaceUser['id'], VisibleWorkspaceUser>>(
+            (acc, user) => {
+                if (user) {
+                    acc[user.id] = user
+                }
+                return acc
+            },
+            {},
+        )
 
         // Build text content
         const lines: string[] = [
@@ -109,7 +121,9 @@ const loadConversation = {
         if (includeParticipants) {
             lines.push('## Participants')
             lines.push('')
-            lines.push(conversation.userIds.map((id) => userInfo[id]?.fullName).join(', '))
+            lines.push(
+                conversation.userIds.map((id) => userInfo[id]?.fullName ?? UNKNOWN_USER).join(', '),
+            )
             lines.push('')
         }
 
@@ -120,7 +134,7 @@ const loadConversation = {
             const messageDate = message.posted.toISOString()
             lines.push(`### Message ${message.id}`)
             lines.push(
-                `**Creator:** ${userInfo[message.creator]?.fullName} | **Posted:** ${messageDate}`,
+                `**Creator:** ${userInfo[message.creator]?.fullName ?? UNKNOWN_USER} | **Posted:** ${messageDate}`,
             )
             lines.push('')
             lines.push(message.content)
