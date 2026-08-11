@@ -88,16 +88,18 @@ const getUsers = {
 
         const totalUsers = users.length
 
-        // Apply search filter if provided
-        let filteredUsers = users.map(toUserData)
+        // Apply search filter if provided, before building output objects
+        let matchedUsers = users
         if (searchText) {
             const searchLower = searchText.toLowerCase()
-            filteredUsers = filteredUsers.filter((user) => {
-                const nameMatch = user.name.toLowerCase().includes(searchLower)
-                const emailMatch = user.email?.toLowerCase().includes(searchLower) || false
+            matchedUsers = users.filter((user) => {
+                const nameMatch = user.fullName.toLowerCase().includes(searchLower)
+                const email = isRestrictedWorkspaceUser(user) ? undefined : user.email
+                const emailMatch = email?.toLowerCase().includes(searchLower) || false
                 return nameMatch || emailMatch
             })
         }
+        const filteredUsers = matchedUsers.map(toUserData)
 
         // Build text content
         const lines: string[] = ['# Workspace Users', '']

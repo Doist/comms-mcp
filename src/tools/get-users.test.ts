@@ -217,7 +217,7 @@ describe(`${GET_USERS} tool`, () => {
                     if (args.userId === TEST_IDS.USER_1) {
                         return createMockWorkspaceUser() as never
                     }
-                    throw new Error(TEST_ERRORS.API_ERROR)
+                    throw new Error('User not found')
                 },
             )
 

@@ -7,11 +7,9 @@ import {
     formatAttachmentsLine,
     normalizeAttachments,
 } from '../utils/attachments.js'
+import { UNKNOWN_USER } from '../utils/constants.js'
 import { LoadThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-
-// Shown in place of a name when a user ID can't be resolved.
-const UNKNOWN_USER = 'Unknown user'
 
 const ArgsSchema = {
     threadId: z.string().describe('The thread ID to load.'),

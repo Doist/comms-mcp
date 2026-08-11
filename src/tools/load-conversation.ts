@@ -7,11 +7,9 @@ import {
     formatAttachmentsLine,
     normalizeAttachments,
 } from '../utils/attachments.js'
+import { UNKNOWN_USER } from '../utils/constants.js'
 import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-
-// Shown in place of a name when a user ID can't be resolved.
-const UNKNOWN_USER = 'Unknown user'
 
 const ArgsSchema = {
     conversationId: z.string().describe('The conversation ID to load.'),
