@@ -1,3 +1,9 @@
+## [6.2.1](https://github.com/Doist/comms-mcp/compare/v6.2.0...v6.2.1) (2026-08-11)
+
+### Bug Fixes
+
+* tolerate users the viewer cannot see in full ([#40](https://github.com/Doist/comms-mcp/issues/40)) ([feabbfa](https://github.com/Doist/comms-mcp/commit/feabbfaa7e12d6abe285b23d6af7e1ddd4bec635))
+
 ## [6.2.0](https://github.com/Doist/comms-mcp/compare/v6.1.0...v6.2.0) (2026-07-29)
 
 ### Features
