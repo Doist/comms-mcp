@@ -670,6 +670,8 @@ export const ListConversationsOutputSchema = z.object({
         }),
     ),
     totalConversations: z.number(),
+    hasMore: z.boolean(),
+    cursor: z.string().optional(),
 })
 
 /**
