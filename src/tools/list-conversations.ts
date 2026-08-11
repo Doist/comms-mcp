@@ -38,7 +38,12 @@ const ArgsSchema = {
         .optional()
         .default(50)
         .describe('Maximum number of conversations to return.'),
-    cursor: z.string().optional().describe('Cursor for pagination.'),
+    cursor: z
+        .string()
+        .optional()
+        .describe(
+            'Cursor for pagination. A non-empty page always returns one, since the page itself cannot tell you whether more follow; keep fetching until a page comes back empty.',
+        ),
 }
 
 type ConversationData = {
@@ -240,17 +245,18 @@ async function fetchConversationPage(
         buildPageArgs(workspaceId, includeArchived, limit, cursor),
     )
 
-    // A short page means the list is exhausted; a full one means there may be more.
-    // This assumes the server honours `limit` — if it caps the page lower, a caller
-    // driving pagination stops early. The internal scan deliberately does not rely
-    // on that assumption; see iterateConversations.
-    const hasMore = conversations.length >= limit
+    // Exhaustion is an empty page, never a short one. Reading a short page as the
+    // end assumes the server honours `limit`, and a page cap that is dynamic or
+    // sized by payload rather than row count would break that assumption silently —
+    // leaving conversations no caller could reach, which is the bug this tool
+    // exists to fix. The cost of not assuming is one extra request per listing.
     const last = conversations[conversations.length - 1]
+    const hasMore = conversations.length > 0
 
     return {
         conversations,
         hasMore,
-        ...(hasMore && last ? { nextCursor: encodeCursor(last) } : {}),
+        ...(last ? { nextCursor: encodeCursor(last) } : {}),
     }
 }
 
@@ -429,7 +435,9 @@ async function generateConversationsList(
     if (hasMore) {
         lines.push('## Next Steps')
         lines.push('')
-        lines.push('More results available. Use the cursor to fetch the next page.')
+        // "may be" rather than "are": a non-empty page cannot tell us whether
+        // anything follows it, and the tool should not assert what it cannot know.
+        lines.push('More results may be available. Use the cursor to fetch the next page.')
     }
 
     const textContent = lines.join('\n')
@@ -465,7 +473,7 @@ async function generateConversationsList(
 const listConversations = {
     name: ToolNames.LIST_CONVERSATIONS,
     description:
-        'List conversations (direct messages) in a workspace, or find a specific one by its participants. Pass userIds to get the conversation with exactly those people (plus you) — an empty array finds the conversation with only you — or set matchMode to "includes" for every conversation containing them. Without userIds, returns a page of conversations; use the returned cursor for the next page. By default only active conversations are returned; set includeArchived to true to also include archived ones. Returns conversation IDs, titles, the full list of participant user IDs (with names resolved for the first few), archive status, last-active timestamps, snippets, and URLs.',
+        'List conversations (direct messages) in a workspace, or find a specific one by its participants. Pass userIds to get the conversation with exactly those people (plus you) — an empty array finds the conversation with only you — or set matchMode to "includes" for every conversation containing them. Without userIds, returns a page of conversations; use the returned cursor for the next page, and keep going until a page comes back empty rather than stopping at a short one. By default only active conversations are returned; set includeArchived to true to also include archived ones. Returns conversation IDs, titles, the full list of participant user IDs (with names resolved for the first few), archive status, last-active timestamps, snippets, and URLs.',
     parameters: ArgsSchema,
     outputSchema: ListConversationsOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },

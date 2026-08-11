@@ -81,7 +81,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                 type: 'list_conversations',
                 workspaceId: TEST_IDS.WORKSPACE_1,
                 totalConversations: 2,
-                hasMore: false,
+                // A non-empty page always carries a cursor; only an empty one ends it.
+                hasMore: true,
+                cursor: expect.any(String),
                 conversations: expect.arrayContaining([
                     expect.objectContaining({
                         id: TEST_IDS.CONVERSATION_1,
@@ -482,10 +484,13 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             expect(structuredContent.cursor).toEqual(expect.any(String))
 
             const textContent = extractTextContent(result)
-            expect(textContent).toContain('More results available.')
+            expect(textContent).toContain('More results may be available.')
         })
 
-        it('should not report hasMore when the page is short', async () => {
+        it('should still offer a cursor when the page is shorter than the limit', async () => {
+            // A short page is not proof of exhaustion — the server may cap a page
+            // below the requested limit. Treating it as the end would leave later
+            // conversations unreachable.
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation(),
             ])
@@ -499,9 +504,22 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             )
 
             const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.hasMore).toBe(true)
+            expect(structuredContent.cursor).toEqual(expect.any(String))
+            expect(extractTextContent(result)).toContain('More results may be available.')
+        })
+
+        it('should report exhaustion only when a page comes back empty', async () => {
+            mockCommsApi.conversations.getConversations.mockResolvedValue([])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50 },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
             expect(structuredContent.hasMore).toBe(false)
             expect(structuredContent).not.toHaveProperty('cursor')
-            expect(extractTextContent(result)).not.toContain('More results available.')
         })
 
         it('should resume from a returned cursor via the compound (lastActive, id) key', async () => {
