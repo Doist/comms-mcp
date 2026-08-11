@@ -1,3 +1,9 @@
+## [6.2.2](https://github.com/Doist/comms-mcp/compare/v6.2.1...v6.2.2) (2026-08-11)
+
+### Bug Fixes
+
+* **fetch-inbox:** log participant lookups that fail ([#39](https://github.com/Doist/comms-mcp/issues/39)) ([29693c3](https://github.com/Doist/comms-mcp/commit/29693c34dd4334d92631fad2bd1baad6dc090da2))
+
 ## [6.2.1](https://github.com/Doist/comms-mcp/compare/v6.2.0...v6.2.1) (2026-08-11)
 
 ### Bug Fixes
