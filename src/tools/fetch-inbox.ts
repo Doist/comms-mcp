@@ -118,9 +118,16 @@ async function loadConversationDetails(
 
     // A participant that cannot be resolved is dropped rather than failing the
     // whole inbox: one unreachable user should not cost the caller every thread.
+    // Logged so a dropped name stays distinguishable from a backend outage.
     const users = await Promise.all(
         Array.from(allUserIds).map((userId) =>
-            client.workspaceUsers.getUserById({ workspaceId, userId }).catch(() => null),
+            client.workspaceUsers.getUserById({ workspaceId, userId }).catch((error) => {
+                console.error(
+                    `${ToolNames.FETCH_INBOX}: failed to resolve conversation participant`,
+                    { workspaceId, userId, error },
+                )
+                return null
+            }),
         ),
     )
     const userMap = users.reduce<Record<number, VisibleWorkspaceUser>>((acc, user) => {

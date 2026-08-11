@@ -335,6 +335,7 @@ describe(`${FETCH_INBOX} tool`, () => {
         })
 
         it('should keep the inbox when a participant cannot be resolved', async () => {
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
             mockCommsApi.inbox.getInbox.mockResolvedValue([])
             mockCommsApi.inbox.getCount.mockResolvedValue(0)
             mockCommsApi.threads.getUnread.mockResolvedValue({ data: [], version: 1 })
@@ -388,6 +389,63 @@ describe(`${FETCH_INBOX} tool`, () => {
             const { conversations } = result.structuredContent || {}
             expect(conversations).toHaveLength(1)
             expect(conversations?.[0]?.participantNames).toEqual(['Alice'])
+
+            // A dropped participant must leave an operational trace.
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                expect.stringContaining('failed to resolve conversation participant'),
+                expect.objectContaining({ userId: TEST_IDS.USER_2 }),
+            )
+            consoleErrorSpy.mockRestore()
+        })
+
+        it('should fall back to the conversation id when every participant lookup fails', async () => {
+            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+            mockCommsApi.inbox.getInbox.mockResolvedValue([])
+            mockCommsApi.inbox.getCount.mockResolvedValue(0)
+            mockCommsApi.threads.getUnread.mockResolvedValue({ data: [], version: 1 })
+            mockCommsApi.conversations.getUnread.mockResolvedValue({
+                data: [
+                    {
+                        conversationId: TEST_IDS.CONVERSATION_1,
+                        objIndex: 5,
+                        directMention: false,
+                    },
+                ],
+                version: 1,
+            })
+            mockCommsApi.conversations.getConversation.mockResolvedValue({
+                id: TEST_IDS.CONVERSATION_1,
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
+                messageCount: 10,
+                lastObjIndex: 5,
+                snippet: 'Latest message',
+                snippetCreators: [TEST_IDS.USER_2],
+                lastActive: new Date(),
+                archived: false,
+                created: new Date(),
+                creator: TEST_IDS.USER_1,
+                url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
+            } as never)
+            mockCommsApi.workspaceUsers.getUserById.mockRejectedValue(
+                new Error('User not found') as never,
+            )
+
+            const result = await fetchInbox.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
+                mockCommsApi,
+            )
+
+            // No dangling `DM with ` when nobody could be resolved.
+            const textContent = extractTextContent(result)
+            expect(textContent).not.toContain('DM with')
+            expect(textContent).toContain(`Conversation ${TEST_IDS.CONVERSATION_1}`)
+
+            const { conversations } = result.structuredContent || {}
+            expect(conversations?.[0]?.title).toBe(`Conversation ${TEST_IDS.CONVERSATION_1}`)
+            expect(conversations?.[0]?.participantNames).toEqual([])
+
+            consoleErrorSpy.mockRestore()
         })
 
         it('should surface a restricted participant by name', async () => {
