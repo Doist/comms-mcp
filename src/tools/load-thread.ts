@@ -7,6 +7,7 @@ import {
     formatAttachmentsLine,
     normalizeAttachments,
 } from '../utils/attachments.js'
+import { UNKNOWN_USER } from '../utils/constants.js'
 import { LoadThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -102,15 +103,23 @@ const loadThread = {
 
         // Fetch channel and all user info in parallel
         const uniqueUserIds = Array.from(userIds)
-        const [channel, ...users] = await Promise.all([
+        const [channel, users] = await Promise.all([
             client.channels.getChannel(thread.channelId),
-            ...uniqueUserIds.map((id) =>
-                client.workspaceUsers.getUserById({ workspaceId: thread.workspaceId, userId: id }),
+            // IDs that can't be resolved are simply absent from the lookup, so a
+            // single inaccessible user doesn't fail the whole thread.
+            Promise.all(
+                uniqueUserIds.map((id) =>
+                    client.workspaceUsers
+                        .getUserById({ workspaceId: thread.workspaceId, userId: id })
+                        .catch(() => null),
+                ),
             ),
         ])
 
         const userLookup = users.reduce<Record<number, string>>((acc, user) => {
-            acc[user.id] = user.fullName
+            if (user) {
+                acc[user.id] = user.fullName
+            }
             return acc
         }, {})
 
@@ -122,7 +131,7 @@ const loadThread = {
             `**Thread ID:** ${thread.id}`,
             `**Channel:** ${channel.name}`,
             `**Workspace ID:** ${thread.workspaceId}`,
-            `**Creator:** ${creatorName} (${thread.creator})`,
+            `**Creator:** ${creatorName ?? UNKNOWN_USER} (${thread.creator})`,
             `**Posted:** ${thread.posted.toISOString()}`,
             `**Comments:** ${thread.commentCount}`,
             `**Archived:** ${thread.isArchived ? 'Yes' : 'No'}`,
@@ -150,7 +159,7 @@ const loadThread = {
             const commentCreatorName = userLookup[comment.creator]
             lines.push(`### Comment ${comment.id}`)
             lines.push(
-                `**Creator:** ${commentCreatorName} (${comment.creator}) | **Posted:** ${commentDate}`,
+                `**Creator:** ${commentCreatorName ?? UNKNOWN_USER} (${comment.creator}) | **Posted:** ${commentDate}`,
             )
             lines.push('')
             lines.push(comment.content)
@@ -168,7 +177,7 @@ const loadThread = {
             lines.push('## Participants')
             lines.push('')
             const participantList = thread.participants
-                .map((id) => `${userLookup[id]} (${id})`)
+                .map((id) => `${userLookup[id] ?? UNKNOWN_USER} (${id})`)
                 .join(', ')
             lines.push(participantList)
         }

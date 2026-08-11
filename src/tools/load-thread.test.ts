@@ -124,6 +124,44 @@ describe(`${LOAD_THREAD} tool`, () => {
             ])
         })
 
+        it('should fall back to a placeholder when a user cannot be resolved', async () => {
+            const mockThread = createMockThread({
+                participants: [TEST_IDS.USER_1, TEST_IDS.USER_2],
+                creator: TEST_IDS.USER_1,
+            })
+            const mockComments = [
+                createMockComment({ id: TEST_IDS.COMMENT_1, creator: TEST_IDS.USER_2 }),
+            ]
+
+            mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
+            mockCommsApi.comments.getComments.mockResolvedValue(mockComments)
+            mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
+            // The second user has left the workspace and can no longer be read.
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation((async (args: {
+                workspaceId: number
+                userId: number
+            }) => {
+                if (args.userId === TEST_IDS.USER_1) {
+                    return makeUser(TEST_IDS.USER_1, 'Test User 1')
+                }
+                throw new Error('User not found')
+            }) as never)
+
+            const result = await loadThread.execute(
+                { threadId: TEST_IDS.THREAD_1, limit: 50, includeParticipants: true },
+                mockCommsApi,
+            )
+
+            const textContent = extractTextContent(result)
+            expect(textContent).toContain(`**Creator:** Test User 1 (${TEST_IDS.USER_1})`)
+            expect(textContent).toContain(`**Creator:** Unknown user (${TEST_IDS.USER_2})`)
+            expect(textContent).toContain(`Unknown user (${TEST_IDS.USER_2})`)
+
+            // Only names that actually resolved are reported as participants.
+            const { structuredContent } = result
+            expect(structuredContent?.thread.participantNames).toEqual(['Test User 1'])
+        })
+
         it('should load thread without participants when includeParticipants is false', async () => {
             const mockThread = createMockThread({
                 participants: [TEST_IDS.USER_1, TEST_IDS.USER_2],
