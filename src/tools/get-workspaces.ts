@@ -1,6 +1,7 @@
 import type { CommsApi, WorkspacePlan } from '@doist/comms-sdk'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
+import { degradeAllWithLog } from '../utils/degrade.js'
 import { GetWorkspacesOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getConversationUrl, getWorkspaceUrl } from '../utils/url-helpers.js'
@@ -66,10 +67,11 @@ async function generateWorkspacesList(
     // Fetch default conversations
     const conversationLookup: Record<string, string> = {}
     if (defaultConversationPairs.length > 0) {
-        const conversations = await Promise.all(
-            defaultConversationPairs.map(({ conversationId }) =>
-                client.conversations.getConversation(conversationId).catch(() => null),
-            ),
+        const conversations = await degradeAllWithLog(
+            ToolNames.GET_WORKSPACES,
+            'failed to resolve default conversation',
+            defaultConversationPairs,
+            ({ conversationId }) => client.conversations.getConversation(conversationId),
         )
         for (let i = 0; i < defaultConversationPairs.length; i++) {
             const pair = defaultConversationPairs[i]
@@ -86,12 +88,12 @@ async function generateWorkspacesList(
     // Fetch all workspace creators
     const creatorLookup: Record<number, string> = {}
     if (creatorPairs.length > 0) {
-        const users = await Promise.all(
-            creatorPairs.map(({ workspaceId, creatorId }) =>
-                client.workspaceUsers
-                    .getUserById({ workspaceId, userId: creatorId })
-                    .catch(() => null),
-            ),
+        const users = await degradeAllWithLog(
+            ToolNames.GET_WORKSPACES,
+            'failed to resolve workspace creator',
+            creatorPairs,
+            ({ workspaceId, creatorId }) =>
+                client.workspaceUsers.getUserById({ workspaceId, userId: creatorId }),
         )
         for (let i = 0; i < creatorPairs.length; i++) {
             const pair = creatorPairs[i]

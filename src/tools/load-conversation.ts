@@ -8,6 +8,7 @@ import {
     normalizeAttachments,
 } from '../utils/attachments.js'
 import { UNKNOWN_USER } from '../utils/constants.js'
+import { degradeAllWithLog } from '../utils/degrade.js'
 import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -84,15 +85,15 @@ const loadConversation = {
         const { userIds } = conversation
         // A participant that cannot be resolved is dropped rather than failing the
         // whole conversation; the message list matters more than every name.
-        const users = await Promise.all(
-            userIds.map((id) =>
-                client.workspaceUsers
-                    .getUserById({
-                        workspaceId: conversation.workspaceId,
-                        userId: id,
-                    })
-                    .catch(() => null),
-            ),
+        const users = await degradeAllWithLog(
+            ToolNames.LOAD_CONVERSATION,
+            'failed to resolve conversation participant',
+            userIds,
+            (id) =>
+                client.workspaceUsers.getUserById({
+                    workspaceId: conversation.workspaceId,
+                    userId: id,
+                }),
         )
         const userInfo = users.reduce<Record<VisibleWorkspaceUser['id'], VisibleWorkspaceUser>>(
             (acc, user) => {

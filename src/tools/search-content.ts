@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
+import { degradeAllWithLog } from '../utils/degrade.js'
 import { type SearchContentOutput, SearchContentOutputSchema } from '../utils/output-schemas.js'
 import { toRawSearchResults, toSearchResultItems } from '../utils/search-results.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -84,15 +85,17 @@ const searchContent = {
             const uniqueUserIds = Array.from(userIds)
             const uniqueChannelIds = Array.from(channelIdSet)
             const [users, channels] = await Promise.all([
-                Promise.all(
-                    uniqueUserIds.map((id) =>
-                        client.workspaceUsers
-                            .getUserById({ workspaceId, userId: id })
-                            .catch(() => null),
-                    ),
+                degradeAllWithLog(
+                    ToolNames.SEARCH_CONTENT,
+                    'failed to resolve result author',
+                    uniqueUserIds,
+                    (id) => client.workspaceUsers.getUserById({ workspaceId, userId: id }),
                 ),
-                Promise.all(
-                    uniqueChannelIds.map((id) => client.channels.getChannel(id).catch(() => null)),
+                degradeAllWithLog(
+                    ToolNames.SEARCH_CONTENT,
+                    'failed to resolve channel',
+                    uniqueChannelIds,
+                    (id) => client.channels.getChannel(id),
                 ),
             ])
 
