@@ -1,3 +1,9 @@
+## [6.3.0](https://github.com/Doist/comms-mcp/compare/v6.2.3...v6.3.0) (2026-08-11)
+
+### Features
+
+* announce new releases in Comms ([#43](https://github.com/Doist/comms-mcp/issues/43)) ([2dbc2d8](https://github.com/Doist/comms-mcp/commit/2dbc2d86f2345eaea4d14345f03b5bf0a12cf7c3))
+
 ## [6.2.3](https://github.com/Doist/comms-mcp/compare/v6.2.2...v6.2.3) (2026-08-11)
 
 ### Bug Fixes
