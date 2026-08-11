@@ -6,6 +6,7 @@ import {
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
+import { degradeWithLog } from '../utils/degrade.js'
 import { GetUsersOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -81,7 +82,14 @@ const getUsers = {
                           userIds.map((userId) =>
                               client.workspaceUsers
                                   .getUserById({ workspaceId, userId })
-                                  .catch(() => null),
+                                  .catch(
+                                      degradeWithLog(
+                                          ToolNames.GET_USERS,
+                                          'failed to resolve user',
+                                          { workspaceId, userId },
+                                          null,
+                                      ),
+                                  ),
                           ),
                       )
                   ).filter((user) => user !== null)

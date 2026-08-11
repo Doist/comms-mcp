@@ -10,6 +10,7 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
+import { degradeWithLog } from '../utils/degrade.js'
 import { FetchInboxOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -121,13 +122,16 @@ async function loadConversationDetails(
     // Logged so a dropped name stays distinguishable from a backend outage.
     const users = await Promise.all(
         Array.from(allUserIds).map((userId) =>
-            client.workspaceUsers.getUserById({ workspaceId, userId }).catch((error) => {
-                console.error(
-                    `${ToolNames.FETCH_INBOX}: failed to resolve conversation participant`,
-                    { workspaceId, userId, error },
-                )
-                return null
-            }),
+            client.workspaceUsers
+                .getUserById({ workspaceId, userId })
+                .catch(
+                    degradeWithLog(
+                        ToolNames.FETCH_INBOX,
+                        'failed to resolve conversation participant',
+                        { workspaceId, userId },
+                        null,
+                    ),
+                ),
         ),
     )
     const userMap = users.reduce<Record<number, VisibleWorkspaceUser>>((acc, user) => {
@@ -230,7 +234,16 @@ const fetchInbox = {
         // `limitedAll` caps the burst on a large inbox page.
         const uniqueChannelIds = Array.from(new Set(threads.map((t) => t.channelId)))
         const channelResponses = await limitedAll(uniqueChannelIds, (channelId) =>
-            client.channels.getChannel(channelId).catch(() => null),
+            client.channels
+                .getChannel(channelId)
+                .catch(
+                    degradeWithLog(
+                        ToolNames.FETCH_INBOX,
+                        'failed to resolve channel',
+                        { workspaceId, channelId },
+                        null,
+                    ),
+                ),
         )
         const channelInfo: Record<Channel['id'], Channel> = channelResponses.reduce<
             Record<Channel['id'], Channel>

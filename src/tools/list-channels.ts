@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
+import { degradeWithLog } from '../utils/degrade.js'
 import { ListChannelsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getChannelListData, type ChannelListData } from './channel-output.js'
@@ -68,7 +69,16 @@ async function generateChannelsList(
     if (creatorIds.size > 0) {
         const creatorIdArray = Array.from(creatorIds)
         const users = await limitedAll(creatorIdArray, (userId) =>
-            client.workspaceUsers.getUserById({ workspaceId, userId }).catch(() => null),
+            client.workspaceUsers
+                .getUserById({ workspaceId, userId })
+                .catch(
+                    degradeWithLog(
+                        ToolNames.LIST_CHANNELS,
+                        'failed to resolve channel creator',
+                        { workspaceId, userId },
+                        null,
+                    ),
+                ),
         )
         for (let i = 0; i < creatorIdArray.length; i++) {
             const creatorId = creatorIdArray[i]

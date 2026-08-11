@@ -8,6 +8,7 @@ import {
     normalizeAttachments,
 } from '../utils/attachments.js'
 import { UNKNOWN_USER } from '../utils/constants.js'
+import { degradeWithLog } from '../utils/degrade.js'
 import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -91,7 +92,14 @@ const loadConversation = {
                         workspaceId: conversation.workspaceId,
                         userId: id,
                     })
-                    .catch(() => null),
+                    .catch(
+                        degradeWithLog(
+                            ToolNames.LOAD_CONVERSATION,
+                            'failed to resolve conversation participant',
+                            { workspaceId: conversation.workspaceId, userId: id },
+                            null,
+                        ),
+                    ),
             ),
         )
         const userInfo = users.reduce<Record<VisibleWorkspaceUser['id'], VisibleWorkspaceUser>>(

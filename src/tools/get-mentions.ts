@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
+import { degradeWithLog } from '../utils/degrade.js'
 import { type GetMentionsOutput, GetMentionsOutputSchema } from '../utils/output-schemas.js'
 import { toRawSearchResults, toSearchResultItems } from '../utils/search-results.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -70,11 +71,29 @@ const getMentions = {
                     uniqueUserIds.map((id) =>
                         client.workspaceUsers
                             .getUserById({ workspaceId, userId: id })
-                            .catch(() => null),
+                            .catch(
+                                degradeWithLog(
+                                    ToolNames.GET_MENTIONS,
+                                    'failed to resolve mention author',
+                                    { workspaceId, userId: id },
+                                    null,
+                                ),
+                            ),
                     ),
                 ),
                 Promise.all(
-                    uniqueChannelIds.map((id) => client.channels.getChannel(id).catch(() => null)),
+                    uniqueChannelIds.map((id) =>
+                        client.channels
+                            .getChannel(id)
+                            .catch(
+                                degradeWithLog(
+                                    ToolNames.GET_MENTIONS,
+                                    'failed to resolve channel',
+                                    { workspaceId, channelId: id },
+                                    null,
+                                ),
+                            ),
+                    ),
                 ),
             ])
 

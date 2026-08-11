@@ -8,6 +8,7 @@ import {
     normalizeAttachments,
 } from '../utils/attachments.js'
 import { UNKNOWN_USER } from '../utils/constants.js'
+import { degradeWithLog } from '../utils/degrade.js'
 import { LoadThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -111,7 +112,14 @@ const loadThread = {
                 uniqueUserIds.map((id) =>
                     client.workspaceUsers
                         .getUserById({ workspaceId: thread.workspaceId, userId: id })
-                        .catch(() => null),
+                        .catch(
+                            degradeWithLog(
+                                ToolNames.LOAD_THREAD,
+                                'failed to resolve thread participant',
+                                { workspaceId: thread.workspaceId, userId: id },
+                                null,
+                            ),
+                        ),
                 ),
             ),
         ])
