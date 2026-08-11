@@ -21,7 +21,7 @@ const ArgsSchema = {
         .array(z.number())
         .optional()
         .describe(
-            'Filter to conversations with these participants, excluding yourself (you are always implied). An empty array matches the conversation containing only you. Omit to list without filtering. Use get-users to resolve names to IDs.',
+            'Filter to conversations with these participants, excluding yourself (you are always implied). An empty array matches the conversation containing only you, whatever matchMode says. Omit to list without filtering. Use get-users to resolve names to IDs.',
         ),
     matchMode: z
         .enum(MATCH_MODES)
@@ -168,12 +168,16 @@ async function* iterateConversations(
 
         const unseen = page.filter((conversation) => !seenIds.has(conversation.id))
         if (unseen.length === 0) {
-            // Nothing new. On a full page that means the cursor has stopped
-            // advancing, and truncating silently is how conversations "disappear";
-            // on a short one it just means the boundary row repeated at the end.
-            if (page.length >= SCAN_PAGE_SIZE) {
+            // Nothing new. That is the end of the list only when the page is the
+            // cursor's own boundary row coming back on its own. Any larger page of
+            // already-seen rows means the cursor has stopped advancing — including a
+            // server-capped page that keeps repeating — and returning there would
+            // silently truncate, which is how conversations "disappear". Page size
+            // deliberately plays no part in this: the server may cap it anywhere.
+            const isBoundaryRepeat = page.length === 1 && cursor?.beforeId === page[0]?.id
+            if (!isBoundaryRepeat) {
                 throw new Error(
-                    `conversations/get returned a full page with no new conversations (workspace ${workspaceId}); results would be incomplete.`,
+                    `conversations/get returned a page with no new conversations (workspace ${workspaceId}); the cursor is not advancing and results would be incomplete.`,
                 )
             }
             return
@@ -189,30 +193,31 @@ async function* iterateConversations(
     }
 }
 
-/**
- * Build the participant predicate once per query rather than per conversation —
- * `exact` needs a set to compare against, and rebuilding it for every row scanned
- * is wasted work on a workspace-wide walk.
- */
-function buildParticipantMatcher(
+// Both matchers are built once per query rather than per conversation: the sets
+// they compare against are fixed for the whole walk, and rebuilding them for every
+// row scanned is wasted work on a workspace-wide scan.
+
+/** Participants must include all of `targetIds`, and may include anyone else. */
+function buildIncludesMatcher(
+    targetIds: readonly number[],
+): (conversation: Conversation) => boolean {
+    return (conversation) => {
+        const participants = new Set(conversation.userIds)
+        return targetIds.every((id) => participants.has(id))
+    }
+}
+
+/** Participants are exactly you plus `targetIds`, and no one else. */
+function buildExactMatcher(
     targetIds: readonly number[],
     sessionUserId: number,
-    matchMode: (typeof MATCH_MODES)[number],
 ): (conversation: Conversation) => boolean {
-    if (matchMode === 'includes') {
-        return (conversation) => {
-            const participants = new Set(conversation.userIds)
-            return targetIds.every((id) => participants.has(id))
-        }
-    }
-
-    // Exact: the participant set is you plus the requested users, no one else.
-    // An empty `targetIds` therefore matches the conversation containing only you.
     const expected = new Set([...targetIds, sessionUserId])
+    const expectedIds = [...expected]
     return (conversation) => {
         const participants = new Set(conversation.userIds)
         return (
-            participants.size === expected.size && [...expected].every((id) => participants.has(id))
+            participants.size === expected.size && expectedIds.every((id) => participants.has(id))
         )
     }
 }
@@ -263,9 +268,16 @@ async function scanForParticipants(
     limit: number,
     cursor: PageCursor | undefined,
 ): Promise<ConversationQueryResult> {
-    const sessionUser = await client.users.getSessionUser()
+    // An empty `targetIds` means "the conversation containing only me", which is an
+    // exact participant set whatever the mode says — `includes` with nothing to
+    // check is vacuously true and would otherwise match every conversation.
+    // Resolving the session user is only needed on that path, so it stays lazy.
+    const isExactQuery = matchMode === 'exact' || targetIds.length === 0
+    const matchesQuery = isExactQuery
+        ? buildExactMatcher(targetIds, (await client.users.getSessionUser()).id)
+        : buildIncludesMatcher(targetIds)
+
     const matches: Conversation[] = []
-    const matchesQuery = buildParticipantMatcher(targetIds, sessionUser.id, matchMode)
 
     for await (const conversation of iterateConversations(
         client,
@@ -279,7 +291,7 @@ async function scanForParticipants(
 
         // An exact participant set identifies at most one conversation — the same
         // rule the backend dedupes on — so the first hit is the answer.
-        if (matchMode === 'exact') {
+        if (isExactQuery) {
             return { conversations: matches, hasMore: false }
         }
 
