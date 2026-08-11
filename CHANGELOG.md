@@ -1,3 +1,9 @@
+## [6.2.3](https://github.com/Doist/comms-mcp/compare/v6.2.2...v6.2.3) (2026-08-11)
+
+### Bug Fixes
+
+* log the lookups the tools degrade past ([#41](https://github.com/Doist/comms-mcp/issues/41)) ([4e69aba](https://github.com/Doist/comms-mcp/commit/4e69aba01b918d163c1cf14802df42921637c192))
+
 ## [6.2.2](https://github.com/Doist/comms-mcp/compare/v6.2.1...v6.2.2) (2026-08-11)
 
 ### Bug Fixes
