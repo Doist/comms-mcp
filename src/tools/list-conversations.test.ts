@@ -18,6 +18,9 @@ const mockCommsApi = {
         getUserById: jest.fn(),
         getWorkspaceUsers: jest.fn(),
     },
+    users: {
+        getSessionUser: jest.fn(),
+    },
 } as unknown as jest.Mocked<CommsApi>
 
 const { LIST_CONVERSATIONS } = ToolNames
@@ -25,6 +28,7 @@ const { LIST_CONVERSATIONS } = ToolNames
 describe(`${LIST_CONVERSATIONS} tool`, () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockCommsApi.users.getSessionUser.mockResolvedValue({ id: TEST_IDS.USER_1 } as never)
     })
 
     describe('listing conversations', () => {
@@ -60,6 +64,8 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
 
             expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledWith({
                 workspaceId: TEST_IDS.WORKSPACE_1,
+                archived: false,
+                limit: 50,
             })
 
             const textContent = extractTextContent(result)
@@ -75,6 +81,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                 type: 'list_conversations',
                 workspaceId: TEST_IDS.WORKSPACE_1,
                 totalConversations: 2,
+                // A non-empty page always carries a cursor; only an empty one ends it.
+                hasMore: true,
+                cursor: expect.any(String),
                 conversations: expect.arrayContaining([
                     expect.objectContaining({
                         id: TEST_IDS.CONVERSATION_1,
@@ -110,6 +119,7 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                 workspaceId: TEST_IDS.WORKSPACE_1,
                 conversations: [],
                 totalConversations: 0,
+                hasMore: false,
             })
         })
 
@@ -386,7 +396,7 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
     })
 
     describe('includeArchived', () => {
-        it('should only fetch active conversations by default', async () => {
+        it('should request only active conversations by default', async () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation(),
             ])
@@ -396,13 +406,17 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
 
             await listConversations.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockCommsApi)
 
+            // `archived: false` is sent explicitly: omitting it returns the server's
+            // unfiltered stream, which includes archived conversations.
             expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledTimes(1)
             expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledWith({
                 workspaceId: TEST_IDS.WORKSPACE_1,
+                archived: false,
+                limit: 50,
             })
         })
 
-        it('should fetch active and archived conversations in parallel when includeArchived is true', async () => {
+        it('should fetch one combined stream when includeArchived is true', async () => {
             const activeConversation = createMockConversation({
                 id: TEST_IDS.CONVERSATION_1,
                 title: 'Active Chat',
@@ -413,12 +427,10 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                 archived: true,
             })
 
-            mockCommsApi.conversations.getConversations.mockImplementation(async (args) => {
-                if ('archived' in args && args.archived === true) {
-                    return [archivedConversation]
-                }
-                return [activeConversation]
-            })
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                activeConversation,
+                archivedConversation,
+            ])
             mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
                 fullName: 'Alice',
             } as never)
@@ -428,13 +440,13 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                 mockCommsApi,
             )
 
-            expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledTimes(2)
+            // Omitting `archived` returns both states in a single stream, which keeps
+            // one cursor. Two filtered requests would need two, and concatenating them
+            // would double-count archived rows.
+            expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledTimes(1)
             expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledWith({
                 workspaceId: TEST_IDS.WORKSPACE_1,
-            })
-            expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledWith({
-                workspaceId: TEST_IDS.WORKSPACE_1,
-                archived: true,
+                limit: 50,
             })
 
             const structuredContent = extractStructuredContent(result)
@@ -445,6 +457,399 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                     expect.objectContaining({ title: 'Archived Chat', archived: true }),
                 ]),
             )
+        })
+    })
+
+    describe('pagination', () => {
+        it('should report hasMore and return a cursor when the page is full', async () => {
+            const page = Array.from({ length: 3 }, (_, i) =>
+                createMockConversation({
+                    id: `conv-${i}`,
+                    userIds: [TEST_IDS.USER_1],
+                    lastActive: new Date(`2024-01-0${i + 1}T00:00:00Z`),
+                }),
+            )
+            mockCommsApi.conversations.getConversations.mockResolvedValue(page)
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                fullName: 'Alice',
+            } as never)
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, limit: 3 },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.hasMore).toBe(true)
+            expect(structuredContent.cursor).toEqual(expect.any(String))
+
+            const textContent = extractTextContent(result)
+            expect(textContent).toContain('More results may be available.')
+        })
+
+        it('should still offer a cursor when the page is shorter than the limit', async () => {
+            // A short page is not proof of exhaustion — the server may cap a page
+            // below the requested limit. Treating it as the end would leave later
+            // conversations unreachable.
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                createMockConversation(),
+            ])
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                fullName: 'Alice',
+            } as never)
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50 },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.hasMore).toBe(true)
+            expect(structuredContent.cursor).toEqual(expect.any(String))
+            expect(extractTextContent(result)).toContain('More results may be available.')
+        })
+
+        it('should report exhaustion only when a page comes back empty', async () => {
+            mockCommsApi.conversations.getConversations.mockResolvedValue([])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50 },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.hasMore).toBe(false)
+            expect(structuredContent).not.toHaveProperty('cursor')
+        })
+
+        it('should resume from a returned cursor via the compound (lastActive, id) key', async () => {
+            const boundary = createMockConversation({
+                id: 'conv-boundary',
+                userIds: [TEST_IDS.USER_1],
+                lastActive: new Date('2024-03-04T05:06:07Z'),
+            })
+            mockCommsApi.conversations.getConversations.mockResolvedValue([boundary])
+            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
+                fullName: 'Alice',
+            } as never)
+
+            const first = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, limit: 1 },
+                mockCommsApi,
+            )
+            const cursor = extractStructuredContent(first).cursor as string
+
+            await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, limit: 1, cursor },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.conversations.getConversations).toHaveBeenLastCalledWith({
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                archived: false,
+                limit: 1,
+                olderThan: new Date('2024-03-04T05:06:07Z'),
+                beforeId: 'conv-boundary',
+            })
+        })
+
+        it('should reject a malformed cursor rather than silently restarting', async () => {
+            await expect(
+                listConversations.execute(
+                    { workspaceId: TEST_IDS.WORKSPACE_1, cursor: 'not-a-real-cursor' },
+                    mockCommsApi,
+                ),
+            ).rejects.toThrow('Invalid cursor')
+
+            expect(mockCommsApi.conversations.getConversations).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('participant filtering', () => {
+        const alice = TEST_IDS.USER_1
+        const bob = TEST_IDS.USER_2
+        const carol = TEST_IDS.USER_3
+
+        beforeEach(() => {
+            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
+                async (args: { workspaceId: number; userId: number }) =>
+                    ({ fullName: `User ${args.userId}` }) as never,
+            )
+        })
+
+        it('should find the group conversation with exactly the given participants', async () => {
+            const groupWithBobAndCarol = createMockConversation({
+                id: 'conv-group',
+                userIds: [alice, bob, carol],
+            })
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                createMockConversation({ id: 'conv-bob', userIds: [alice, bob] }),
+                createMockConversation({ id: 'conv-bigger', userIds: [alice, bob, carol, 99999] }),
+                groupWithBobAndCarol,
+            ])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [bob, carol] },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.totalConversations).toBe(1)
+            expect(structuredContent.conversations[0]).toMatchObject({ id: 'conv-group' })
+        })
+
+        it('should resume a capped includes scan from the matched row, not the end of its page', async () => {
+            // Three rows in one page, two of them matches, limit 1. Resuming from the
+            // end of the page would skip conv-middle and conv-last entirely.
+            const firstMatch = createMockConversation({
+                id: 'conv-first',
+                userIds: [alice, bob],
+                lastActive: new Date('2024-05-01T00:00:00Z'),
+            })
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                firstMatch,
+                createMockConversation({
+                    id: 'conv-middle',
+                    userIds: [alice, carol],
+                    lastActive: new Date('2024-05-02T00:00:00Z'),
+                }),
+                createMockConversation({
+                    id: 'conv-last',
+                    userIds: [alice, bob],
+                    lastActive: new Date('2024-05-03T00:00:00Z'),
+                }),
+            ])
+
+            const first = await listConversations.execute(
+                {
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    userIds: [bob],
+                    matchMode: 'includes',
+                    limit: 1,
+                },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(first)
+            expect(structuredContent.hasMore).toBe(true)
+
+            await listConversations.execute(
+                {
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    userIds: [bob],
+                    matchMode: 'includes',
+                    limit: 1,
+                    cursor: structuredContent.cursor as string,
+                },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.conversations.getConversations).toHaveBeenLastCalledWith(
+                expect.objectContaining({
+                    olderThan: new Date('2024-05-01T00:00:00Z'),
+                    beforeId: 'conv-first',
+                }),
+            )
+        })
+
+        it('should keep scanning past a page shorter than the requested size', async () => {
+            // The server may cap the page below what we asked for. Treating a short
+            // page as the end of the list would stop every scan at the first page.
+            const target = createMockConversation({ id: 'conv-target', userIds: [alice, bob] })
+
+            mockCommsApi.conversations.getConversations
+                .mockResolvedValueOnce([
+                    createMockConversation({ id: 'conv-other', userIds: [alice, carol] }),
+                ])
+                .mockResolvedValueOnce([target])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [bob] },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledTimes(2)
+            expect(extractStructuredContent(result).conversations[0]).toMatchObject({
+                id: 'conv-target',
+            })
+        })
+
+        it('should match participants regardless of order', async () => {
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                createMockConversation({ id: 'conv-group', userIds: [carol, alice, bob] }),
+            ])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [bob, carol] },
+                mockCommsApi,
+            )
+
+            expect(extractStructuredContent(result).totalConversations).toBe(1)
+        })
+
+        it('should find the conversation containing only the session user for an empty array', async () => {
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                createMockConversation({ id: 'conv-bob', userIds: [alice, bob] }),
+                createMockConversation({ id: 'conv-self', userIds: [alice] }),
+            ])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [] },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.totalConversations).toBe(1)
+            expect(structuredContent.conversations[0]).toMatchObject({ id: 'conv-self' })
+        })
+
+        it('should return every conversation containing the participants in includes mode', async () => {
+            mockCommsApi.conversations.getConversations
+                .mockResolvedValueOnce([
+                    createMockConversation({ id: 'conv-bob', userIds: [alice, bob] }),
+                    createMockConversation({ id: 'conv-group', userIds: [alice, bob, carol] }),
+                    createMockConversation({ id: 'conv-carol', userIds: [alice, carol] }),
+                ])
+                .mockResolvedValueOnce([])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [bob], matchMode: 'includes' },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.totalConversations).toBe(2)
+            expect(structuredContent.conversations).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({ id: 'conv-bob' }),
+                    expect.objectContaining({ id: 'conv-group' }),
+                ]),
+            )
+        })
+
+        it('should walk past the first page to reach a match further down', async () => {
+            // A full first page forces a second request; the match only appears there.
+            const firstPage = Array.from({ length: 500 }, (_, i) =>
+                createMockConversation({
+                    id: `filler-${i}`,
+                    userIds: [alice, 90000 + i],
+                    lastActive: new Date(2024, 0, 1, 0, 0, i),
+                }),
+            )
+            const target = createMockConversation({ id: 'conv-target', userIds: [alice, bob] })
+
+            mockCommsApi.conversations.getConversations
+                .mockResolvedValueOnce(firstPage)
+                .mockResolvedValueOnce([target])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [bob] },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledTimes(2)
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.conversations[0]).toMatchObject({ id: 'conv-target' })
+        })
+
+        it('should report no match distinctly from an empty workspace', async () => {
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                createMockConversation({ id: 'conv-bob', userIds: [alice, bob] }),
+            ])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [carol] },
+                mockCommsApi,
+            )
+
+            expect(extractTextContent(result)).toContain(
+                'No conversation matches those participants',
+            )
+            expect(extractStructuredContent(result).totalConversations).toBe(0)
+        })
+
+        it('should throw when a server-capped page repeats, not report no match', async () => {
+            // The server may cap pages well below SCAN_PAGE_SIZE. If a capped page
+            // comes back unchanged the cursor is stuck, and returning "no match" would
+            // be indistinguishable from the conversation genuinely not existing.
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                createMockConversation({ id: 'conv-a', userIds: [alice, carol] }),
+                createMockConversation({ id: 'conv-b', userIds: [alice, 90001] }),
+            ])
+
+            await expect(
+                listConversations.execute(
+                    { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [bob] },
+                    mockCommsApi,
+                ),
+            ).rejects.toThrow('cursor is not advancing')
+        })
+
+        it('should treat a lone repeated boundary row as the end of the list', async () => {
+            // Some servers echo the cursor's own row back as the final page. That is
+            // exhaustion, not a stall, and must not throw.
+            const only = createMockConversation({ id: 'conv-only', userIds: [alice, carol] })
+            mockCommsApi.conversations.getConversations.mockResolvedValue([only])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [bob] },
+                mockCommsApi,
+            )
+
+            expect(extractStructuredContent(result).totalConversations).toBe(0)
+        })
+
+        it('should not match every conversation for an empty userIds in includes mode', async () => {
+            // `every` over an empty array is vacuously true, so an unguarded includes
+            // matcher would return the whole workspace here.
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                createMockConversation({ id: 'conv-bob', userIds: [alice, bob] }),
+                createMockConversation({ id: 'conv-self', userIds: [alice] }),
+            ])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [], matchMode: 'includes' },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.totalConversations).toBe(1)
+            expect(structuredContent.conversations[0]).toMatchObject({ id: 'conv-self' })
+        })
+
+        it('should not resolve the session user for an includes query that does not need it', async () => {
+            mockCommsApi.conversations.getConversations
+                .mockResolvedValueOnce([
+                    createMockConversation({ id: 'conv-bob', userIds: [alice, bob] }),
+                ])
+                .mockResolvedValueOnce([])
+
+            await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [bob], matchMode: 'includes' },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.users.getSessionUser).not.toHaveBeenCalled()
+        })
+
+        it('should throw rather than truncate when the cursor stops advancing', async () => {
+            // A full page of already-seen rows means the cursor is stuck. Returning
+            // what we have would look identical to "no such conversation".
+            const stuckPage = Array.from({ length: 500 }, (_, i) =>
+                createMockConversation({
+                    id: `filler-${i}`,
+                    userIds: [alice, 90000 + i],
+                    lastActive: new Date(2024, 0, 1, 0, 0, i),
+                }),
+            )
+            mockCommsApi.conversations.getConversations.mockResolvedValue(stuckPage)
+
+            await expect(
+                listConversations.execute(
+                    { workspaceId: TEST_IDS.WORKSPACE_1, userIds: [bob] },
+                    mockCommsApi,
+                ),
+            ).rejects.toThrow('results would be incomplete')
         })
     })
 

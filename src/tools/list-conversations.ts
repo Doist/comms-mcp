@@ -7,6 +7,8 @@ import { ListConversationsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getConversationUrl } from '../utils/url-helpers.js'
 
+const MATCH_MODES = ['exact', 'includes'] as const
+
 const ArgsSchema = {
     workspaceId: z.number().describe('The workspace ID to list conversations from.'),
     includeArchived: z
@@ -14,6 +16,33 @@ const ArgsSchema = {
         .optional()
         .describe(
             'Whether to include archived conversations. If true, both active and archived conversations are returned. Defaults to false (active conversations only).',
+        ),
+    userIds: z
+        .array(z.number())
+        .optional()
+        .describe(
+            'Filter to conversations with these participants, excluding yourself (you are always implied). An empty array matches the conversation containing only you, whatever matchMode says. Omit to list without filtering. Use get-users to resolve names to IDs.',
+        ),
+    matchMode: z
+        .enum(MATCH_MODES)
+        .optional()
+        .default('exact')
+        .describe(
+            'How userIds is matched. "exact" (default) returns the single conversation whose participants are exactly you plus userIds — use this to find a specific direct or group conversation. "includes" returns every conversation containing all of userIds, and possibly others.',
+        ),
+    limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .default(50)
+        .describe('Maximum number of conversations to return.'),
+    cursor: z
+        .string()
+        .optional()
+        .describe(
+            'Cursor for pagination. A non-empty page always returns one, since the page itself cannot tell you whether more follow; keep fetching until a page comes back empty.',
         ),
 }
 
@@ -34,6 +63,8 @@ type ListConversationsStructured = Record<string, unknown> & {
     workspaceId: number
     conversations: ConversationData[]
     totalConversations: number
+    hasMore: boolean
+    cursor?: string
 }
 
 // Only resolve names for the first few participants of each conversation. A large
@@ -46,6 +77,243 @@ const MAX_DISPLAYED_PARTICIPANTS = 5
 // is cheaper than one getUserById round trip per participant. Below it, targeted
 // lookups avoid pulling the whole roster for a handful of names.
 const PARTICIPANT_ROSTER_THRESHOLD = 20
+
+// Page size used when scanning for a participant match. Larger than the caller's
+// `limit` because these pages are walked internally and never rendered — only the
+// matches are. The server caps the page itself, so this is an upper bound.
+const SCAN_PAGE_SIZE = 500
+
+// Runaway guard for the internal scan. At SCAN_PAGE_SIZE this covers workspaces far
+// larger than any real one; hitting it means something is wrong, and reporting a
+// partial result would be indistinguishable from "no such conversation".
+const MAX_SCAN_PAGES = 50
+
+type PageCursor = { olderThan: Date; beforeId: string }
+
+// The server's cursor is the compound (lastActive, id) of the last row seen, but
+// callers get a single opaque string — matching the cursor contract of
+// search-content and get-mentions, and keeping the compound shape an
+// implementation detail rather than something an LLM has to assemble by hand.
+function encodeCursor(conversation: Conversation): string {
+    const payload = JSON.stringify({
+        olderThan: conversation.lastActive.toISOString(),
+        beforeId: conversation.id,
+    })
+    return Buffer.from(payload, 'utf8').toString('base64url')
+}
+
+const CursorSchema = z.object({ olderThan: z.iso.datetime(), beforeId: z.string().min(1) })
+
+function decodeCursor(raw: string): PageCursor {
+    let parsed: unknown
+    try {
+        parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'))
+    } catch {
+        parsed = undefined
+    }
+
+    const result = CursorSchema.safeParse(parsed)
+    if (!result.success) {
+        throw new Error('Invalid cursor: expected a cursor returned by a previous call.')
+    }
+
+    return { olderThan: new Date(result.data.olderThan), beforeId: result.data.beforeId }
+}
+
+// Omitting `archived` entirely returns active and archived in one stream, which is
+// what `includeArchived` wants — and it keeps a single cursor. Requesting the two
+// states separately would need two independent cursors, and concatenating them
+// would double-count archived rows.
+function buildPageArgs(
+    workspaceId: number,
+    includeArchived: boolean,
+    limit: number,
+    cursor: PageCursor | undefined,
+) {
+    return {
+        workspaceId,
+        limit,
+        ...(includeArchived ? {} : { archived: false }),
+        ...(cursor ? { olderThan: cursor.olderThan, beforeId: cursor.beforeId } : {}),
+    }
+}
+
+/**
+ * Walk conversations from an optional starting cursor, yielding each row not seen
+ * on an earlier page. Each request continues from the previous page's last row via
+ * the compound (lastActive, id) cursor, so quiet conversations far down the list
+ * are still reached.
+ *
+ * Exhaustion is judged by a page adding nothing new, never by a page coming back
+ * shorter than requested: the server is free to cap the page below SCAN_PAGE_SIZE,
+ * and treating its cap as the end of the list would truncate every scan at the
+ * first page — the bug this iterator exists to fix. The cost is one extra request
+ * per scan.
+ */
+async function* iterateConversations(
+    client: CommsApi,
+    workspaceId: number,
+    includeArchived: boolean,
+    startCursor: PageCursor | undefined,
+): AsyncGenerator<Conversation> {
+    const seenIds = new Set<string>()
+    let cursor = startCursor
+
+    for (let pageCount = 0; ; pageCount++) {
+        if (pageCount >= MAX_SCAN_PAGES) {
+            throw new Error(
+                `Scanned ${MAX_SCAN_PAGES} pages of conversations in workspace ${workspaceId} without exhausting the list; refusing to report a partial result.`,
+            )
+        }
+
+        const page = await client.conversations.getConversations(
+            buildPageArgs(workspaceId, includeArchived, SCAN_PAGE_SIZE, cursor),
+        )
+        if (page.length === 0) return
+
+        const unseen = page.filter((conversation) => !seenIds.has(conversation.id))
+        if (unseen.length === 0) {
+            // Nothing new. That is the end of the list only when the page is the
+            // cursor's own boundary row coming back on its own. Any larger page of
+            // already-seen rows means the cursor has stopped advancing — including a
+            // server-capped page that keeps repeating — and returning there would
+            // silently truncate, which is how conversations "disappear". Page size
+            // deliberately plays no part in this: the server may cap it anywhere.
+            const isBoundaryRepeat = page.length === 1 && cursor?.beforeId === page[0]?.id
+            if (!isBoundaryRepeat) {
+                throw new Error(
+                    `conversations/get returned a page with no new conversations (workspace ${workspaceId}); the cursor is not advancing and results would be incomplete.`,
+                )
+            }
+            return
+        }
+
+        for (const conversation of unseen) {
+            seenIds.add(conversation.id)
+            yield conversation
+        }
+
+        const last = page[page.length - 1] as Conversation
+        cursor = { olderThan: last.lastActive, beforeId: last.id }
+    }
+}
+
+// Both matchers are built once per query rather than per conversation: the sets
+// they compare against are fixed for the whole walk, and rebuilding them for every
+// row scanned is wasted work on a workspace-wide scan.
+
+/** Participants must include all of `targetIds`, and may include anyone else. */
+function buildIncludesMatcher(
+    targetIds: readonly number[],
+): (conversation: Conversation) => boolean {
+    return (conversation) => {
+        const participants = new Set(conversation.userIds)
+        return targetIds.every((id) => participants.has(id))
+    }
+}
+
+/** Participants are exactly you plus `targetIds`, and no one else. */
+function buildExactMatcher(
+    targetIds: readonly number[],
+    sessionUserId: number,
+): (conversation: Conversation) => boolean {
+    const expected = new Set([...targetIds, sessionUserId])
+    const expectedIds = [...expected]
+    return (conversation) => {
+        const participants = new Set(conversation.userIds)
+        return (
+            participants.size === expected.size && expectedIds.every((id) => participants.has(id))
+        )
+    }
+}
+
+type ConversationQueryResult = {
+    conversations: Conversation[]
+    hasMore: boolean
+    nextCursor?: string
+}
+
+/** Unfiltered listing: one page per call, the caller drives pagination. */
+async function fetchConversationPage(
+    client: CommsApi,
+    workspaceId: number,
+    includeArchived: boolean,
+    limit: number,
+    cursor: PageCursor | undefined,
+): Promise<ConversationQueryResult> {
+    const conversations = await client.conversations.getConversations(
+        buildPageArgs(workspaceId, includeArchived, limit, cursor),
+    )
+
+    // Exhaustion is an empty page, never a short one. Reading a short page as the
+    // end assumes the server honours `limit`, and a page cap that is dynamic or
+    // sized by payload rather than row count would break that assumption silently —
+    // leaving conversations no caller could reach, which is the bug this tool
+    // exists to fix. The cost of not assuming is one extra request per listing.
+    const last = conversations[conversations.length - 1]
+    const hasMore = conversations.length > 0
+
+    return {
+        conversations,
+        hasMore,
+        ...(last ? { nextCursor: encodeCursor(last) } : {}),
+    }
+}
+
+/**
+ * Participant lookup: walk the pages internally and return only the matches, so a
+ * caller asking "the conversation with these people" gets an answer in one call
+ * rather than paging and deciding when to stop.
+ */
+async function scanForParticipants(
+    client: CommsApi,
+    workspaceId: number,
+    includeArchived: boolean,
+    targetIds: readonly number[],
+    matchMode: (typeof MATCH_MODES)[number],
+    limit: number,
+    cursor: PageCursor | undefined,
+): Promise<ConversationQueryResult> {
+    // An empty `targetIds` means "the conversation containing only me", which is an
+    // exact participant set whatever the mode says — `includes` with nothing to
+    // check is vacuously true and would otherwise match every conversation.
+    // Resolving the session user is only needed on that path, so it stays lazy.
+    const isExactQuery = matchMode === 'exact' || targetIds.length === 0
+    const matchesQuery = isExactQuery
+        ? buildExactMatcher(targetIds, (await client.users.getSessionUser()).id)
+        : buildIncludesMatcher(targetIds)
+
+    const matches: Conversation[] = []
+
+    for await (const conversation of iterateConversations(
+        client,
+        workspaceId,
+        includeArchived,
+        cursor,
+    )) {
+        if (!matchesQuery(conversation)) continue
+
+        matches.push(conversation)
+
+        // An exact participant set identifies at most one conversation — the same
+        // rule the backend dedupes on — so the first hit is the answer.
+        if (isExactQuery) {
+            return { conversations: matches, hasMore: false }
+        }
+
+        // Resume from the conversation we stopped on, not the end of its page —
+        // anything between the two would be skipped on the next call.
+        if (matches.length >= limit) {
+            return {
+                conversations: matches,
+                hasMore: true,
+                nextCursor: encodeCursor(conversation),
+            }
+        }
+    }
+
+    return { conversations: matches, hasMore: false }
+}
 
 // Resolve user IDs to names. For a small number of IDs, look each up individually
 // (bounded concurrency, tolerating individual failures); for larger sets, fetch the
@@ -88,28 +356,20 @@ async function resolveParticipantNames(
 async function generateConversationsList(
     client: CommsApi,
     workspaceId: number,
-    includeArchived: boolean,
+    query: ConversationQueryResult,
+    emptyMessage: string,
 ): Promise<{ textContent: string; structuredContent: ListConversationsStructured }> {
-    // By default only fetch active conversations; optionally include archived ones too
-    let conversations: Conversation[]
-    if (includeArchived) {
-        const [active, archived] = await Promise.all([
-            client.conversations.getConversations({ workspaceId }),
-            client.conversations.getConversations({ workspaceId, archived: true }),
-        ])
-        conversations = [...active, ...archived]
-    } else {
-        conversations = await client.conversations.getConversations({ workspaceId })
-    }
+    const { conversations, hasMore, nextCursor } = query
 
     if (conversations.length === 0) {
         return {
-            textContent: '# Conversations\n\nNo conversations found.',
+            textContent: `# Conversations\n\n${emptyMessage}`,
             structuredContent: {
                 type: 'list_conversations',
                 workspaceId,
                 conversations: [],
                 totalConversations: 0,
+                hasMore: false,
             },
         }
     }
@@ -172,6 +432,14 @@ async function generateConversationsList(
         lines.push('')
     }
 
+    if (hasMore) {
+        lines.push('## Next Steps')
+        lines.push('')
+        // "may be" rather than "are": a non-empty page cannot tell us whether
+        // anything follows it, and the tool should not assert what it cannot know.
+        lines.push('More results may be available. Use the cursor to fetch the next page.')
+    }
+
     const textContent = lines.join('\n')
 
     const structuredContent: ListConversationsStructured = {
@@ -195,6 +463,8 @@ async function generateConversationsList(
             }
         }),
         totalConversations: conversations.length,
+        hasMore,
+        ...(nextCursor && { cursor: nextCursor }),
     }
 
     return { textContent, structuredContent }
@@ -203,13 +473,40 @@ async function generateConversationsList(
 const listConversations = {
     name: ToolNames.LIST_CONVERSATIONS,
     description:
-        'List conversations (direct messages) in a workspace. By default returns only active conversations; set includeArchived to true to also include archived conversations. Returns conversation IDs, titles, the full list of participant user IDs (with names resolved for the first few), archive status, last-active timestamps, snippets, and URLs.',
+        'List conversations (direct messages) in a workspace, or find a specific one by its participants. Pass userIds to get the conversation with exactly those people (plus you) — an empty array finds the conversation with only you — or set matchMode to "includes" for every conversation containing them. Without userIds, returns a page of conversations; use the returned cursor for the next page, and keep going until a page comes back empty rather than stopping at a short one. By default only active conversations are returned; set includeArchived to true to also include archived ones. Returns conversation IDs, titles, the full list of participant user IDs (with names resolved for the first few), archive status, last-active timestamps, snippets, and URLs.',
     parameters: ArgsSchema,
     outputSchema: ListConversationsOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     async execute(args, client) {
-        const { workspaceId, includeArchived = false } = args
-        const result = await generateConversationsList(client, workspaceId, includeArchived)
+        const {
+            workspaceId,
+            includeArchived = false,
+            userIds,
+            matchMode = 'exact',
+            limit = 50,
+            cursor,
+        } = args
+
+        const pageCursor = cursor ? decodeCursor(cursor) : undefined
+
+        const query = userIds
+            ? await scanForParticipants(
+                  client,
+                  workspaceId,
+                  includeArchived,
+                  userIds,
+                  matchMode,
+                  limit,
+                  pageCursor,
+              )
+            : await fetchConversationPage(client, workspaceId, includeArchived, limit, pageCursor)
+
+        const result = await generateConversationsList(
+            client,
+            workspaceId,
+            query,
+            userIds ? 'No conversation matches those participants.' : 'No conversations found.',
+        )
 
         return getToolOutput({
             textContent: result.textContent,
