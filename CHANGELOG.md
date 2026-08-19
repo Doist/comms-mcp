@@ -1,3 +1,13 @@
+## [7.0.0](https://github.com/Doist/comms-mcp/compare/v6.3.0...v7.0.0) (2026-08-19)
+
+### ⚠ BREAKING CHANGES
+
+* migrate to MCP SDK v2 (#45)
+
+### Features
+
+* migrate to MCP SDK v2 ([#45](https://github.com/Doist/comms-mcp/issues/45)) ([3291ad6](https://github.com/Doist/comms-mcp/commit/3291ad6354efa03fa78b1ab6153b47e6095f5a78))
+
 ## [6.3.0](https://github.com/Doist/comms-mcp/compare/v6.2.3...v6.3.0) (2026-08-11)
 
 ### Features
