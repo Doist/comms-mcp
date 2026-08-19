@@ -154,7 +154,7 @@ For details, see [src/tools](src/tools).
 
 ## Dependencies
 
-- MCP server uses the official [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk)
+- MCP server uses the official [@modelcontextprotocol/server](https://github.com/modelcontextprotocol/typescript-sdk)
 - Comms TypeScript SDK [@doist/comms-sdk](https://github.com/Doist/comms-sdk-typescript)
 
 ## Local development

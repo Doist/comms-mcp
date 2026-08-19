@@ -1,4 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
+import type { CallToolResult } from '@modelcontextprotocol/server'
 import type { z } from 'zod'
 import type { RequiredToolAnnotations } from './utils/required-tool-annotations.js'
 
@@ -49,7 +50,7 @@ type CommsTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape = z.Zo
      * @param client - The Comms API client used to make requests to the Comms API.
      * @returns The result of the tool.
      */
-    execute: (args: z.infer<z.ZodObject<Params>>, client: CommsApi) => Promise<unknown>
+    execute: (args: z.infer<z.ZodObject<Params>>, client: CommsApi) => Promise<CallToolResult>
 }
 
 export type { CommsTool }

@@ -1,5 +1,5 @@
 import { CommsApi } from '@doist/comms-sdk'
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { McpServer } from '@modelcontextprotocol/server'
 import { registerTool } from './mcp-helpers.js'
 import { buildLink } from './tools/build-link.js'
 import { createChannel } from './tools/create-channel.js'
