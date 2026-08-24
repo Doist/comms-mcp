@@ -1,3 +1,9 @@
+## [7.0.1](https://github.com/Doist/comms-mcp/compare/v7.0.0...v7.0.1) (2026-08-24)
+
+### Bug Fixes
+
+* upgrade Comms SDK to 2.0.1 ([#46](https://github.com/Doist/comms-mcp/issues/46)) ([446ff36](https://github.com/Doist/comms-mcp/commit/446ff36e643cda4b42360b3fdca9585516248be7))
+
 ## [7.0.0](https://github.com/Doist/comms-mcp/compare/v6.3.0...v7.0.0) (2026-08-19)
 
 ### ⚠ BREAKING CHANGES
