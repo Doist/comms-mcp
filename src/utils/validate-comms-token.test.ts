@@ -1,4 +1,5 @@
 import { CommsRequestError } from '@doist/comms-sdk'
+import { jest } from '@jest/globals'
 import { validateCommsToken } from './validate-comms-token.js'
 
 describe('validateCommsToken', () => {

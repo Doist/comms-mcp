@@ -38,7 +38,7 @@
         "npm": ">=11"
     },
     "scripts": {
-        "test": "jest",
+        "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
         "build": "rimraf dist && npx tsc --project tsconfig.json",
         "postbuild": "chmod +x dist/main.js",
         "start": "npm run build && npx @modelcontextprotocol/inspector node dist/main.js",
@@ -49,7 +49,7 @@
         "prepublishOnly": "npm run build && npm test"
     },
     "dependencies": {
-        "@doist/comms-sdk": "2.0.1",
+        "@doist/comms-sdk": "3.0.0",
         "dotenv": "17.4.2",
         "p-limit": "6.2.0",
         "zod": "4.3.6"
@@ -70,6 +70,7 @@
         "@types/node": "22.19.17",
         "concurrently": "10.0.4",
         "conventional-changelog-conventionalcommits": "9.3.1",
+        "cross-env": "10.1.0",
         "jest": "30.3.0",
         "nodemon": "3.1.14",
         "oxfmt": "0.48.0",
