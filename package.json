@@ -38,7 +38,7 @@
         "npm": ">=11"
     },
     "scripts": {
-        "test": "jest",
+        "test": "NODE_OPTIONS=--experimental-vm-modules jest",
         "build": "rimraf dist && npx tsc --project tsconfig.json",
         "postbuild": "chmod +x dist/main.js",
         "start": "npm run build && npx @modelcontextprotocol/inspector node dist/main.js",
@@ -49,7 +49,7 @@
         "prepublishOnly": "npm run build && npm test"
     },
     "dependencies": {
-        "@doist/comms-sdk": "2.0.1",
+        "@doist/comms-sdk": "3.0.0",
         "dotenv": "17.4.2",
         "p-limit": "6.2.0",
         "zod": "4.3.6"

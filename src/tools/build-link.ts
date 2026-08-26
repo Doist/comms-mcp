@@ -1,4 +1,4 @@
-import { getCommentURL, getFullCommsURL, getMessageURL } from '@doist/comms-sdk'
+import { getCommentURL, getCommsURL, getFullCommsURL, getMessageURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
@@ -69,9 +69,7 @@ const buildLink = {
                 // Conversation link
                 linkType = 'conversation'
                 const params = { workspaceId, conversationId }
-                url = fullUrl
-                    ? getFullCommsURL(params)
-                    : getFullCommsURL(params).replace('https://comms.todoist.com', '')
+                url = fullUrl ? getFullCommsURL(params) : getCommsURL(params)
             }
         } else if (threadId !== undefined) {
             if (commentId !== undefined) {
@@ -88,9 +86,7 @@ const buildLink = {
                 const params = channelId
                     ? { workspaceId, channelId, threadId }
                     : { workspaceId, threadId }
-                url = fullUrl
-                    ? getFullCommsURL(params)
-                    : getFullCommsURL(params).replace('https://comms.todoist.com', '')
+                url = fullUrl ? getFullCommsURL(params) : getCommsURL(params)
             }
         } else {
             throw new Error('Must provide either conversationId OR threadId to build a link')
