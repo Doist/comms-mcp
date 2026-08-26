@@ -50,6 +50,33 @@ describe('buildLink', () => {
             const textContent = extractTextContent(result)
             expect(textContent).toBe('/123/msg/456/')
         })
+
+        test('builds a relative thread link in a channel', async () => {
+            const result = await buildLink.execute(
+                {
+                    workspaceId: 123,
+                    channelId: '42',
+                    threadId: '789',
+                    fullUrl: false,
+                },
+                {} as CommsApi,
+            )
+
+            expect(extractTextContent(result)).toBe('/123/ch/42/t/789/')
+        })
+
+        test('builds a relative thread link in the inbox', async () => {
+            const result = await buildLink.execute(
+                {
+                    workspaceId: 123,
+                    threadId: '789',
+                    fullUrl: false,
+                },
+                {} as CommsApi,
+            )
+
+            expect(extractTextContent(result)).toBe('/123/inbox/t/789/')
+        })
     })
 
     describe('thread links', () => {
