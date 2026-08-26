@@ -1,3 +1,27 @@
+## [8.0.0](https://github.com/Doist/comms-mcp/compare/v7.0.1...v8.0.0) (2026-08-26)
+
+### ⚠ BREAKING CHANGES
+
+* comms-sdk 3 is ESM-only, so consumers type-checking
+against this package need moduleResolution node16, nodenext or bundler.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+* test: cover relative thread links, and run Jest through cross-env
+
+The relative thread link is the one path this change rewrote that had no
+test; the relative conversation link was already covered. Adds both the
+channel and inbox variants.
+
+Runs Jest through cross-env so the NODE_OPTIONS assignment works on
+Windows shells too.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+### Features
+
+* take comms-sdk 3 and run Jest as ESM ([#48](https://github.com/Doist/comms-mcp/issues/48)) ([0db7749](https://github.com/Doist/comms-mcp/commit/0db7749ed11e76607e0682e6a61921168a895571))
+
 ## [7.0.1](https://github.com/Doist/comms-mcp/compare/v7.0.0...v7.0.1) (2026-08-24)
 
 ### Bug Fixes
