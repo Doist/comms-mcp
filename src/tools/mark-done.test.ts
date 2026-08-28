@@ -696,6 +696,28 @@ describe(`${MARK_DONE} tool`, () => {
             )
         })
 
+        it('caps the sample so one outage cannot log an unbounded array', async () => {
+            const ids = Array.from({ length: 12 }, (_, index) => `thread-${index}`)
+            mockCommsApi.inbox.archiveThread.mockRejectedValue(new Error('fetch failed'))
+
+            await markDone.execute(
+                { type: 'thread', ids, markRead: false, archive: true },
+                mockCommsApi,
+            )
+
+            expect(console.error).toHaveBeenCalledTimes(1)
+            expect(console.error).toHaveBeenCalledWith(
+                `${MARK_DONE}: operations failed`,
+                expect.objectContaining({
+                    failed: 12,
+                    failedSample: ids.slice(0, 5).map((item) => ({
+                        item,
+                        error: 'archive: fetch failed',
+                    })),
+                }),
+            )
+        })
+
         it('stays quiet when every op applies', async () => {
             await markDone.execute(
                 {

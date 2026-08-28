@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
+import { SAMPLE_LIMIT } from '../utils/degrade.js'
 import { type MarkDoneOp, MarkDoneOutputSchema } from '../utils/output-schemas.js'
 import { type MarkDoneType, MarkDoneTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -65,9 +66,6 @@ type MarkDoneStructured = {
         channelId?: string
     }
 }
-
-/** Failed items named per call before the rest are counted only. */
-const SAMPLE_LIMIT = 5
 
 /**
  * Records the ops that did not apply. Every op error here is folded into the
