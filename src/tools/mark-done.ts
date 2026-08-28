@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
+import { SAMPLE_LIMIT } from '../utils/degrade.js'
 import { type MarkDoneOp, MarkDoneOutputSchema } from '../utils/output-schemas.js'
 import { type MarkDoneType, MarkDoneTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -64,6 +65,32 @@ type MarkDoneStructured = {
         workspaceId?: number
         channelId?: string
     }
+}
+
+/**
+ * Records the ops that did not apply. Every op error here is folded into the
+ * tool result instead of thrown, so the server would otherwise answer 200 and
+ * log nothing while a caller's items stayed untouched — a whole batch can fail
+ * on an expired token or a dropped connection with no trace on this side.
+ */
+function logOperationFailures(
+    type: MarkDoneType,
+    failed: ReadonlyArray<{ item: string; error: string }>,
+    warnings: ReadonlyArray<{ item: string; op: MarkDoneOp; error: string }>,
+): void {
+    if (failed.length === 0 && warnings.length === 0) {
+        return
+    }
+
+    console.error(`${ToolNames.MARK_DONE}: operations failed`, {
+        itemType: type,
+        failed: failed.length,
+        warnings: warnings.length,
+        failedSample: failed.slice(0, SAMPLE_LIMIT).map(({ item, error }) => ({ item, error })),
+        warningSample: warnings
+            .slice(0, SAMPLE_LIMIT)
+            .map(({ item, op, error }) => ({ item, op, error })),
+    })
 }
 
 const markDone = {
@@ -221,6 +248,8 @@ const markDone = {
                         }
                     }
                 }
+
+                logOperationFailures(type, failed, warnings)
             }
         } catch (error) {
             // Bulk operation failed entirely

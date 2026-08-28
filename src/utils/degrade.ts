@@ -6,7 +6,7 @@
  */
 
 /** Failed identifiers reported per batch before the rest are counted only. */
-const SAMPLE_LIMIT = 5
+export const SAMPLE_LIMIT = 5
 
 type Runner = <T, R>(items: readonly T[], worker: (item: T) => Promise<R>) => Promise<R[]>
 
