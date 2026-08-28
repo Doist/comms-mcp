@@ -639,4 +639,75 @@ describe(`${MARK_DONE} tool`, () => {
             expect(textContent).toContain('Review failed items and retry if needed')
         })
     })
+
+    describe('logging', () => {
+        it('logs the ops that did not apply', async () => {
+            mockCommsApi.inbox.archiveThread.mockRejectedValue(new Error('fetch failed'))
+            mockCommsApi.threads.markRead.mockRejectedValue(new Error('fetch failed'))
+
+            await markDone.execute(
+                {
+                    type: 'thread',
+                    ids: [TEST_IDS.THREAD_1],
+                    markRead: true,
+                    archive: true,
+                },
+                mockCommsApi,
+            )
+
+            expect(console.error).toHaveBeenCalledWith(
+                `${MARK_DONE}: operations failed`,
+                expect.objectContaining({
+                    itemType: 'thread',
+                    failed: 1,
+                    warnings: 0,
+                    failedSample: [
+                        {
+                            item: TEST_IDS.THREAD_1,
+                            error: 'markRead: fetch failed; archive: fetch failed',
+                        },
+                    ],
+                }),
+            )
+        })
+
+        it('logs a secondary op failure that the result reports only as a warning', async () => {
+            mockCommsApi.threads.markRead.mockRejectedValue(new Error('fetch failed'))
+
+            await markDone.execute(
+                {
+                    type: 'thread',
+                    ids: [TEST_IDS.THREAD_1],
+                    markRead: true,
+                    archive: true,
+                },
+                mockCommsApi,
+            )
+
+            expect(console.error).toHaveBeenCalledWith(
+                `${MARK_DONE}: operations failed`,
+                expect.objectContaining({
+                    failed: 0,
+                    warnings: 1,
+                    warningSample: [
+                        { item: TEST_IDS.THREAD_1, op: 'markRead', error: 'fetch failed' },
+                    ],
+                }),
+            )
+        })
+
+        it('stays quiet when every op applies', async () => {
+            await markDone.execute(
+                {
+                    type: 'thread',
+                    ids: [TEST_IDS.THREAD_1, TEST_IDS.THREAD_2],
+                    markRead: true,
+                    archive: true,
+                },
+                mockCommsApi,
+            )
+
+            expect(console.error).not.toHaveBeenCalled()
+        })
+    })
 })
