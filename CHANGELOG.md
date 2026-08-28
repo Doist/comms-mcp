@@ -1,3 +1,9 @@
+## [8.0.1](https://github.com/Doist/comms-mcp/compare/v8.0.0...v8.0.1) (2026-08-28)
+
+### Bug Fixes
+
+* log the mark-done operations that did not apply ([#50](https://github.com/Doist/comms-mcp/issues/50)) ([1a42f7d](https://github.com/Doist/comms-mcp/commit/1a42f7d75c20099ed59a0fa4df88ab35bf4ed65c))
+
 ## [8.0.0](https://github.com/Doist/comms-mcp/compare/v7.0.1...v8.0.0) (2026-08-26)
 
 ### ⚠ BREAKING CHANGES
