@@ -656,7 +656,7 @@ describe(`${MARK_DONE} tool`, () => {
             )
 
             expect(console.error).toHaveBeenCalledWith(
-                `${MARK_DONE}: operations failed`,
+                `${MARK_DONE}: operations failed: markRead: fetch failed; archive: fetch failed`,
                 expect.objectContaining({
                     itemType: 'thread',
                     failed: 1,
@@ -685,7 +685,7 @@ describe(`${MARK_DONE} tool`, () => {
             )
 
             expect(console.error).toHaveBeenCalledWith(
-                `${MARK_DONE}: operations failed`,
+                `${MARK_DONE}: operations failed: fetch failed`,
                 expect.objectContaining({
                     failed: 0,
                     warnings: 1,
@@ -707,7 +707,7 @@ describe(`${MARK_DONE} tool`, () => {
 
             expect(console.error).toHaveBeenCalledTimes(1)
             expect(console.error).toHaveBeenCalledWith(
-                `${MARK_DONE}: operations failed`,
+                `${MARK_DONE}: operations failed: archive: fetch failed`,
                 expect.objectContaining({
                     failed: 12,
                     failedSample: ids.slice(0, 5).map((item) => ({

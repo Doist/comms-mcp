@@ -82,7 +82,12 @@ function logOperationFailures(
         return
     }
 
-    console.error(`${ToolNames.MARK_DONE}: operations failed`, {
+    // The first error goes in the message itself. Datadog's full-text search
+    // reaches the message but not the values nested inside `failedSample`, so a
+    // search for the reason (`GOAWAY`, `401`) finds nothing without this.
+    const firstError = (failed[0] ?? warnings[0])?.error
+
+    console.error(`${ToolNames.MARK_DONE}: operations failed: ${firstError}`, {
         itemType: type,
         failed: failed.length,
         warnings: warnings.length,
