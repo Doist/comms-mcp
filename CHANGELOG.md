@@ -1,3 +1,9 @@
+## [8.0.3](https://github.com/Doist/comms-mcp/compare/v8.0.2...v8.0.3) (2026-08-31)
+
+### Bug Fixes
+
+* take comms-sdk 3.0.2 for retry backoff on retired connections ([#52](https://github.com/Doist/comms-mcp/issues/52)) ([2fff911](https://github.com/Doist/comms-mcp/commit/2fff911fd4905192a75347b4cbc1938d9cbca9ef))
+
 ## [8.0.2](https://github.com/Doist/comms-mcp/compare/v8.0.1...v8.0.2) (2026-08-31)
 
 ### Bug Fixes
