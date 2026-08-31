@@ -1,3 +1,9 @@
+## [8.0.2](https://github.com/Doist/comms-mcp/compare/v8.0.1...v8.0.2) (2026-08-31)
+
+### Bug Fixes
+
+* put the first failure reason in the mark-done log message ([#51](https://github.com/Doist/comms-mcp/issues/51)) ([61ff86d](https://github.com/Doist/comms-mcp/commit/61ff86d2b72841e334c2ad4165b56c455545b816))
+
 ## [8.0.1](https://github.com/Doist/comms-mcp/compare/v8.0.0...v8.0.1) (2026-08-28)
 
 ### Bug Fixes
