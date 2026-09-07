@@ -1,3 +1,9 @@
+## [8.0.4](https://github.com/Doist/comms-mcp/compare/v8.0.3...v8.0.4) (2026-09-07)
+
+### Performance Improvements
+
+* cache MCP tool schemas ([#54](https://github.com/Doist/comms-mcp/issues/54)) ([e4c77f0](https://github.com/Doist/comms-mcp/commit/e4c77f0d182321cb2baae21fc447888077cd3c2e))
+
 ## [8.0.3](https://github.com/Doist/comms-mcp/compare/v8.0.2...v8.0.3) (2026-08-31)
 
 ### Bug Fixes
