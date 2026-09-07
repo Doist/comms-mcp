@@ -2,6 +2,7 @@ import type { CommsApi } from '@doist/comms-sdk'
 import type {
     CallToolResult,
     McpServer,
+    StandardSchemaWithJSON,
     ToolAnnotations,
     ToolCallback,
 } from '@modelcontextprotocol/server'
@@ -25,6 +26,52 @@ import { removeNullFields } from './utils/sanitize-data.js'
  */
 const USE_STRUCTURED_CONTENT =
     process.env.USE_STRUCTURED_CONTENT === 'true' || process.env.NODE_ENV === 'test'
+
+type CachedToolSchemas<Params extends z.ZodRawShape, Output extends z.ZodRawShape> = {
+    input: StandardSchemaWithJSON<z.input<z.ZodObject<Params>>, z.output<z.ZodObject<Params>>>
+    output: StandardSchemaWithJSON<z.input<z.ZodObject<Output>>, z.output<z.ZodObject<Output>>>
+}
+
+/** Tool schemas are static, so compile their JSON representation once per process. */
+const TOOL_SCHEMAS = new WeakMap<object, CachedToolSchemas<z.ZodRawShape, z.ZodRawShape>>()
+
+function withCachedJsonSchema<Shape extends z.ZodRawShape>(
+    schema: z.ZodObject<Shape>,
+    io: 'input' | 'output',
+): StandardSchemaWithJSON<z.input<z.ZodObject<Shape>>, z.output<z.ZodObject<Shape>>> {
+    const jsonSchema = z.toJSONSchema(schema, { target: 'draft-2020-12', io })
+    const standard = schema['~standard']
+
+    return {
+        '~standard': {
+            ...standard,
+            jsonSchema: {
+                ...standard.jsonSchema,
+                [io]: (options: Parameters<typeof standard.jsonSchema.input>[0]) =>
+                    options.target === 'draft-2020-12' && options.libraryOptions === undefined
+                        ? jsonSchema
+                        : standard.jsonSchema[io](options),
+            },
+        },
+    }
+}
+
+function getToolSchemas<Params extends z.ZodRawShape, Output extends z.ZodRawShape>(
+    tool: CommsTool<Params, Output>,
+): CachedToolSchemas<Params, Output> {
+    const cached = TOOL_SCHEMAS.get(tool)
+    if (cached) {
+        // The tool object identifies the same parameter and output types on every registration.
+        return cached as CachedToolSchemas<Params, Output>
+    }
+
+    const schemas = {
+        input: withCachedJsonSchema(z.object(tool.parameters), 'input'),
+        output: withCachedJsonSchema(z.object(tool.outputSchema), 'output'),
+    }
+    TOOL_SCHEMAS.set(tool, schemas)
+    return schemas
+}
 
 /**
  * Get the output payload for a tool, in the correct format expected by MCP client apps.
@@ -95,8 +142,7 @@ function registerTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape
     server: McpServer,
     client: CommsApi,
 ) {
-    const inputSchema = z.object(tool.parameters)
-    const outputSchema = z.object(tool.outputSchema)
+    const { input: inputSchema, output: outputSchema } = getToolSchemas(tool)
 
     const cb: ToolCallback<typeof inputSchema> = async (args, _context) => {
         try {
