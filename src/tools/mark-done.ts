@@ -2,8 +2,9 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
-import { SAMPLE_LIMIT } from '../utils/degrade.js'
+import { logOperationFailures } from '../utils/degrade.js'
 import { type MarkDoneOp, MarkDoneOutputSchema } from '../utils/output-schemas.js'
+import { markConversationFullyRead, markThreadFullyRead } from '../utils/read-position.js'
 import { type MarkDoneType, MarkDoneTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -65,37 +66,6 @@ type MarkDoneStructured = {
         workspaceId?: number
         channelId?: string
     }
-}
-
-/**
- * Records the ops that did not apply. Every op error here is folded into the
- * tool result instead of thrown, so the server would otherwise answer 200 and
- * log nothing while a caller's items stayed untouched — a whole batch can fail
- * on an expired token or a dropped connection with no trace on this side.
- */
-function logOperationFailures(
-    type: MarkDoneType,
-    failed: ReadonlyArray<{ item: string; error: string }>,
-    warnings: ReadonlyArray<{ item: string; op: MarkDoneOp; error: string }>,
-): void {
-    if (failed.length === 0 && warnings.length === 0) {
-        return
-    }
-
-    // The first error goes in the message itself. Datadog's full-text search
-    // reaches the message but not the values nested inside `failedSample`, so a
-    // search for the reason (`GOAWAY`, `401`) finds nothing without this.
-    const firstError = (failed[0] ?? warnings[0])?.error
-
-    console.error(`${ToolNames.MARK_DONE}: operations failed: ${firstError}`, {
-        itemType: type,
-        failed: failed.length,
-        warnings: warnings.length,
-        failedSample: failed.slice(0, SAMPLE_LIMIT).map(({ item, error }) => ({ item, error })),
-        warningSample: warnings
-            .slice(0, SAMPLE_LIMIT)
-            .map(({ item, op, error }) => ({ item, op, error })),
-    })
 }
 
 const markDone = {
@@ -214,16 +184,14 @@ const markDone = {
 
                     if (type === 'thread') {
                         if (markRead) {
-                            await runOp('markRead', () =>
-                                client.threads.markRead({ id, objIndex: 0 }),
-                            )
+                            await runOp('markRead', () => markThreadFullyRead(client, id))
                         }
                         if (archive) {
                             await runOp('archive', () => client.inbox.archiveThread(id))
                         }
                     } else {
                         if (markRead) {
-                            await runOp('markRead', () => client.conversations.markRead({ id }))
+                            await runOp('markRead', () => markConversationFullyRead(client, id))
                         }
                         if (archive) {
                             await runOp('archive', () =>
@@ -254,7 +222,11 @@ const markDone = {
                     }
                 }
 
-                logOperationFailures(type, failed, warnings)
+                logOperationFailures(
+                    ToolNames.MARK_DONE,
+                    failed.map(({ item, error }) => ({ item, error })),
+                    { warnings, context: { itemType: type } },
+                )
             }
         } catch (error) {
             // Bulk operation failed entirely

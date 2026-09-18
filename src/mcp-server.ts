@@ -16,6 +16,7 @@ import { listConversations } from './tools/list-conversations.js'
 import { loadConversation } from './tools/load-conversation.js'
 import { loadThread } from './tools/load-thread.js'
 import { markDone } from './tools/mark-done.js'
+import { markRead } from './tools/mark-read.js'
 import { react } from './tools/react.js'
 import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
@@ -45,6 +46,7 @@ You have access to comprehensive Comms management tools for team communication a
 - **create-thread**: Use to create a new channel thread. Optionally pass recipients for user IDs and groups for group IDs; call get-users or get-groups first when resolving names. To notify everyone in the channel, pass notifyAudience: "channel" (tags the thread with "Everyone in channel") instead of listing every member as recipients; "thread" has no effect at thread creation. Pass displayInInbox: true to unarchive the thread after creation so it appears in the author's own Inbox (defaults to false).
 - **create-conversation**: Use to start a direct or group conversation with one or more users and post an initial message. Pass workspaceId, recipients (user IDs, excluding yourself), and content; call get-users first when resolving names. Reuses an existing conversation when one already exists for the same set of users rather than creating a duplicate.
 - **reply**: Use to reply to a thread or conversation. Thread replies notify everyone who has interacted with the thread by default. Optionally pass recipients for user IDs or groups for group IDs to override that default, and/or notifyAudience ("channel" | "thread") to add a broader audience on top of recipients/groups. Passing groups or notifyAudience to a conversation reply is rejected.
+- **mark-read**: Use to clear unread markers on threads and/or conversations while leaving them in the inbox. Pass workspaceId plus threadIds and/or conversationIds, or all: true to mark everything unread in the workspace. Items that are not currently unread are skipped and reported as alreadyRead. Use mark-done instead when the user wants items archived (done) rather than just read.
 - **get-mentions**: Use to fetch threads, comments, and messages that mention the current user. Prefer this over search-content when no keyword query is needed (search-content requires a non-empty query). Supports filtering by channel, author, and date range, and exposes a cursor for pagination.
 - **update-object**: Use to edit something you previously sent. Pass targetType ("thread", "comment", or "message"), targetId, and the new content. For threads you may also pass title (and may pass title without content). title is only valid for threads.
 - **delete-object**: Use to permanently delete a thread, comment, or conversation message. Pass targetType ("thread", "comment", or "message") and targetId. Deletion is irreversible — confirm with the user before invoking. Deleting a thread also removes all of its comments. Only the object's creator or a workspace admin can delete; the Comms API will reject the call otherwise.
@@ -116,6 +118,7 @@ function getMcpServer({ commsApiKey, baseUrl }: { commsApiKey: string; baseUrl?:
     registerTool(reply, server, comms)
     registerTool(react, server, comms)
     registerTool(markDone, server, comms)
+    registerTool(markRead, server, comms)
     registerTool(listChannels, server, comms)
     registerTool(listConversations, server, comms)
 

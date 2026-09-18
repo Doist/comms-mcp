@@ -140,6 +140,7 @@ small number of calls.
 - **reply** — Reply to a thread or conversation
 - **react** — Add a reaction to a thread, comment, conversation, or message
 - **markDone** — Mark threads or conversations as read and/or archived
+- **markRead** — Mark threads and/or conversations as read without archiving them (specific IDs, or everything unread in a workspace)
 - **buildLink** — Build URLs to Comms resources
 - **listChannels** / **getGroups** / **getUsers** / **getWorkspaces** — Discovery helpers
 

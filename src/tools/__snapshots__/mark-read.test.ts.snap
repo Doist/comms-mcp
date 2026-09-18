@@ -1,0 +1,128 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`mark-read tool all unread in workspace reports nothing to do when the workspace has no unread items 1`] = `
+"# Mark Read
+
+**Workspace ID:** 11111
+**Mode:** All unread in workspace
+**Marked:** 0
+**Failed:** 0
+
+## Threads
+
+**Marked:** none
+
+## Conversations
+
+**Marked:** none
+
+## Next Steps
+
+Nothing was unread, so no changes were made."
+`;
+
+exports[`mark-read tool all unread in workspace uses one markAllRead call for threads and marks conversations individually 1`] = `
+"# Mark Read
+
+**Workspace ID:** 11111
+**Mode:** All unread in workspace
+**Marked:** 3
+**Failed:** 0
+
+## Threads
+
+**Marked:** thread-id-1, thread-id-2
+
+## Conversations
+
+**Marked:** conv-id-1
+
+## Next Steps
+
+Items remain in the inbox. Use \`mark-done\` to archive them, or \`fetch-inbox\` with \`onlyUnread: true\` to see what is still unread."
+`;
+
+exports[`mark-read tool individual IDs marks unread conversations read through their last message 1`] = `
+"# Mark Read
+
+**Workspace ID:** 11111
+**Mode:** Individual IDs
+**Marked:** 1
+**Already read:** 0
+**Failed:** 0
+
+## Conversations
+
+**Marked:** conv-id-1
+**Already read:** none
+
+## Next Steps
+
+Items remain in the inbox. Use \`mark-done\` to archive them, or \`fetch-inbox\` with \`onlyUnread: true\` to see what is still unread."
+`;
+
+exports[`mark-read tool individual IDs marks unread threads read through their last comment 1`] = `
+"# Mark Read
+
+**Workspace ID:** 11111
+**Mode:** Individual IDs
+**Marked:** 2
+**Already read:** 0
+**Failed:** 0
+
+## Threads
+
+**Marked:** thread-id-1, thread-id-2
+**Already read:** none
+
+## Next Steps
+
+Items remain in the inbox. Use \`mark-done\` to archive them, or \`fetch-inbox\` with \`onlyUnread: true\` to see what is still unread."
+`;
+
+exports[`mark-read tool individual IDs reports a thread whose record cannot be loaded as failed and continues 1`] = `
+"# Mark Read
+
+**Workspace ID:** 11111
+**Mode:** Individual IDs
+**Marked:** 1
+**Already read:** 0
+**Failed:** 1
+
+## Threads
+
+**Marked:** thread-id-2
+**Already read:** none
+
+## Failed
+
+- thread thread-id-1: Thread not found
+
+## Next Steps
+
+Review failed items and retry if needed."
+`;
+
+exports[`mark-read tool individual IDs skips items that are not in the unread list and reports them as alreadyRead 1`] = `
+"# Mark Read
+
+**Workspace ID:** 11111
+**Mode:** Individual IDs
+**Marked:** 1
+**Already read:** 2
+**Failed:** 0
+
+## Threads
+
+**Marked:** thread-id-2
+**Already read:** thread-id-1
+
+## Conversations
+
+**Marked:** none
+**Already read:** conv-id-1
+
+## Next Steps
+
+Items remain in the inbox. Use \`mark-done\` to archive them, or \`fetch-inbox\` with \`onlyUnread: true\` to see what is still unread."
+`;

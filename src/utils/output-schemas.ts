@@ -15,6 +15,7 @@ import {
     WorkspaceUserSchema,
 } from '@doist/comms-sdk'
 import { z } from 'zod'
+import { MarkReadItemTypeSchema } from './target-types.js'
 
 // Re-export SDK schemas for direct use
 export {
@@ -635,6 +636,34 @@ export const MarkDoneOutputSchema = z.object({
 })
 
 /**
+ * Schema for mark-read tool output
+ */
+const MarkReadItemsSchema = z.object({
+    // IDs whose unread marker was moved to the latest comment/message.
+    marked: z.array(z.string()),
+    // Requested IDs that were not in the workspace's unread list, so no
+    // mark-read call was made for them.
+    alreadyRead: z.array(z.string()),
+})
+
+export const MarkReadOutputSchema = z.object({
+    type: z.literal('mark_read_result'),
+    workspaceId: z.number(),
+    mode: z.enum(['individual', 'all']),
+    threads: MarkReadItemsSchema,
+    conversations: MarkReadItemsSchema,
+    failed: z.array(
+        z.object({
+            item: z.string(),
+            itemType: MarkReadItemTypeSchema,
+            error: z.string(),
+        }),
+    ),
+    markedCount: z.number(),
+    failureCount: z.number(),
+})
+
+/**
  * Schema for list-channels tool output
  */
 export const ListChannelsOutputSchema = z.object({
@@ -701,6 +730,7 @@ export const StructuredOutputSchema = z.union([
     ReplyOutputSchema,
     ReactOutputSchema,
     MarkDoneOutputSchema,
+    MarkReadOutputSchema,
     ListChannelsOutputSchema,
     ListConversationsOutputSchema,
 ])
@@ -748,6 +778,7 @@ export type BuildLinkOutput = z.infer<typeof BuildLinkOutputSchema>
 export type ReplyOutput = z.infer<typeof ReplyOutputSchema>
 export type ReactOutput = z.infer<typeof ReactOutputSchema>
 export type MarkDoneOutput = z.infer<typeof MarkDoneOutputSchema>
+export type MarkReadOutput = z.infer<typeof MarkReadOutputSchema>
 export type ListChannelsOutput = z.infer<typeof ListChannelsOutputSchema>
 export type ListConversationsOutput = z.infer<typeof ListConversationsOutputSchema>
 export type StructuredOutput = z.infer<typeof StructuredOutputSchema>
