@@ -4,6 +4,7 @@ import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
 import { SAMPLE_LIMIT } from '../utils/degrade.js'
 import { type MarkDoneOp, MarkDoneOutputSchema } from '../utils/output-schemas.js'
+import { markConversationFullyRead, markThreadFullyRead } from '../utils/read-position.js'
 import { type MarkDoneType, MarkDoneTypeSchema } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -214,16 +215,14 @@ const markDone = {
 
                     if (type === 'thread') {
                         if (markRead) {
-                            await runOp('markRead', () =>
-                                client.threads.markRead({ id, objIndex: 0 }),
-                            )
+                            await runOp('markRead', () => markThreadFullyRead(client, id))
                         }
                         if (archive) {
                             await runOp('archive', () => client.inbox.archiveThread(id))
                         }
                     } else {
                         if (markRead) {
-                            await runOp('markRead', () => client.conversations.markRead({ id }))
+                            await runOp('markRead', () => markConversationFullyRead(client, id))
                         }
                         if (archive) {
                             await runOp('archive', () =>

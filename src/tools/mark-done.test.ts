@@ -1,17 +1,24 @@
 import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
-import { extractTextContent, TEST_IDS } from '../utils/test-helpers.js'
+import {
+    createMockConversation,
+    createMockThread,
+    extractTextContent,
+    TEST_IDS,
+} from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { markDone } from './mark-done.js'
 
 // Mock the Comms API
 const mockCommsApi = {
     threads: {
+        getThread: jest.fn(),
         markRead: jest.fn(),
         markAllRead: jest.fn(),
         clearUnread: jest.fn(),
     },
     conversations: {
+        getConversation: jest.fn(),
         markRead: jest.fn(),
         archiveConversation: jest.fn(),
     },
@@ -30,8 +37,14 @@ describe(`${MARK_DONE} tool`, () => {
         jest.clearAllMocks()
         console.error = jest.fn()
 
+        mockCommsApi.threads.getThread.mockImplementation(async (id: string) =>
+            createMockThread({ id, commentCount: 4, lastObjIndex: 3 }),
+        )
         mockCommsApi.threads.markRead.mockResolvedValue(undefined as never)
         mockCommsApi.inbox.archiveThread.mockResolvedValue(undefined as never)
+        mockCommsApi.conversations.getConversation.mockImplementation(async (id: string) =>
+            createMockConversation({ id, messageCount: 8, lastObjIndex: 7 }),
+        )
         mockCommsApi.conversations.markRead.mockResolvedValue(undefined as never)
         mockCommsApi.conversations.archiveConversation.mockResolvedValue(undefined as never)
     })
@@ -89,10 +102,56 @@ describe(`${MARK_DONE} tool`, () => {
                 mockCommsApi,
             )
 
+            // The read position comes from the thread record: marking read at
+            // objIndex 0 would only cover the thread post and leave the
+            // comments (and the unread badge) untouched.
+            expect(mockCommsApi.threads.getThread).toHaveBeenCalledWith(TEST_IDS.THREAD_1)
             expect(mockCommsApi.threads.markRead).toHaveBeenCalledTimes(1)
+            expect(mockCommsApi.threads.markRead).toHaveBeenCalledWith({
+                id: TEST_IDS.THREAD_1,
+                objIndex: 3,
+            })
             expect(mockCommsApi.inbox.archiveThread).not.toHaveBeenCalled()
 
             expect(extractTextContent(result)).toMatchSnapshot()
+        })
+
+        it('falls back to commentCount - 1 when the thread record has no lastObjIndex', async () => {
+            mockCommsApi.threads.getThread.mockResolvedValue(
+                createMockThread({ id: TEST_IDS.THREAD_1, commentCount: 6, lastObjIndex: null }),
+            )
+
+            await markDone.execute(
+                { type: 'thread', ids: [TEST_IDS.THREAD_1], markRead: true, archive: false },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.threads.markRead).toHaveBeenCalledWith({
+                id: TEST_IDS.THREAD_1,
+                objIndex: 5,
+            })
+        })
+
+        it('reports markRead as failed when the thread record cannot be loaded', async () => {
+            mockCommsApi.threads.getThread.mockRejectedValue(new Error('Thread not found'))
+
+            const result = await markDone.execute(
+                { type: 'thread', ids: [TEST_IDS.THREAD_1], markRead: true, archive: false },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.threads.markRead).not.toHaveBeenCalled()
+            expect(result.structuredContent).toEqual(
+                expect.objectContaining({
+                    completed: [],
+                    failed: [
+                        expect.objectContaining({
+                            item: TEST_IDS.THREAD_1,
+                            opErrors: [{ op: 'markRead', error: 'Thread not found' }],
+                        }),
+                    ],
+                }),
+            )
         })
 
         it('should archive thread only', async () => {
@@ -244,7 +303,13 @@ describe(`${MARK_DONE} tool`, () => {
                 mockCommsApi,
             )
 
+            // The API rejects markRead without a position, so the read
+            // position is taken from each conversation record.
             expect(mockCommsApi.conversations.markRead).toHaveBeenCalledTimes(2)
+            expect(mockCommsApi.conversations.markRead).toHaveBeenCalledWith({
+                id: TEST_IDS.CONVERSATION_1,
+                objIndex: 7,
+            })
             expect(mockCommsApi.conversations.archiveConversation).toHaveBeenCalledTimes(2)
 
             expect(extractTextContent(result)).toMatchSnapshot()
