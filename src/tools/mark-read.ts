@@ -3,9 +3,10 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
-import { SAMPLE_LIMIT } from '../utils/degrade.js'
-import { type MarkReadItemType, MarkReadOutputSchema } from '../utils/output-schemas.js'
+import { logOperationFailures, SAMPLE_LIMIT } from '../utils/degrade.js'
+import { MarkReadOutputSchema } from '../utils/output-schemas.js'
 import { markConversationFullyRead, markThreadFullyRead } from '../utils/read-position.js'
+import type { MarkReadItemType } from '../utils/target-types.js'
 import { ToolNames } from '../utils/tool-names.js'
 
 const ArgsSchema = {
@@ -64,6 +65,8 @@ function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : 'Unknown error'
 }
 
+type MarkResult = { marked: string[]; failed: MarkReadFailure[] }
+
 /**
  * Marks each item read through its latest comment/message, one API pair per
  * item. Failures are returned per item rather than thrown so one deleted or
@@ -73,7 +76,7 @@ async function markEach(
     client: CommsApi,
     itemType: MarkReadItemType,
     ids: readonly string[],
-): Promise<{ marked: string[]; failed: MarkReadFailure[] }> {
+): Promise<MarkResult> {
     const markOne = itemType === 'thread' ? markThreadFullyRead : markConversationFullyRead
     const results = await limitedAll(ids, async (id) => {
         try {
@@ -97,30 +100,52 @@ async function markEach(
 }
 
 /**
- * Per-item failures are folded into the tool result instead of thrown, so
- * without this the server answers 200 and logs nothing while a caller's items
- * stayed unread.
+ * Marks every unread thread in the workspace read with a single call. The
+ * IDs come from the unread list fetched beforehand, so the result can still
+ * name what was marked; if the call fails, every one of them is reported.
  */
-function logFailures(failed: readonly MarkReadFailure[]): void {
-    if (failed.length === 0) {
-        return
+async function markAllThreads(
+    client: CommsApi,
+    workspaceId: number,
+    unreadThreadIds: readonly string[],
+): Promise<MarkResult> {
+    if (unreadThreadIds.length === 0) {
+        return { marked: [], failed: [] }
     }
+    try {
+        await client.threads.markAllRead({ workspaceId })
+        return { marked: [...unreadThreadIds], failed: [] }
+    } catch (error) {
+        const message = errorMessage(error)
+        return {
+            marked: [],
+            failed: unreadThreadIds.map((item) => ({ item, itemType: 'thread', error: message })),
+        }
+    }
+}
 
-    // The first error goes in the message itself: Datadog's full-text search
-    // reaches the message but not the values nested inside `failedSample`.
-    console.error(`${ToolNames.MARK_READ}: operations failed: ${failed[0]?.error}`, {
-        failed: failed.length,
-        failedSample: failed.slice(0, SAMPLE_LIMIT),
-    })
+/**
+ * Lists IDs for the text output. In `all` mode the caller never supplied the
+ * IDs and cannot act on them individually, so a workspace with hundreds of
+ * unread items would only flood the context; the list is capped there while
+ * `structuredContent` keeps every ID.
+ */
+function formatIdList(ids: readonly string[], cap: number | null): string {
+    if (ids.length === 0) {
+        return 'none'
+    }
+    if (cap === null || ids.length <= cap) {
+        return ids.join(', ')
+    }
+    return `${ids.slice(0, cap).join(', ')} … and ${ids.length - cap} more`
 }
 
 function formatItemSection(label: string, items: MarkReadItems, mode: 'individual' | 'all') {
+    const cap = mode === 'all' ? SAMPLE_LIMIT : null
     const lines = [`## ${label}`, '']
-    lines.push(`**Marked:** ${items.marked.length > 0 ? items.marked.join(', ') : 'none'}`)
+    lines.push(`**Marked:** ${formatIdList(items.marked, cap)}`)
     if (mode === 'individual') {
-        lines.push(
-            `**Already read:** ${items.alreadyRead.length > 0 ? items.alreadyRead.join(', ') : 'none'}`,
-        )
+        lines.push(`**Already read:** ${formatIdList(items.alreadyRead, cap)}`)
     }
     lines.push('')
     return lines
@@ -168,22 +193,15 @@ const markRead = {
 
         if (all) {
             // One workspace-level call covers every unread thread. There is no
-            // working equivalent for conversations, so those go one by one.
-            if (unreadThreads.length > 0) {
-                try {
-                    await client.threads.markAllRead({ workspaceId })
-                    threads.marked = unreadThreads
-                } catch (error) {
-                    const message = errorMessage(error)
-                    for (const item of unreadThreads) {
-                        failed.push({ item, itemType: 'thread', error: message })
-                    }
-                }
-            }
-
-            const result = await markEach(client, 'conversation', unreadConversations)
-            conversations.marked = result.marked
-            failed.push(...result.failed)
+            // working equivalent for conversations, so those go one by one,
+            // concurrently with the thread call.
+            const [threadResult, conversationResult] = await Promise.all([
+                markAllThreads(client, workspaceId, unreadThreads),
+                markEach(client, 'conversation', unreadConversations),
+            ])
+            threads.marked = threadResult.marked
+            conversations.marked = conversationResult.marked
+            failed.push(...threadResult.failed, ...conversationResult.failed)
         } else {
             const unreadThreadSet = new Set(unreadThreads)
             const unreadConversationSet = new Set(unreadConversations)
@@ -209,7 +227,7 @@ const markRead = {
             failed.push(...threadResult.failed, ...conversationResult.failed)
         }
 
-        logFailures(failed)
+        logOperationFailures(ToolNames.MARK_READ, failed)
 
         const markedCount = threads.marked.length + conversations.marked.length
         const alreadyReadCount = threads.alreadyRead.length + conversations.alreadyRead.length

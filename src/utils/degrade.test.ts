@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals'
-import { degradeAllWithLog, degradeWithLog } from './degrade.js'
+import { degradeAllWithLog, degradeWithLog, logOperationFailures } from './degrade.js'
 
 describe('degradeAllWithLog', () => {
     let consoleErrorSpy: jest.SpiedFunction<typeof console.error>
@@ -113,6 +113,59 @@ describe('degradeWithLog', () => {
         expect(consoleErrorSpy).toHaveBeenCalledWith(
             'list-conversations: failed to load workspace roster',
             { workspaceId: 1, error: { name: 'Error', message: 'Unauthorized' } },
+        )
+    })
+})
+
+describe('logOperationFailures', () => {
+    let consoleErrorSpy: jest.SpiedFunction<typeof console.error>
+
+    beforeEach(() => {
+        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+        consoleErrorSpy.mockRestore()
+    })
+
+    it('stays silent when nothing failed', () => {
+        logOperationFailures('mark-read', [])
+        logOperationFailures('mark-read', [], { warnings: [] })
+
+        expect(consoleErrorSpy).not.toHaveBeenCalled()
+    })
+
+    it('puts the first error in the message and caps both samples', () => {
+        const failed = Array.from({ length: 7 }, (_, i) => ({
+            item: `thread-${i}`,
+            error: 'fetch failed',
+        }))
+        const warnings = Array.from({ length: 6 }, (_, i) => ({
+            item: `thread-w${i}`,
+            op: 'markRead',
+            error: 'GOAWAY',
+        }))
+
+        logOperationFailures('mark-done', failed, { warnings, context: { itemType: 'thread' } })
+
+        expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
+        expect(consoleErrorSpy).toHaveBeenCalledWith('mark-done: operations failed: fetch failed', {
+            itemType: 'thread',
+            failed: 7,
+            warnings: 6,
+            failedSample: failed.slice(0, 5),
+            warningSample: warnings.slice(0, 5),
+        })
+    })
+
+    it('falls back to the first warning for the message when nothing failed outright', () => {
+        logOperationFailures('mark-done', [], {
+            warnings: [{ item: 'thread-1', op: 'markRead', error: 'GOAWAY' }],
+        })
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            'mark-done: operations failed: GOAWAY',
+            expect.objectContaining({ failed: 0, warnings: 1 }),
         )
     })
 })

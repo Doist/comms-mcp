@@ -48,9 +48,15 @@ export const DeleteTargetTypeSchema = DeleteTargetType.schema
 export type DeleteTargetType = z.infer<typeof DeleteTargetTypeSchema>
 
 /**
+ * Items that carry an unread marker and accept replies. Shared so the tools
+ * that act on "a thread or a conversation" stay in lockstep.
+ */
+const threadOrConversation = ['thread', 'conversation'] as const
+
+/**
  * Target types for replies
  */
-export const ReplyTargetType = createEnumSchema(['thread', 'conversation'])
+export const ReplyTargetType = createEnumSchema(threadOrConversation)
 export const ReplyTargetTypeSchema = ReplyTargetType.schema
 export type ReplyTargetType = z.infer<typeof ReplyTargetTypeSchema>
 
@@ -64,6 +70,13 @@ export type SearchScope = z.infer<typeof SearchScopeSchema>
 /**
  * Mark done types
  */
-export const MarkDoneType = createEnumSchema(['thread', 'conversation'])
+export const MarkDoneType = createEnumSchema(threadOrConversation)
 export const MarkDoneTypeSchema = MarkDoneType.schema
 export type MarkDoneType = z.infer<typeof MarkDoneTypeSchema>
+
+/**
+ * Mark read item types
+ */
+export const MarkReadItemType = createEnumSchema(threadOrConversation)
+export const MarkReadItemTypeSchema = MarkReadItemType.schema
+export type MarkReadItemType = z.infer<typeof MarkReadItemTypeSchema>

@@ -15,6 +15,7 @@ import {
     WorkspaceUserSchema,
 } from '@doist/comms-sdk'
 import { z } from 'zod'
+import { MarkReadItemTypeSchema } from './target-types.js'
 
 // Re-export SDK schemas for direct use
 export {
@@ -637,10 +638,6 @@ export const MarkDoneOutputSchema = z.object({
 /**
  * Schema for mark-read tool output
  */
-export const MARK_READ_ITEM_TYPES = ['thread', 'conversation'] as const
-export const MarkReadItemTypeSchema = z.enum(MARK_READ_ITEM_TYPES)
-export type MarkReadItemType = (typeof MARK_READ_ITEM_TYPES)[number]
-
 const MarkReadItemsSchema = z.object({
     // IDs whose unread marker was moved to the latest comment/message.
     marked: z.array(z.string()),

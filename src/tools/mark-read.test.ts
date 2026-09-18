@@ -244,7 +244,12 @@ describe(`${MARK_READ} tool`, () => {
             )
             expect(console.error).toHaveBeenCalledWith(
                 `${MARK_READ}: operations failed: Thread not found`,
-                expect.objectContaining({ failed: 1 }),
+                expect.objectContaining({
+                    failed: 1,
+                    failedSample: [
+                        { item: TEST_IDS.THREAD_1, itemType: 'thread', error: 'Thread not found' },
+                    ],
+                }),
             )
         })
 
@@ -345,6 +350,26 @@ describe(`${MARK_READ} tool`, () => {
                 markedCount: 3,
                 failureCount: 0,
             })
+        })
+
+        it('caps the IDs echoed in the text output while keeping them all in structuredContent', async () => {
+            const threadIds = Array.from({ length: 8 }, (_, i) => `thread-id-${i + 1}`)
+            setUnread({ threads: threadIds })
+
+            const result = await markRead.execute(
+                { workspaceId: WORKSPACE_ID, all: true },
+                mockCommsApi,
+            )
+
+            const text = extractTextContent(result)
+            expect(text).toContain(`**Marked:** ${threadIds.slice(0, 5).join(', ')} … and 3 more`)
+            expect(text).not.toContain('thread-id-8')
+            expect(result.structuredContent).toEqual(
+                expect.objectContaining({
+                    threads: { marked: threadIds, alreadyRead: [] },
+                    markedCount: 8,
+                }),
+            )
         })
 
         it('skips markAllRead when no threads are unread', async () => {

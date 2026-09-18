@@ -91,3 +91,47 @@ export function degradeWithLog<T>(
         return fallback
     }
 }
+
+/**
+ * Reports the items a batch tool could not act on, as one log line per call.
+ *
+ * Tools like mark-done and mark-read fold per-item errors into the tool result
+ * instead of throwing, so without this the server answers 200 and logs nothing
+ * while a caller's items stayed untouched — a whole batch can fail on an expired
+ * token or a dropped connection with no trace on this side. Stays quiet when
+ * there is nothing to report.
+ *
+ * Sample entries are logged as given, so pass only the fields worth having in
+ * a log line.
+ *
+ * @param toolName - The tool that ran the batch, for the log prefix.
+ * @param failed - Items the tool could not complete.
+ * @param options.warnings - Items that completed but with a secondary op failing.
+ * @param options.context - Extra attributes for the log line, e.g. `{ itemType }`.
+ */
+export function logOperationFailures(
+    toolName: string,
+    failed: ReadonlyArray<{ item: string; error: string }>,
+    options: {
+        warnings?: ReadonlyArray<{ item: string; op: string; error: string }>
+        context?: Record<string, unknown>
+    } = {},
+): void {
+    const { warnings = [], context = {} } = options
+    if (failed.length === 0 && warnings.length === 0) {
+        return
+    }
+
+    // The first error goes in the message itself. Datadog's full-text search
+    // reaches the message but not the values nested inside `failedSample`, so a
+    // search for the reason (`GOAWAY`, `401`) finds nothing without this.
+    const firstError = (failed[0] ?? warnings[0])?.error
+
+    console.error(`${toolName}: operations failed: ${firstError}`, {
+        ...context,
+        failed: failed.length,
+        warnings: warnings.length,
+        failedSample: failed.slice(0, SAMPLE_LIMIT),
+        warningSample: warnings.slice(0, SAMPLE_LIMIT),
+    })
+}
