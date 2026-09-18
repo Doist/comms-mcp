@@ -1,3 +1,9 @@
+## [8.1.0](https://github.com/Doist/comms-mcp/compare/v8.0.4...v8.1.0) (2026-09-18)
+
+### Features
+
+* add mark-read tool and fix mark-done read position ([#58](https://github.com/Doist/comms-mcp/issues/58)) ([5508454](https://github.com/Doist/comms-mcp/commit/5508454476cb52f2a45fee0a4696394a3fa56bc9))
+
 ## [8.0.4](https://github.com/Doist/comms-mcp/compare/v8.0.3...v8.0.4) (2026-09-07)
 
 ### Performance Improvements
