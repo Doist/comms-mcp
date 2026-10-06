@@ -1,3 +1,9 @@
+## [8.1.1](https://github.com/Doist/comms-mcp/compare/v8.1.0...v8.1.1) (2026-10-06)
+
+### Bug Fixes
+
+* **deps:** bump @doist/comms-sdk to 3.3.1 to fix HTTP/2 GOAWAY failures ([#61](https://github.com/Doist/comms-mcp/issues/61)) ([19e9414](https://github.com/Doist/comms-mcp/commit/19e9414a967f7bce1711ffa5e94d320afb5f5077))
+
 ## [8.1.0](https://github.com/Doist/comms-mcp/compare/v8.0.4...v8.1.0) (2026-09-18)
 
 ### Features
