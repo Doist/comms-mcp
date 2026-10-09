@@ -68,7 +68,7 @@
         "@semantic-release/git": "10.0.1",
         "@types/jest": "30.0.0",
         "@types/node": "22.19.17",
-        "concurrently": "10.0.4",
+        "concurrently": "10.0.6",
         "conventional-changelog-conventionalcommits": "9.3.1",
         "cross-env": "10.1.0",
         "jest": "30.3.0",
