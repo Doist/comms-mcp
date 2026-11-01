@@ -52,7 +52,7 @@
         "@doist/comms-sdk": "3.10.0",
         "dotenv": "17.4.2",
         "p-limit": "6.2.0",
-        "zod": "4.3.6"
+        "zod": "4.6.7"
     },
     "peerDependencies": {
         "@modelcontextprotocol/server": "^2.0.0"
