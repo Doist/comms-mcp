@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import { degradeAllWithLog } from '../utils/degrade.js'
+import { degradeAllWithLog, resolveUsersWithLog } from '../utils/degrade.js'
 import { type GetMentionsOutput, GetMentionsOutputSchema } from '../utils/output-schemas.js'
 import { toRawSearchResults, toSearchResultItems } from '../utils/search-results.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -51,7 +51,7 @@ const getMentions = {
         const hasMore = response.hasMore
         const responseCursor = response.nextCursorMark
 
-        let userLookup: Record<number, string> = {}
+        const userLookup: Record<number, string> = {}
         let channelLookup: Record<string, string> = {}
 
         if (results.length > 0) {
@@ -67,11 +67,12 @@ const getMentions = {
             const uniqueUserIds = Array.from(userIds)
             const uniqueChannelIds = Array.from(channelIdSet)
             const [users, channels] = await Promise.all([
-                degradeAllWithLog(
+                resolveUsersWithLog(
+                    client,
                     ToolNames.GET_MENTIONS,
                     'failed to resolve mention author',
+                    workspaceId,
                     uniqueUserIds,
-                    (id) => client.workspaceUsers.getUserById({ workspaceId, userId: id }),
                 ),
                 degradeAllWithLog(
                     ToolNames.GET_MENTIONS,
@@ -81,10 +82,9 @@ const getMentions = {
                 ),
             ])
 
-            userLookup = users.reduce<Record<number, string>>((acc, user) => {
-                if (user) acc[user.id] = user.fullName
-                return acc
-            }, {})
+            for (const [id, user] of users) {
+                userLookup[id] = user.fullName
+            }
 
             channelLookup = channels.reduce<Record<string, string>>((acc, channel) => {
                 if (channel) acc[channel.id] = channel.name

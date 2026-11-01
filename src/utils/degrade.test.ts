@@ -1,5 +1,12 @@
+import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
-import { degradeAllWithLog, degradeWithLog, logOperationFailures } from './degrade.js'
+import {
+    degradeAllWithLog,
+    degradeWithLog,
+    logOperationFailures,
+    resolveUsersWithLog,
+} from './degrade.js'
+import { usersByIds } from './test-helpers.js'
 
 describe('degradeAllWithLog', () => {
     let consoleErrorSpy: jest.SpiedFunction<typeof console.error>
@@ -85,6 +92,72 @@ describe('degradeAllWithLog', () => {
         const [, context] = consoleErrorSpy.mock.calls[0] ?? []
         expect(context).toMatchObject({ error: { name: 'Error', message: 'Not found' } })
         expect(JSON.stringify(context)).not.toContain('someone@example.com')
+    })
+})
+
+describe('resolveUsersWithLog', () => {
+    let consoleErrorSpy: jest.SpiedFunction<typeof console.error>
+    const getUsersByIds = jest.fn()
+    const client = { workspaceUsers: { getUsersByIds } } as unknown as CommsApi
+
+    beforeEach(() => {
+        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        getUsersByIds.mockReset()
+    })
+
+    afterEach(() => {
+        consoleErrorSpy.mockRestore()
+    })
+
+    it('resolves users in one request, leaving out and logging the ones not found', async () => {
+        getUsersByIds.mockImplementation(usersByIds([{ id: 1, fullName: 'Ada' }]))
+
+        const users = await resolveUsersWithLog(
+            client,
+            'load-thread',
+            'failed to resolve',
+            7,
+            [1, 2, 1],
+        )
+
+        expect(getUsersByIds).toHaveBeenCalledTimes(1)
+        expect(getUsersByIds).toHaveBeenCalledWith({ workspaceId: 7, userIds: [1, 2] })
+        expect([...users.keys()]).toEqual([1])
+        expect(consoleErrorSpy).toHaveBeenCalledWith('load-thread: failed to resolve', {
+            failed: 1,
+            of: 2,
+            sample: [2],
+            error: { message: 'not found' },
+        })
+    })
+
+    it('degrades a failed request to no users with one log line', async () => {
+        getUsersByIds.mockRejectedValue(new Error('Unauthorized') as never)
+
+        const users = await resolveUsersWithLog(
+            client,
+            'load-thread',
+            'failed to resolve',
+            7,
+            [1, 2],
+        )
+
+        expect(users.size).toBe(0)
+        expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+            'load-thread: failed to resolve',
+            expect.objectContaining({
+                failed: 2,
+                error: { name: 'Error', message: 'Unauthorized' },
+            }),
+        )
+    })
+
+    it('makes no request for no users', async () => {
+        const users = await resolveUsersWithLog(client, 'load-thread', 'failed to resolve', 7, [])
+
+        expect(users.size).toBe(0)
+        expect(getUsersByIds).not.toHaveBeenCalled()
     })
 })
 

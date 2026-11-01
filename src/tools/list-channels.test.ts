@@ -6,6 +6,7 @@ import {
     extractTextContent,
     TEST_ERRORS,
     TEST_IDS,
+    usersByIds,
 } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { listChannels } from './list-channels.js'
@@ -15,7 +16,7 @@ const mockCommsApi = {
         getChannels: jest.fn(),
     },
     workspaceUsers: {
-        getUserById: jest.fn(),
+        getUsersByIds: jest.fn(),
     },
 } as unknown as jest.Mocked<CommsApi>
 
@@ -40,16 +41,11 @@ describe(`${LIST_CHANNELS} tool`, () => {
             ]
 
             mockCommsApi.channels.getChannels.mockResolvedValue(mockChannels)
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                async (args: { workspaceId: number; userId: number }) => {
-                    if (args.userId === TEST_IDS.USER_1) {
-                        return { fullName: 'Alice Johnson' } as never
-                    }
-                    if (args.userId === TEST_IDS.USER_2) {
-                        return { fullName: 'Bob Smith' } as never
-                    }
-                    throw new Error('User not found')
-                },
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    { id: TEST_IDS.USER_1, fullName: 'Alice Johnson' },
+                    { id: TEST_IDS.USER_2, fullName: 'Bob Smith' },
+                ]),
             )
 
             const result = await listChannels.execute(
@@ -117,9 +113,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
 
         it('should handle single channel', async () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([createMockChannel()])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice Johnson',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice Johnson' }]),
+            )
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -139,9 +135,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([
                 createMockChannel({ description: 'Main discussion channel' }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -160,9 +156,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
 
         it('should omit description when not present', async () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([createMockChannel()])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -180,9 +176,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([
                 createMockChannel({ archived: true }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -198,9 +194,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
 
         it('should include color when present', async () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([createMockChannel({ color: 5 })])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -213,9 +209,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
 
         it('should omit color when not present', async () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([createMockChannel()])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -228,7 +224,7 @@ describe(`${LIST_CHANNELS} tool`, () => {
     })
 
     describe('creator resolution', () => {
-        it('should deduplicate creator lookups', async () => {
+        it('should resolve unique creators in one request', async () => {
             const mockChannels = [
                 createMockChannel({ creator: TEST_IDS.USER_1 }),
                 createMockChannel({ id: 'channel-id-2', name: 'Other', creator: TEST_IDS.USER_1 }),
@@ -236,32 +232,31 @@ describe(`${LIST_CHANNELS} tool`, () => {
             ]
 
             mockCommsApi.channels.getChannels.mockResolvedValue(mockChannels)
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                async (args: { workspaceId: number; userId: number }) => {
-                    if (args.userId === TEST_IDS.USER_1) return { fullName: 'Alice' } as never
-                    if (args.userId === TEST_IDS.USER_2) return { fullName: 'Bob' } as never
-                    throw new Error('User not found')
-                },
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    { id: TEST_IDS.USER_1, fullName: 'Alice' },
+                    { id: TEST_IDS.USER_2, fullName: 'Bob' },
+                ]),
             )
 
             await listChannels.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockCommsApi)
 
-            // Should only fetch 2 unique creators, not 3
-            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledTimes(2)
+            expect(mockCommsApi.workspaceUsers.getUsersByIds).toHaveBeenCalledTimes(1)
+            expect(mockCommsApi.workspaceUsers.getUsersByIds).toHaveBeenCalledWith({
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
+            })
         })
 
-        it('falls back to the raw creator id when getUserById fails for that creator', async () => {
+        it('falls back to the raw creator id when the creator cannot be resolved', async () => {
             const mockChannels = [
                 createMockChannel({ creator: TEST_IDS.USER_1 }),
                 createMockChannel({ id: 'channel-id-2', name: 'Other', creator: TEST_IDS.USER_2 }),
             ]
 
             mockCommsApi.channels.getChannels.mockResolvedValue(mockChannels)
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                async (args: { workspaceId: number; userId: number }) => {
-                    if (args.userId === TEST_IDS.USER_1) return { fullName: 'Alice' } as never
-                    throw new Error('User not found')
-                },
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
             )
 
             const result = await listChannels.execute(
@@ -287,9 +282,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
     describe('includeArchived', () => {
         it('should only fetch active channels by default', async () => {
             mockCommsApi.channels.getChannels.mockResolvedValue([createMockChannel()])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             await listChannels.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockCommsApi)
 
@@ -314,9 +309,9 @@ describe(`${LIST_CHANNELS} tool`, () => {
                 }
                 return [activeChannel]
             })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listChannels.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, includeArchived: true },

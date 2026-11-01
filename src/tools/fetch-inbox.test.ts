@@ -1,6 +1,6 @@
 import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
-import { extractTextContent, TEST_IDS } from '../utils/test-helpers.js'
+import { extractTextContent, TEST_IDS, usersByIds } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { fetchInbox } from './fetch-inbox.js'
 
@@ -21,7 +21,7 @@ const mockCommsApi = {
         getChannel: jest.fn(),
     },
     workspaceUsers: {
-        getUserById: jest.fn(),
+        getUsersByIds: jest.fn(),
     },
 } as unknown as jest.Mocked<CommsApi>
 
@@ -271,31 +271,27 @@ describe(`${FETCH_INBOX} tool`, () => {
                     url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_2}/`,
                 }) as never
             })
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                (args: { workspaceId: number; userId: number }) => {
-                    if (args.userId === TEST_IDS.USER_1) {
-                        return Promise.resolve({
-                            id: TEST_IDS.USER_1,
-                            fullName: 'Alice',
-                            shortName: 'Alice',
-                            timezone: 'UTC',
-                            removed: false,
-                            userType: 'USER' as const,
-                            version: 1,
-                        }) as never
-                    }
-                    if (args.userId === TEST_IDS.USER_2) {
-                        return Promise.resolve({
-                            id: TEST_IDS.USER_2,
-                            fullName: 'Bob',
-                            shortName: 'Bob',
-                            timezone: 'UTC',
-                            removed: false,
-                            userType: 'USER' as const,
-                            version: 1,
-                        }) as never
-                    }
-                    return Promise.resolve({
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    {
+                        id: TEST_IDS.USER_1,
+                        fullName: 'Alice',
+                        shortName: 'Alice',
+                        timezone: 'UTC',
+                        removed: false,
+                        userType: 'USER' as const,
+                        version: 1,
+                    },
+                    {
+                        id: TEST_IDS.USER_2,
+                        fullName: 'Bob',
+                        shortName: 'Bob',
+                        timezone: 'UTC',
+                        removed: false,
+                        userType: 'USER' as const,
+                        version: 1,
+                    },
+                    {
                         id: TEST_IDS.USER_3,
                         fullName: 'Charlie',
                         shortName: 'Charlie',
@@ -303,8 +299,8 @@ describe(`${FETCH_INBOX} tool`, () => {
                         removed: false,
                         userType: 'USER' as const,
                         version: 1,
-                    }) as never
-                },
+                    },
+                ]),
             )
 
             const result = await fetchInbox.execute(
@@ -364,21 +360,18 @@ describe(`${FETCH_INBOX} tool`, () => {
                 url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
             } as never)
             // The second participant has left the workspace and can no longer be read.
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                (args: { workspaceId: number; userId: number }) => {
-                    if (args.userId === TEST_IDS.USER_1) {
-                        return Promise.resolve({
-                            id: TEST_IDS.USER_1,
-                            fullName: 'Alice',
-                            shortName: 'Alice',
-                            timezone: 'UTC',
-                            removed: false,
-                            userType: 'USER' as const,
-                            version: 1,
-                        }) as never
-                    }
-                    return Promise.reject(new Error('User not found')) as never
-                },
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    {
+                        id: TEST_IDS.USER_1,
+                        fullName: 'Alice',
+                        shortName: 'Alice',
+                        timezone: 'UTC',
+                        removed: false,
+                        userType: 'USER' as const,
+                        version: 1,
+                    },
+                ]),
             )
 
             const result = await fetchInbox.execute(
@@ -429,7 +422,7 @@ describe(`${FETCH_INBOX} tool`, () => {
                 creator: TEST_IDS.USER_1,
                 url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
             } as never)
-            mockCommsApi.workspaceUsers.getUserById.mockRejectedValue(
+            mockCommsApi.workspaceUsers.getUsersByIds.mockRejectedValue(
                 new Error('User not found') as never,
             )
 
@@ -478,16 +471,20 @@ describe(`${FETCH_INBOX} tool`, () => {
                 creator: TEST_IDS.USER_1,
                 url: `https://comms.todoist.com/${TEST_IDS.WORKSPACE_1}/msg/${TEST_IDS.CONVERSATION_1}/`,
             } as never)
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                fullName: 'Alex',
-                firstName: 'Alex',
-                shortName: 'Alex',
-                removed: true,
-                restricted: true as const,
-                setupPending: false,
-                version: 0,
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    {
+                        id: TEST_IDS.USER_1,
+                        fullName: 'Alex',
+                        firstName: 'Alex',
+                        shortName: 'Alex',
+                        removed: true,
+                        restricted: true as const,
+                        setupPending: false,
+                        version: 0,
+                    },
+                ]),
+            )
 
             const result = await fetchInbox.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, limit: 50, onlyUnread: false },
@@ -738,20 +735,18 @@ describe(`${FETCH_INBOX} tool`, () => {
                 creator: TEST_IDS.USER_1,
                 // url intentionally omitted
             } as never)
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                (args: { workspaceId: number; userId: number }) => {
-                    if (args.userId === TEST_IDS.USER_1) {
-                        return Promise.resolve({
-                            id: TEST_IDS.USER_1,
-                            fullName: 'Alice',
-                            shortName: 'Alice',
-                            timezone: 'UTC',
-                            removed: false,
-                            userType: 'USER' as const,
-                            version: 1,
-                        }) as never
-                    }
-                    return Promise.resolve({
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    {
+                        id: TEST_IDS.USER_1,
+                        fullName: 'Alice',
+                        shortName: 'Alice',
+                        timezone: 'UTC',
+                        removed: false,
+                        userType: 'USER' as const,
+                        version: 1,
+                    },
+                    {
                         id: TEST_IDS.USER_2,
                         fullName: 'Bob',
                         shortName: 'Bob',
@@ -759,8 +754,8 @@ describe(`${FETCH_INBOX} tool`, () => {
                         removed: false,
                         userType: 'USER' as const,
                         version: 1,
-                    }) as never
-                },
+                    },
+                ]),
             )
 
             const result = await fetchInbox.execute(

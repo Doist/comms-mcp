@@ -6,6 +6,7 @@ import {
     extractTextContent,
     TEST_ERRORS,
     TEST_IDS,
+    usersByIds,
 } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { listConversations } from './list-conversations.js'
@@ -15,8 +16,7 @@ const mockCommsApi = {
         getConversations: jest.fn(),
     },
     workspaceUsers: {
-        getUserById: jest.fn(),
-        getWorkspaceUsers: jest.fn(),
+        getUsersByIds: jest.fn(),
     },
 } as unknown as jest.Mocked<CommsApi>
 
@@ -43,14 +43,12 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             ]
 
             mockCommsApi.conversations.getConversations.mockResolvedValue(mockConversations)
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                async (args: { workspaceId: number; userId: number }) => {
-                    if (args.userId === TEST_IDS.USER_1)
-                        return { fullName: 'Alice Johnson' } as never
-                    if (args.userId === TEST_IDS.USER_2) return { fullName: 'Bob Smith' } as never
-                    if (args.userId === TEST_IDS.USER_3) return { fullName: 'Carol Davis' } as never
-                    throw new Error('User not found')
-                },
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    { id: TEST_IDS.USER_1, fullName: 'Alice Johnson' },
+                    { id: TEST_IDS.USER_2, fullName: 'Bob Smith' },
+                    { id: TEST_IDS.USER_3, fullName: 'Carol Davis' },
+                ]),
             )
 
             const result = await listConversations.execute(
@@ -117,9 +115,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation(),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listConversations.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -139,9 +137,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation({ title: undefined }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listConversations.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -159,9 +157,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation({ snippet: 'Last message preview' }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listConversations.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -182,9 +180,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation({ snippet: '' }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listConversations.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -202,9 +200,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation({ archived: true }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listConversations.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -222,9 +220,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation({ url: undefined }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listConversations.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -241,9 +239,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation({ url: sdkUrl }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listConversations.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1 },
@@ -256,42 +254,12 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
     })
 
     describe('participant resolution', () => {
-        it('should deduplicate participant lookups across conversations', async () => {
-            const mockConversations = [
-                createMockConversation({
-                    id: TEST_IDS.CONVERSATION_1,
-                    userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
-                }),
-                createMockConversation({
-                    id: TEST_IDS.CONVERSATION_2,
-                    userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
-                }),
-            ]
-
-            mockCommsApi.conversations.getConversations.mockResolvedValue(mockConversations)
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                async (args: { workspaceId: number; userId: number }) => {
-                    if (args.userId === TEST_IDS.USER_1) return { fullName: 'Alice' } as never
-                    if (args.userId === TEST_IDS.USER_2) return { fullName: 'Bob' } as never
-                    throw new Error('User not found')
-                },
-            )
-
-            await listConversations.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockCommsApi)
-
-            // Should only fetch 2 unique participants, not 4
-            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledTimes(2)
-        })
-
         it('should fall back to participant ID when name lookup fails, preserving alignment', async () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation({ userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2] }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                async (args: { workspaceId: number; userId: number }) => {
-                    if (args.userId === TEST_IDS.USER_2) return { fullName: 'Bob' } as never
-                    throw new Error('User not found')
-                },
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_2, fullName: 'Bob' }]),
             )
 
             const result = await listConversations.execute(
@@ -318,9 +286,8 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation({ id: TEST_IDS.CONVERSATION_1, userIds }),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                async (args: { workspaceId: number; userId: number }) =>
-                    ({ fullName: `User ${args.userId}` }) as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds(userIds.map((id) => ({ id, fullName: `User ${id}` }))),
             )
 
             const result = await listConversations.execute(
@@ -351,21 +318,24 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             ])
 
             // Only the five displayed participants are resolved, not all seven
-            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledTimes(5)
+            expect(mockCommsApi.workspaceUsers.getUsersByIds).toHaveBeenCalledWith({
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                userIds: [101, 102, 103, 104, 105],
+            })
         })
 
-        it('should fetch the workspace roster once instead of per-user above the threshold', async () => {
-            // 25 conversations each with a distinct single participant → 25 unique IDs,
-            // above PARTICIPANT_ROSTER_THRESHOLD, so a single roster fetch is used.
+        it('should resolve participants across conversations in one request', async () => {
             const conversations = Array.from({ length: 25 }, (_, i) =>
                 createMockConversation({ id: `conv-${i}`, userIds: [1000 + i] }),
             )
             mockCommsApi.conversations.getConversations.mockResolvedValue(conversations)
-            mockCommsApi.workspaceUsers.getWorkspaceUsers.mockResolvedValue(
-                Array.from({ length: 25 }, (_, i) => ({
-                    id: 1000 + i,
-                    fullName: `User ${1000 + i}`,
-                })) as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds(
+                    Array.from({ length: 25 }, (_, i) => ({
+                        id: 1000 + i,
+                        fullName: `User ${1000 + i}`,
+                    })),
+                ),
             )
 
             const result = await listConversations.execute(
@@ -373,11 +343,7 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                 mockCommsApi,
             )
 
-            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledTimes(1)
-            expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).toHaveBeenCalledWith({
-                workspaceId: TEST_IDS.WORKSPACE_1,
-            })
-            expect(mockCommsApi.workspaceUsers.getUserById).not.toHaveBeenCalled()
+            expect(mockCommsApi.workspaceUsers.getUsersByIds).toHaveBeenCalledTimes(1)
 
             const textContent = extractTextContent(result)
             expect(textContent).toContain('User 1000')
@@ -390,9 +356,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             mockCommsApi.conversations.getConversations.mockResolvedValue([
                 createMockConversation(),
             ])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             await listConversations.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockCommsApi)
 
@@ -419,9 +385,9 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                 }
                 return [activeConversation]
             })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                fullName: 'Alice',
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+            )
 
             const result = await listConversations.execute(
                 { workspaceId: TEST_IDS.WORKSPACE_1, includeArchived: true },

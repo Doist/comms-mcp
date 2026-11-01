@@ -5,6 +5,8 @@
  * an expired token, so record what was dropped and why.
  */
 
+import type { CommsApi, VisibleWorkspaceUser } from '@doist/comms-sdk'
+
 /** Failed identifiers reported per batch before the rest are counted only. */
 export const SAMPLE_LIMIT = 5
 
@@ -27,8 +29,8 @@ function describeError(error: unknown): { name?: string; message: string } {
  * Resolves every id, degrading past individual failures to `null` and reporting
  * them as one log line per batch.
  *
- * A batch is as large as the caller's input — `get-users` takes an unbounded
- * `userIds` array — so one expired token must not become one log event per id.
+ * A batch is as large as the caller's input, so one expired token must not
+ * become one log event per id.
  *
  * @param toolName - The tool doing the lookups, for the log prefix.
  * @param message - What could not be resolved, e.g. 'failed to resolve channel creator'.
@@ -68,6 +70,57 @@ export async function degradeAllWithLog<Id, T>(
     }
 
     return results
+}
+
+/**
+ * Resolves workspace users in one batched lookup, degrading the way
+ * {@link degradeAllWithLog} does: a user the workspace has no record of, or a
+ * failed request, is left out of the result and reported in one log line.
+ *
+ * @param client - The Comms API client.
+ * @param toolName - The tool doing the lookups, for the log prefix.
+ * @param message - What could not be resolved, e.g. 'failed to resolve thread participant'.
+ * @param workspaceId - The workspace the users belong to.
+ * @param userIds - The users to resolve.
+ * @returns The resolved users keyed by id.
+ */
+export async function resolveUsersWithLog(
+    client: CommsApi,
+    toolName: string,
+    message: string,
+    workspaceId: number,
+    userIds: readonly number[],
+): Promise<Map<number, VisibleWorkspaceUser>> {
+    const ids = [...new Set(userIds)]
+    const users = new Map<number, VisibleWorkspaceUser>()
+    if (ids.length === 0) {
+        return users
+    }
+
+    let error: unknown
+    try {
+        const byId = await client.workspaceUsers.getUsersByIds({ workspaceId, userIds: ids })
+        for (const id of ids) {
+            const user = byId[id]
+            if (user) {
+                users.set(id, user)
+            }
+        }
+    } catch (caught) {
+        error = caught
+    }
+
+    const missing = ids.filter((id) => !users.has(id))
+    if (missing.length > 0) {
+        console.error(`${toolName}: ${message}`, {
+            failed: missing.length,
+            of: ids.length,
+            sample: missing.slice(0, SAMPLE_LIMIT),
+            error: error === undefined ? { message: 'not found' } : describeError(error),
+        })
+    }
+
+    return users
 }
 
 /**
