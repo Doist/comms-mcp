@@ -1,3 +1,9 @@
+## [8.1.2](https://github.com/Doist/comms-mcp/compare/v8.1.1...v8.1.2) (2026-11-02)
+
+### Performance Improvements
+
+* resolve users with one getUsersByIds call per tool ([#71](https://github.com/Doist/comms-mcp/issues/71)) ([01b99f4](https://github.com/Doist/comms-mcp/commit/01b99f41d95b348e940a81fd7eaadf89d6ee1dc3))
+
 ## [8.1.1](https://github.com/Doist/comms-mcp/compare/v8.1.0...v8.1.1) (2026-10-06)
 
 ### Bug Fixes
