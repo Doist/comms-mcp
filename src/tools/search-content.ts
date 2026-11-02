@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import { degradeAllWithLog } from '../utils/degrade.js'
+import { degradeAllWithLog, resolveUsersWithLog } from '../utils/degrade.js'
 import { type SearchContentOutput, SearchContentOutputSchema } from '../utils/output-schemas.js'
 import { toRawSearchResults, toSearchResultItems } from '../utils/search-results.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -66,7 +66,7 @@ const searchContent = {
         const responseCursor = response.nextCursorMark
 
         // Initialize lookup maps
-        let userLookup: Record<number, string> = {}
+        const userLookup: Record<number, string> = {}
         let channelLookup: Record<string, string> = {}
 
         // Only fetch user and channel info if there are results
@@ -85,11 +85,12 @@ const searchContent = {
             const uniqueUserIds = Array.from(userIds)
             const uniqueChannelIds = Array.from(channelIdSet)
             const [users, channels] = await Promise.all([
-                degradeAllWithLog(
+                resolveUsersWithLog(
+                    client,
                     ToolNames.SEARCH_CONTENT,
                     'failed to resolve result author',
+                    workspaceId,
                     uniqueUserIds,
-                    (id) => client.workspaceUsers.getUserById({ workspaceId, userId: id }),
                 ),
                 degradeAllWithLog(
                     ToolNames.SEARCH_CONTENT,
@@ -99,10 +100,9 @@ const searchContent = {
                 ),
             ])
 
-            userLookup = users.reduce<Record<number, string>>((acc, user) => {
-                if (user) acc[user.id] = user.fullName
-                return acc
-            }, {})
+            for (const [id, user] of users) {
+                userLookup[id] = user.fullName
+            }
 
             channelLookup = channels.reduce<Record<string, string>>((acc, channel) => {
                 if (channel) acc[channel.id] = channel.name

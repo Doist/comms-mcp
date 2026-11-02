@@ -8,7 +8,7 @@ import {
     normalizeAttachments,
 } from '../utils/attachments.js'
 import { UNKNOWN_USER } from '../utils/constants.js'
-import { degradeAllWithLog } from '../utils/degrade.js'
+import { resolveUsersWithLog } from '../utils/degrade.js'
 import { LoadThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -103,29 +103,23 @@ const loadThread = {
         }
 
         // Fetch channel and all user info in parallel
-        const uniqueUserIds = Array.from(userIds)
         const [channel, users] = await Promise.all([
             client.channels.getChannel(thread.channelId),
             // IDs that can't be resolved are simply absent from the lookup, so a
             // single inaccessible user doesn't fail the whole thread.
-            degradeAllWithLog(
+            resolveUsersWithLog(
+                client,
                 ToolNames.LOAD_THREAD,
                 'failed to resolve thread participant',
-                uniqueUserIds,
-                (id) =>
-                    client.workspaceUsers.getUserById({
-                        workspaceId: thread.workspaceId,
-                        userId: id,
-                    }),
+                thread.workspaceId,
+                Array.from(userIds),
             ),
         ])
 
-        const userLookup = users.reduce<Record<number, string>>((acc, user) => {
-            if (user) {
-                acc[user.id] = user.fullName
-            }
-            return acc
-        }, {})
+        const userLookup: Record<number, string> = {}
+        for (const [id, user] of users) {
+            userLookup[id] = user.fullName
+        }
 
         // Build text content
         const creatorName = userLookup[thread.creator]

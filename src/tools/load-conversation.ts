@@ -1,4 +1,4 @@
-import { getFullCommsURL, type VisibleWorkspaceUser } from '@doist/comms-sdk'
+import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
@@ -8,7 +8,7 @@ import {
     normalizeAttachments,
 } from '../utils/attachments.js'
 import { UNKNOWN_USER } from '../utils/constants.js'
-import { degradeAllWithLog } from '../utils/degrade.js'
+import { resolveUsersWithLog } from '../utils/degrade.js'
 import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -85,24 +85,12 @@ const loadConversation = {
         const { userIds } = conversation
         // A participant that cannot be resolved is dropped rather than failing the
         // whole conversation; the message list matters more than every name.
-        const users = await degradeAllWithLog(
+        const userInfo = await resolveUsersWithLog(
+            client,
             ToolNames.LOAD_CONVERSATION,
             'failed to resolve conversation participant',
+            conversation.workspaceId,
             userIds,
-            (id) =>
-                client.workspaceUsers.getUserById({
-                    workspaceId: conversation.workspaceId,
-                    userId: id,
-                }),
-        )
-        const userInfo = users.reduce<Record<VisibleWorkspaceUser['id'], VisibleWorkspaceUser>>(
-            (acc, user) => {
-                if (user) {
-                    acc[user.id] = user
-                }
-                return acc
-            },
-            {},
         )
 
         // Build text content
@@ -121,7 +109,9 @@ const loadConversation = {
             lines.push('## Participants')
             lines.push('')
             lines.push(
-                conversation.userIds.map((id) => userInfo[id]?.fullName ?? UNKNOWN_USER).join(', '),
+                conversation.userIds
+                    .map((id) => userInfo.get(id)?.fullName ?? UNKNOWN_USER)
+                    .join(', '),
             )
             lines.push('')
         }
@@ -133,7 +123,7 @@ const loadConversation = {
             const messageDate = message.posted.toISOString()
             lines.push(`### Message ${message.id}`)
             lines.push(
-                `**Creator:** ${userInfo[message.creator]?.fullName ?? UNKNOWN_USER} | **Posted:** ${messageDate}`,
+                `**Creator:** ${userInfo.get(message.creator)?.fullName ?? UNKNOWN_USER} | **Posted:** ${messageDate}`,
             )
             lines.push('')
             lines.push(message.content)
@@ -165,7 +155,7 @@ const loadConversation = {
                 id: m.id,
                 content: m.content,
                 creatorId: m.creator,
-                creatorName: userInfo[m.creator]?.fullName,
+                creatorName: userInfo.get(m.creator)?.fullName,
                 conversationId: m.conversationId,
                 posted: m.posted.toISOString(),
                 messageUrl:

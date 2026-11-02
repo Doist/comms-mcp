@@ -1,6 +1,6 @@
 import type { CommsApi } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
-import { extractTextContent, TEST_IDS } from '../utils/test-helpers.js'
+import { extractTextContent, TEST_IDS, usersByIds } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { searchContent } from './search-content.js'
 
@@ -14,7 +14,7 @@ const mockCommsApi = {
         getChannel: jest.fn(),
     },
     workspaceUsers: {
-        getUserById: jest.fn(),
+        getUsersByIds: jest.fn(),
     },
 } as unknown as jest.Mocked<CommsApi>
 
@@ -66,16 +66,20 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                 hasMore: false,
                 isPlanRestricted: false,
             })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                fullName: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    {
+                        id: TEST_IDS.USER_1,
+                        fullName: 'Test User 1',
+                        shortName: 'TU1',
+                        email: 'user1@test.com',
+                        userType: 'USER' as const,
+                        removed: false,
+                        timezone: 'UTC',
+                        version: 1,
+                    },
+                ]),
+            )
             mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: TEST_IDS.CHANNEL_1,
                 name: 'Test Channel',
@@ -159,16 +163,20 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                 hasMore: false,
                 isPlanRestricted: false,
             })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                fullName: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    {
+                        id: TEST_IDS.USER_1,
+                        fullName: 'Test User 1',
+                        shortName: 'TU1',
+                        email: 'user1@test.com',
+                        userType: 'USER' as const,
+                        removed: false,
+                        timezone: 'UTC',
+                        version: 1,
+                    },
+                ]),
+            )
             mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: TEST_IDS.CHANNEL_1,
                 name: 'Test Channel',
@@ -227,16 +235,20 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                 nextCursorMark: 'next-cursor-123',
                 isPlanRestricted: false,
             })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                fullName: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    {
+                        id: TEST_IDS.USER_1,
+                        fullName: 'Test User 1',
+                        shortName: 'TU1',
+                        email: 'user1@test.com',
+                        userType: 'USER' as const,
+                        removed: false,
+                        timezone: 'UTC',
+                        version: 1,
+                    },
+                ]),
+            )
 
             const result = await searchContent.execute(
                 {
@@ -272,16 +284,20 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                 hasMore: false,
                 isPlanRestricted: false,
             })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                fullName: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    {
+                        id: TEST_IDS.USER_1,
+                        fullName: 'Test User 1',
+                        shortName: 'TU1',
+                        email: 'user1@test.com',
+                        userType: 'USER' as const,
+                        removed: false,
+                        timezone: 'UTC',
+                        version: 1,
+                    },
+                ]),
+            )
 
             const result = await searchContent.execute(
                 {
@@ -324,16 +340,20 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                 hasMore: false,
                 isPlanRestricted: false,
             })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                fullName: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    {
+                        id: TEST_IDS.USER_1,
+                        fullName: 'Test User 1',
+                        shortName: 'TU1',
+                        email: 'user1@test.com',
+                        userType: 'USER' as const,
+                        removed: false,
+                        timezone: 'UTC',
+                        version: 1,
+                    },
+                ]),
+            )
 
             const result = await searchContent.execute(
                 {
@@ -396,16 +416,20 @@ describe(`${SEARCH_CONTENT} tool`, () => {
                 hasMore: false,
                 isPlanRestricted: false,
             })
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue({
-                id: TEST_IDS.USER_1,
-                fullName: 'Test User 1',
-                shortName: 'TU1',
-                email: 'user1@test.com',
-                userType: 'USER' as const,
-                removed: false,
-                timezone: 'UTC',
-                version: 1,
-            } as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    {
+                        id: TEST_IDS.USER_1,
+                        fullName: 'Test User 1',
+                        shortName: 'TU1',
+                        email: 'user1@test.com',
+                        userType: 'USER' as const,
+                        removed: false,
+                        timezone: 'UTC',
+                        version: 1,
+                    },
+                ]),
+            )
             mockCommsApi.channels.getChannel.mockResolvedValue({
                 id: TEST_IDS.CHANNEL_1,
                 name: 'Test Channel',

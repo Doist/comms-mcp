@@ -10,7 +10,7 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
-import { degradeAllWithLog } from '../utils/degrade.js'
+import { degradeAllWithLog, resolveUsersWithLog } from '../utils/degrade.js'
 import { FetchInboxOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -111,7 +111,6 @@ async function loadConversationDetails(
         }
     }
 
-    // Load all user info in parallel
     const workspaceId = conversations[0]?.workspaceId
     if (!workspaceId) {
         return conversations.map((conversation) => ({ conversation, participants: [] }))
@@ -120,24 +119,19 @@ async function loadConversationDetails(
     // A participant that cannot be resolved is dropped rather than failing the
     // whole inbox: one unreachable user should not cost the caller every thread.
     // Logged so a dropped name stays distinguishable from a backend outage.
-    const users = await degradeAllWithLog(
+    const users = await resolveUsersWithLog(
+        client,
         ToolNames.FETCH_INBOX,
         'failed to resolve conversation participant',
+        workspaceId,
         Array.from(allUserIds),
-        (userId) => client.workspaceUsers.getUserById({ workspaceId, userId }),
     )
-    const userMap = users.reduce<Record<number, VisibleWorkspaceUser>>((acc, user) => {
-        if (user) {
-            acc[user.id] = user
-        }
-        return acc
-    }, {})
 
     // Map conversations to include their participants
     return conversations.map((conversation) => ({
         conversation,
         participants: conversation.userIds
-            .map((id) => userMap[id])
+            .map((id) => users.get(id))
             .filter((user): user is VisibleWorkspaceUser => !!user),
     }))
 }

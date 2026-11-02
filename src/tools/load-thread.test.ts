@@ -5,6 +5,7 @@ import {
     createMockThread,
     extractTextContent,
     TEST_IDS,
+    usersByIds,
 } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { loadThread } from './load-thread.js'
@@ -21,7 +22,7 @@ const mockCommsApi = {
         getChannel: jest.fn(),
     },
     workspaceUsers: {
-        getUserById: jest.fn(),
+        getUsersByIds: jest.fn(),
     },
 } as unknown as jest.Mocked<CommsApi>
 
@@ -68,15 +69,12 @@ describe(`${LOAD_THREAD} tool`, () => {
             mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
             mockCommsApi.comments.getComments.mockResolvedValue(mockComments)
             mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation((async (args: {
-                workspaceId: number
-                userId: number
-            }) => {
-                if (args.userId === TEST_IDS.USER_1) {
-                    return makeUser(TEST_IDS.USER_1, 'Test User 1')
-                }
-                return makeUser(TEST_IDS.USER_2, 'Test User 2')
-            }) as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    makeUser(TEST_IDS.USER_1, 'Test User 1'),
+                    makeUser(TEST_IDS.USER_2, 'Test User 2'),
+                ]),
+            )
 
             const result = await loadThread.execute(
                 { threadId: TEST_IDS.THREAD_1, limit: 50, includeParticipants: true },
@@ -137,15 +135,9 @@ describe(`${LOAD_THREAD} tool`, () => {
             mockCommsApi.comments.getComments.mockResolvedValue(mockComments)
             mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
             // The second user has left the workspace and can no longer be read.
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation((async (args: {
-                workspaceId: number
-                userId: number
-            }) => {
-                if (args.userId === TEST_IDS.USER_1) {
-                    return makeUser(TEST_IDS.USER_1, 'Test User 1')
-                }
-                throw new Error('User not found')
-            }) as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([makeUser(TEST_IDS.USER_1, 'Test User 1')]),
+            )
 
             const result = await loadThread.execute(
                 { threadId: TEST_IDS.THREAD_1, limit: 50, includeParticipants: true },
@@ -169,8 +161,8 @@ describe(`${LOAD_THREAD} tool`, () => {
             mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
             mockCommsApi.comments.getComments.mockResolvedValue([])
             mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([makeUser(TEST_IDS.USER_1, 'Test User 1')]),
             )
 
             const result = await loadThread.execute(
@@ -192,8 +184,8 @@ describe(`${LOAD_THREAD} tool`, () => {
             mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
             mockCommsApi.comments.getComments.mockResolvedValue([])
             mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([makeUser(TEST_IDS.USER_1, 'Test User 1')]),
             )
 
             const result = await loadThread.execute(
@@ -220,8 +212,8 @@ describe(`${LOAD_THREAD} tool`, () => {
             mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
             mockCommsApi.comments.getComments.mockResolvedValue([])
             mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([makeUser(TEST_IDS.USER_1, 'Test User 1')]),
             )
 
             const result = await loadThread.execute(
@@ -256,8 +248,8 @@ describe(`${LOAD_THREAD} tool`, () => {
             mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
             mockCommsApi.comments.getComments.mockResolvedValue([mockComment])
             mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([makeUser(TEST_IDS.USER_1, 'Test User 1')]),
             )
 
             const result = await loadThread.execute(
@@ -283,8 +275,8 @@ describe(`${LOAD_THREAD} tool`, () => {
             mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
             mockCommsApi.comments.getComments.mockResolvedValue([])
             mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([makeUser(TEST_IDS.USER_1, 'Test User 1')]),
             )
 
             const result = await loadThread.execute(
@@ -303,8 +295,8 @@ describe(`${LOAD_THREAD} tool`, () => {
             mockCommsApi.threads.getThread.mockResolvedValue(mockThread)
             mockCommsApi.comments.getComments.mockResolvedValue([mockComment])
             mockCommsApi.channels.getChannel.mockResolvedValue(makeChannel())
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([makeUser(TEST_IDS.USER_1, 'Test User 1')]),
             )
 
             const result = await loadThread.execute(

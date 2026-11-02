@@ -5,6 +5,7 @@ import {
     extractTextContent,
     TEST_ERRORS,
     TEST_IDS,
+    usersByIds,
 } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getUsers } from './get-users.js'
@@ -13,7 +14,7 @@ import { getUsers } from './get-users.js'
 const mockCommsApi = {
     workspaceUsers: {
         getWorkspaceUsers: jest.fn(),
-        getUserById: jest.fn(),
+        getUsersByIds: jest.fn(),
     },
 } as unknown as jest.Mocked<CommsApi>
 
@@ -132,33 +133,28 @@ describe(`${GET_USERS} tool`, () => {
     })
 
     describe('fetching specific users', () => {
-        it('should fetch specific users by ID in parallel', async () => {
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                async (args: { workspaceId: number; userId: number }) => {
-                    if (args.userId === TEST_IDS.USER_1) {
-                        return createMockWorkspaceUser() as never
-                    }
-                    if (args.userId === TEST_IDS.USER_2) {
-                        return createMockWorkspaceUser({
-                            id: TEST_IDS.USER_2,
-                            fullName: 'Bob Smith',
-                            shortName: 'Bob',
-                            email: 'bob@example.com',
-                        }) as never
-                    }
-                    throw new Error('User not found')
-                },
+        it('should fetch specific users in one request, in the order requested', async () => {
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    createMockWorkspaceUser(),
+                    createMockWorkspaceUser({
+                        id: TEST_IDS.USER_2,
+                        fullName: 'Bob Smith',
+                        shortName: 'Bob',
+                        email: 'bob@example.com',
+                    }),
+                ]),
             )
 
             const result = await getUsers.execute(
                 {
                     workspaceId: TEST_IDS.WORKSPACE_1,
-                    userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
+                    userIds: [TEST_IDS.USER_2, TEST_IDS.USER_1],
                 },
                 mockCommsApi,
             )
 
-            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledTimes(2)
+            expect(mockCommsApi.workspaceUsers.getUsersByIds).toHaveBeenCalledTimes(1)
             expect(mockCommsApi.workspaceUsers.getWorkspaceUsers).not.toHaveBeenCalled()
 
             const textContent = extractTextContent(result)
@@ -168,12 +164,15 @@ describe(`${GET_USERS} tool`, () => {
 
             const structuredContent = extractStructuredContent(result)
             expect(structuredContent.totalUsers).toBe(2)
-            expect(structuredContent.users).toHaveLength(2)
+            expect(structuredContent.users.map((user) => user.id)).toEqual([
+                TEST_IDS.USER_2,
+                TEST_IDS.USER_1,
+            ])
         })
 
         it('should handle single user ID', async () => {
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                createMockWorkspaceUser() as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([createMockWorkspaceUser()]),
             )
 
             const result = await getUsers.execute(
@@ -181,7 +180,7 @@ describe(`${GET_USERS} tool`, () => {
                 mockCommsApi,
             )
 
-            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledTimes(1)
+            expect(mockCommsApi.workspaceUsers.getUsersByIds).toHaveBeenCalledTimes(1)
 
             const structuredContent = extractStructuredContent(result)
             expect(structuredContent.users).toHaveLength(1)
@@ -189,8 +188,8 @@ describe(`${GET_USERS} tool`, () => {
         })
 
         it('should report a restricted user without a user type or timezone', async () => {
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                createMockRestrictedUser() as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([createMockRestrictedUser()]),
             )
 
             const result = await getUsers.execute(
@@ -212,13 +211,8 @@ describe(`${GET_USERS} tool`, () => {
         })
 
         it('should skip a user that cannot be fetched rather than failing', async () => {
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation(
-                async (args: { workspaceId: number; userId: number }) => {
-                    if (args.userId === TEST_IDS.USER_1) {
-                        return createMockWorkspaceUser() as never
-                    }
-                    throw new Error('User not found')
-                },
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([createMockWorkspaceUser()]),
             )
 
             const result = await getUsers.execute(

@@ -6,7 +6,7 @@ import {
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import { degradeAllWithLog } from '../utils/degrade.js'
+import { resolveUsersWithLog } from '../utils/degrade.js'
 import { GetUsersOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -73,18 +73,19 @@ const getUsers = {
     async execute(args, client) {
         const { workspaceId, userIds, searchText } = args
 
-        // Fetch users based on userIds parameter
-        const users: VisibleWorkspaceUser[] =
-            !userIds || userIds.length === 0
-                ? await client.workspaceUsers.getWorkspaceUsers({ workspaceId })
-                : (
-                      await degradeAllWithLog(
-                          ToolNames.GET_USERS,
-                          'failed to resolve user',
-                          userIds,
-                          (userId) => client.workspaceUsers.getUserById({ workspaceId, userId }),
-                      )
-                  ).filter((user) => user !== null)
+        let users: VisibleWorkspaceUser[]
+        if (!userIds || userIds.length === 0) {
+            users = await client.workspaceUsers.getWorkspaceUsers({ workspaceId })
+        } else {
+            const byId = await resolveUsersWithLog(
+                client,
+                ToolNames.GET_USERS,
+                'failed to resolve user',
+                workspaceId,
+                userIds,
+            )
+            users = userIds.flatMap((id) => byId.get(id) ?? [])
+        }
 
         const totalUsers = users.length
 

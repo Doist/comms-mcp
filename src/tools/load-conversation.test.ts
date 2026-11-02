@@ -5,6 +5,7 @@ import {
     createMockConversationMessage,
     extractTextContent,
     TEST_IDS,
+    usersByIds,
 } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { loadConversation } from './load-conversation.js'
@@ -18,7 +19,7 @@ const mockCommsApi = {
         getMessages: jest.fn(),
     },
     workspaceUsers: {
-        getUserById: jest.fn(),
+        getUsersByIds: jest.fn(),
     },
 } as unknown as jest.Mocked<CommsApi>
 
@@ -52,15 +53,12 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
 
             mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
             mockCommsApi.conversationMessages.getMessages.mockResolvedValue(mockMessages)
-            mockCommsApi.workspaceUsers.getUserById.mockImplementation((async (args: {
-                workspaceId: number
-                userId: number
-            }) => {
-                if (args.userId === TEST_IDS.USER_1) {
-                    return makeUser(TEST_IDS.USER_1, 'Test User 1')
-                }
-                return makeUser(TEST_IDS.USER_2, 'Test User 2')
-            }) as never)
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    makeUser(TEST_IDS.USER_1, 'Test User 1'),
+                    makeUser(TEST_IDS.USER_2, 'Test User 2'),
+                ]),
+            )
 
             const result = await loadConversation.execute(
                 { conversationId: TEST_IDS.CONVERSATION_1, limit: 50, includeParticipants: true },
@@ -76,13 +74,9 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
                 olderThan: undefined,
                 limit: 50,
             })
-            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledWith({
+            expect(mockCommsApi.workspaceUsers.getUsersByIds).toHaveBeenCalledWith({
                 workspaceId: mockConversation.workspaceId,
-                userId: TEST_IDS.USER_1,
-            })
-            expect(mockCommsApi.workspaceUsers.getUserById).toHaveBeenCalledWith({
-                workspaceId: mockConversation.workspaceId,
-                userId: TEST_IDS.USER_2,
+                userIds: [TEST_IDS.USER_1, TEST_IDS.USER_2],
             })
 
             expect(extractTextContent(result)).toMatchSnapshot()
@@ -116,8 +110,8 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
             })
             mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
             mockCommsApi.conversationMessages.getMessages.mockResolvedValue([])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([makeUser(TEST_IDS.USER_1, 'Test User 1')]),
             )
 
             const result = await loadConversation.execute(
@@ -138,8 +132,8 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
             const mockConversation = createMockConversation()
             mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
             mockCommsApi.conversationMessages.getMessages.mockResolvedValue([])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([makeUser(TEST_IDS.USER_1, 'Test User 1')]),
             )
 
             const result = await loadConversation.execute(
@@ -167,8 +161,8 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
             const mockConversation = createMockConversation()
             mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
             mockCommsApi.conversationMessages.getMessages.mockResolvedValue([])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([makeUser(TEST_IDS.USER_1, 'Test User 1')]),
             )
 
             const result = await loadConversation.execute(
@@ -202,8 +196,8 @@ describe(`${LOAD_CONVERSATION} tool`, () => {
 
             mockCommsApi.conversations.getConversation.mockResolvedValue(mockConversation)
             mockCommsApi.conversationMessages.getMessages.mockResolvedValue([mockMessage])
-            mockCommsApi.workspaceUsers.getUserById.mockResolvedValue(
-                makeUser(TEST_IDS.USER_1, 'Test User 1') as never,
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([makeUser(TEST_IDS.USER_1, 'Test User 1')]),
             )
 
             const result = await loadConversation.execute(

@@ -262,3 +262,14 @@ export const TEST_IDS = {
  * Use this instead of new Date() in tests to avoid snapshot drift.
  */
 export const TODAY = '2025-01-01' as const
+
+/**
+ * A `getUsersByIds` mock implementation answering from `users`, with `null` for
+ * any other requested id — what the API returns for a user the workspace has no
+ * record of.
+ */
+export function usersByIds<T extends { id: number }>(users: readonly T[]) {
+    const byId = new Map(users.map((user) => [user.id, user]))
+    return (async ({ userIds }: { userIds: number[] }) =>
+        Object.fromEntries(userIds.map((id) => [id, byId.get(id) ?? null]))) as never
+}

@@ -2,8 +2,7 @@ import type { Channel, CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import { limitedAll } from '../utils/concurrency.js'
-import { degradeAllWithLog } from '../utils/degrade.js'
+import { resolveUsersWithLog } from '../utils/degrade.js'
 import { ListChannelsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getChannelListData, type ChannelListData } from './channel-output.js'
@@ -60,28 +59,18 @@ async function generateChannelsList(
         creatorIds.add(channel.creator)
     }
 
-    // Look up creator names in parallel, tolerating individual failures so a
-    // single deleted/inaccessible creator doesn't fail the whole list — the
-    // fallback path (creator ID without a name) is exercised by the text output.
-    // Bounded concurrency keeps the socket pool / rate limiter happy on big
-    // workspaces; today's traffic is small but the ceiling matters when it isn't.
+    // A deleted/inaccessible creator doesn't fail the whole list — the fallback
+    // path (creator ID without a name) is exercised by the text output.
+    const users = await resolveUsersWithLog(
+        client,
+        ToolNames.LIST_CHANNELS,
+        'failed to resolve channel creator',
+        workspaceId,
+        Array.from(creatorIds),
+    )
     const creatorLookup: Record<number, string> = {}
-    if (creatorIds.size > 0) {
-        const creatorIdArray = Array.from(creatorIds)
-        const users = await degradeAllWithLog(
-            ToolNames.LIST_CHANNELS,
-            'failed to resolve channel creator',
-            creatorIdArray,
-            (userId) => client.workspaceUsers.getUserById({ workspaceId, userId }),
-            { runner: limitedAll },
-        )
-        for (let i = 0; i < creatorIdArray.length; i++) {
-            const creatorId = creatorIdArray[i]
-            const user = users[i]
-            if (creatorId !== undefined && user) {
-                creatorLookup[creatorId] = user.fullName
-            }
-        }
+    for (const [id, user] of users) {
+        creatorLookup[id] = user.fullName
     }
 
     const lines: string[] = ['# Channels', '']
