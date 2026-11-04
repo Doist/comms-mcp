@@ -56,6 +56,21 @@ describe(`${GET_USER_STATUS} tool`, () => {
         expect(UserStatusOutputSchema.safeParse(structured).success).toBe(true)
     })
 
+    it('reports an end it cannot read as sent, rather than failing', async () => {
+        mockCommsApi.users.getSessionUser.mockResolvedValue(
+            createMockUser({ status: { message: 'Away', activeUntil: 'tomorrow' } }),
+        )
+
+        const result = await getUserStatus.execute({}, mockCommsApi)
+
+        expect(extractStructuredContent(result).status).toStrictEqual({
+            message: 'Away',
+            activeUntil: 'tomorrow',
+            pauseNotifications: false,
+            pauseActivity: false,
+        })
+    })
+
     it.each([
         ['missing', {}],
         ['null', { status: null }],

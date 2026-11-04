@@ -1,4 +1,4 @@
-import type { CommsApi, UserStatus } from '@doist/comms-sdk'
+import { type CommsApi, CommsRequestError, type UserStatus } from '@doist/comms-sdk'
 import { jest } from '@jest/globals'
 import { z } from 'zod'
 import { UserStatusOutputSchema } from '../utils/output-schemas.js'
@@ -69,10 +69,10 @@ describe(`${SET_USER_STATUS} tool`, () => {
             message: 'Deep work',
             emoji: null,
             activeUntil: null,
-            effects: null,
+            effects: { pauseNotifications: null, pauseActivity: null },
         })
         expect(extractTextContent(result)).toBe('Status set: Deep work\nUntil: no end')
-        expect(extractStructuredContent(result)).toEqual({
+        expect(extractStructuredContent(result)).toStrictEqual({
             type: 'user_status',
             hasStatus: true,
             status: { message: 'Deep work', pauseNotifications: false, pauseActivity: false },
@@ -118,13 +118,13 @@ describe(`${SET_USER_STATUS} tool`, () => {
         expect(sentArgs()?.effects).toEqual(effects)
     })
 
-    it('sends no effects when both pause flags are false', async () => {
+    it('clears both effects when both pause flags are false', async () => {
         await setUserStatus.execute(
             { message: 'Focus', pauseNotifications: false, pauseActivity: false },
             mockCommsApi,
         )
 
-        expect(sentArgs()?.effects).toBeNull()
+        expect(sentArgs()?.effects).toEqual({ pauseNotifications: null, pauseActivity: null })
     })
 
     it.each([
@@ -171,8 +171,11 @@ describe(`${SET_USER_STATUS} tool`, () => {
         expect(mockCommsApi.users.setStatus).not.toHaveBeenCalled()
     })
 
-    it('requires a message unless clearing', async () => {
-        await expect(setUserStatus.execute({ emoji: '🎯' }, mockCommsApi)).rejects.toThrow(
+    it.each([
+        ['missing', { emoji: '🎯' }],
+        ['empty', { message: '' }],
+    ])('requires a message unless clearing, when it is %s', async (_label, args) => {
+        await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
             'message is required to set a status',
         )
         expect(mockCommsApi.users.setStatus).not.toHaveBeenCalled()
@@ -247,6 +250,72 @@ describe(`${SET_USER_STATUS} tool`, () => {
         })
     })
 
+    it('fails when Comms reports a different message from the one sent', async () => {
+        mockCommsApi.users.setStatus.mockResolvedValue(
+            createMockUser({ status: { message: 'Old status' } }),
+        )
+
+        await expect(
+            setUserStatus.execute({ message: 'New status' }, mockCommsApi),
+        ).rejects.toThrow(
+            `Comms accepted the status but reports a different one; use ${ToolNames.GET_USER_STATUS} to see it.`,
+        )
+    })
+
+    it('names the next step when Comms reports no active status', async () => {
+        mockCommsApi.users.setStatus.mockResolvedValue(createMockUser())
+
+        await expect(setUserStatus.execute({ message: 'Away' }, mockCommsApi)).rejects.toThrow(
+            ToolNames.GET_USER_STATUS,
+        )
+    })
+
+    describe.each([
+        ['set', { message: 'Away' }, 'setStatus'],
+        ['clear', { clear: true }, 'clearStatus'],
+    ] as const)('when Comms refuses a %s', (_label, args, method) => {
+        function refuseWith(status: number, responseData?: unknown) {
+            mockCommsApi.users[method].mockRejectedValue(
+                new CommsRequestError(`Request failed with status ${status}`, status, responseData),
+            )
+        }
+
+        it.each([401, 403])('points at the user:write scope on a %i', async (status) => {
+            refuseWith(status, { error_code: status, error_string: 'Insufficient scope' })
+
+            await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
+                `Comms refused to change the status (HTTP ${status}): Insufficient scope. It was not changed. Changing it needs the user:write scope, so the connection may need reconnecting to grant it.`,
+            )
+        })
+
+        it('still points at the scope when the refusal has no reason', async () => {
+            refuseWith(403)
+
+            await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
+                'Comms refused to change the status (HTTP 403). It was not changed. Changing it needs',
+            )
+        })
+
+        it('gives the reason without a scope hint on a 400', async () => {
+            refuseWith(400, { error_code: 400, error_string: 'Emoji is not valid' })
+
+            const failure = setUserStatus.execute(args, mockCommsApi)
+
+            await expect(failure).rejects.toThrow(
+                'Comms refused to change the status (HTTP 400): Emoji is not valid. It was not changed.',
+            )
+            await expect(failure).rejects.not.toThrow('user:write')
+        })
+
+        it('leaves a server error untouched, because the write may have applied', async () => {
+            refuseWith(500)
+
+            await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
+                'Request failed with status 500',
+            )
+        })
+    })
+
     it('propagates API errors', async () => {
         mockCommsApi.users.setStatus.mockRejectedValue(new Error(TEST_ERRORS.API_UNAUTHORIZED))
 
@@ -269,11 +338,22 @@ describe(`${SET_USER_STATUS} tool`, () => {
     describe('argument schema', () => {
         const schema = z.object(setUserStatus.parameters)
 
-        it('trims the message and emoji', () => {
-            expect(schema.parse({ message: '  Away  ', emoji: ' 🎯 ' })).toEqual({
+        it('trims the message, emoji and activeUntil', () => {
+            expect(
+                schema.parse({
+                    message: '  Away  ',
+                    emoji: ' 🎯 ',
+                    activeUntil: ' 2026-11-10T09:00:00Z ',
+                }),
+            ).toEqual({
                 message: 'Away',
                 emoji: '🎯',
+                activeUntil: '2026-11-10T09:00:00Z',
             })
+        })
+
+        it('rejects an activeUntil of only spaces', () => {
+            expect(schema.safeParse({ clear: true, activeUntil: '   ' }).success).toBe(false)
         })
 
         it.each([

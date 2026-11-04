@@ -3,8 +3,15 @@ import type { UserStatusOutput } from './output-schemas.js'
 
 type StatusOutput = NonNullable<UserStatusOutput['status']>
 
+// Comms sends RFC 3339, but an end that fails to parse must not turn a write that applied into an
+// error, so it is reported as sent.
+function normaliseActiveUntil(activeUntil: string): string {
+    const parsed = new Date(activeUntil)
+    return Number.isNaN(parsed.getTime()) ? activeUntil : parsed.toISOString()
+}
+
 function toStatusOutput(status: UserStatus): StatusOutput {
-    const activeUntil = status.activeUntil ? new Date(status.activeUntil).toISOString() : undefined
+    const activeUntil = status.activeUntil ? normaliseActiveUntil(status.activeUntil) : undefined
     return {
         message: status.message,
         ...(status.emoji ? { emoji: status.emoji } : {}),

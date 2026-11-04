@@ -1,4 +1,4 @@
-import type { SetStatusArgs } from '@doist/comms-sdk'
+import { CommsRequestError, getCommsErrorString, type SetStatusArgs } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
@@ -20,6 +20,7 @@ const ArgsSchema = {
     activeUntil: z
         .string()
         .trim()
+        .min(1)
         .optional()
         .describe(
             'When it ends: a future ISO 8601 timestamp with Z or an offset, e.g. 2026-11-10T00:00:00+00:00. Omit for no end.',
@@ -32,14 +33,7 @@ const ArgsSchema = {
     clear: z.boolean().optional().describe('Remove the status. Use alone.'),
 }
 
-type SetUserStatusArgs = {
-    message?: string
-    emoji?: string
-    activeUntil?: string
-    pauseNotifications?: boolean
-    pauseActivity?: boolean
-    clear?: boolean
-}
+type SetUserStatusArgs = z.infer<z.ZodObject<typeof ArgsSchema>>
 
 // An ISO 8601 timestamp that carries its own zone, so it never depends on the server's.
 const ZONED_TIMESTAMP =
@@ -131,14 +125,31 @@ function buildStatus(args: SetUserStatusArgs, now: Date): SetStatusArgs | null {
         message,
         emoji: emoji ?? null,
         activeUntil: activeUntil !== undefined ? parseActiveUntil(activeUntil, now) : null,
-        effects:
-            pauseNotifications || pauseActivity
-                ? {
-                      pauseNotifications: pauseNotifications ? ALL_SCOPE : null,
-                      pauseActivity: pauseActivity ? ALL_SCOPE : null,
-                  }
-                : null,
+        effects: {
+            pauseNotifications: pauseNotifications ? ALL_SCOPE : null,
+            pauseActivity: pauseActivity ? ALL_SCOPE : null,
+        },
     }
+}
+
+/**
+ * The SDK's message for a refusal is only the status code, and connections made before this tool
+ * existed hold no `user:write`, so a refusal says what it needs. A 5xx stays as it is, because
+ * that write may have applied.
+ */
+function rethrowRefusal(error: unknown): never {
+    const status = error instanceof CommsRequestError ? error.httpStatusCode : undefined
+    if (status === undefined || status >= 500) {
+        throw error
+    }
+    const reason = getCommsErrorString(error)
+    const scopeHint =
+        status === 401 || status === 403
+            ? ' Changing it needs the user:write scope, so the connection may need reconnecting to grant it.'
+            : ''
+    throw new Error(
+        `Comms refused to change the status (HTTP ${status})${reason ? `: ${reason}` : ''}. It was not changed.${scopeHint}`,
+    )
 }
 
 const setUserStatus = {
@@ -152,7 +163,7 @@ const setUserStatus = {
         const status = buildStatus(args, new Date())
 
         if (status === null) {
-            const user = await client.users.clearStatus()
+            const user = await client.users.clearStatus().catch(rethrowRefusal)
             if (user.status) {
                 throw new Error(
                     `Comms accepted the clear but still reports a status; use ${ToolNames.GET_USER_STATUS} to see it.`,
@@ -161,11 +172,17 @@ const setUserStatus = {
             return getToolOutput(buildUserStatusResult(null, 'Status cleared'))
         }
 
-        // The response carries the status Comms now holds, which is what gets reported.
-        const user = await client.users.setStatus(status)
+        // The response carries the status Comms now holds, which is what gets reported. An emoji can
+        // come back without its variation selector, but a trimmed message comes back as it was sent.
+        const user = await client.users.setStatus(status).catch(rethrowRefusal)
         if (!user.status) {
             throw new Error(
-                'Comms accepted the status but reports no active status, so it may have expired already.',
+                `Comms accepted the status but reports no active status; use ${ToolNames.GET_USER_STATUS} to check it.`,
+            )
+        }
+        if (user.status.message !== status.message) {
+            throw new Error(
+                `Comms accepted the status but reports a different one; use ${ToolNames.GET_USER_STATUS} to see it.`,
             )
         }
         return getToolOutput(buildUserStatusResult(user.status, 'Status set'))
