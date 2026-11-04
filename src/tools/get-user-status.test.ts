@@ -42,7 +42,7 @@ describe(`${GET_USER_STATUS} tool`, () => {
             'Status: 🏝️ On holiday\nUntil: 2026-11-10T07:00:00.000Z\nEffects: Comms notifications paused',
         )
         const structured = extractStructuredContent(result)
-        expect(structured).toEqual({
+        expect(structured).toStrictEqual({
             type: 'user_status',
             hasStatus: true,
             status: {
@@ -80,7 +80,10 @@ describe(`${GET_USER_STATUS} tool`, () => {
         const result = await getUserStatus.execute({}, mockCommsApi)
 
         expect(extractTextContent(result)).toBe('Status: none')
-        expect(extractStructuredContent(result)).toEqual({ type: 'user_status', hasStatus: false })
+        expect(extractStructuredContent(result)).toStrictEqual({
+            type: 'user_status',
+            hasStatus: false,
+        })
     })
 
     it('propagates API errors', async () => {

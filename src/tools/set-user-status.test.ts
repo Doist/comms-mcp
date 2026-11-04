@@ -189,7 +189,10 @@ describe(`${SET_USER_STATUS} tool`, () => {
         expect(mockCommsApi.users.clearStatus).toHaveBeenCalledWith()
         expect(mockCommsApi.users.setStatus).not.toHaveBeenCalled()
         expect(extractTextContent(result)).toBe('Status cleared: none')
-        expect(extractStructuredContent(result)).toEqual({ type: 'user_status', hasStatus: false })
+        expect(extractStructuredContent(result)).toStrictEqual({
+            type: 'user_status',
+            hasStatus: false,
+        })
     })
 
     it('treats pause flags set to false as asking for nothing alongside clear', async () => {
@@ -235,7 +238,7 @@ describe(`${SET_USER_STATUS} tool`, () => {
         )
     })
 
-    it('reports the status Comms holds when it differs from the one sent', async () => {
+    it('reports the status Comms holds when only the emoji variation selector differs', async () => {
         mockCommsApi.users.setStatus.mockResolvedValue(
             createMockUser({ status: { message: 'Away', emoji: '🏝' } }),
         )
@@ -250,16 +253,62 @@ describe(`${SET_USER_STATUS} tool`, () => {
         })
     })
 
-    it('fails when Comms reports a different message from the one sent', async () => {
+    it.each<[string, Record<string, unknown>, Partial<UserStatus>]>([
+        ['message', { message: 'New' }, { message: 'Old' }],
+        ['emoji', { message: 'Away', emoji: '🏝️' }, { message: 'Away', emoji: '🙂' }],
+        ['dropped emoji', { message: 'Away', emoji: '🏝️' }, { message: 'Away' }],
+        [
+            'end',
+            { message: 'Away', activeUntil: '2026-11-10T09:00:00Z' },
+            { message: 'Away', activeUntil: '2026-11-11T09:00:00Z' },
+        ],
+        [
+            'dropped end',
+            { message: 'Away', activeUntil: '2026-11-10T09:00:00Z' },
+            { message: 'Away' },
+        ],
+        ['notification pause', { message: 'Away', pauseNotifications: true }, { message: 'Away' }],
+        [
+            'activity pause',
+            { message: 'Away', pauseActivity: true },
+            { message: 'Away', effects: {} },
+        ],
+    ])(
+        'fails when Comms reports a different %s from the one sent',
+        async (_label, args, status) => {
+            mockCommsApi.users.setStatus.mockResolvedValue(
+                createMockUser({ status: status as UserStatus }),
+            )
+
+            await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
+                `Comms accepted the status but reports a different one; use ${ToolNames.GET_USER_STATUS} to see it.`,
+            )
+        },
+    )
+
+    it('accepts an end Comms writes in another form of the same instant', async () => {
         mockCommsApi.users.setStatus.mockResolvedValue(
-            createMockUser({ status: { message: 'Old status' } }),
+            createMockUser({
+                status: { message: 'Away', activeUntil: '2026-11-10T09:00:00+00:00' },
+            }),
         )
 
-        await expect(
-            setUserStatus.execute({ message: 'New status' }, mockCommsApi),
-        ).rejects.toThrow(
-            `Comms accepted the status but reports a different one; use ${ToolNames.GET_USER_STATUS} to see it.`,
+        const result = await setUserStatus.execute(
+            { message: 'Away', activeUntil: '2026-11-10T09:00:00Z' },
+            mockCommsApi,
         )
+
+        expect(extractStructuredContent(result).hasStatus).toBe(true)
+    })
+
+    it('accepts a message Comms returns in another normal form or with spaces collapsed', async () => {
+        mockCommsApi.users.setStatus.mockResolvedValue(
+            createMockUser({ status: { message: 'Caf\u00e9 at noon' } }),
+        )
+
+        const result = await setUserStatus.execute({ message: 'Cafe\u0301  at noon' }, mockCommsApi)
+
+        expect(extractStructuredContent(result).hasStatus).toBe(true)
     })
 
     it('names the next step when Comms reports no active status', async () => {
@@ -273,45 +322,60 @@ describe(`${SET_USER_STATUS} tool`, () => {
     describe.each([
         ['set', { message: 'Away' }, 'setStatus'],
         ['clear', { clear: true }, 'clearStatus'],
-    ] as const)('when Comms refuses a %s', (_label, args, method) => {
+    ] as const)('when a %s fails', (_label, args, method) => {
+        const CHECK_IT = `Use ${ToolNames.GET_USER_STATUS} to check it.`
+
         function refuseWith(status: number, responseData?: unknown) {
             mockCommsApi.users[method].mockRejectedValue(
                 new CommsRequestError(`Request failed with status ${status}`, status, responseData),
             )
         }
 
-        it.each([401, 403])('points at the user:write scope on a %i', async (status) => {
-            refuseWith(status, { error_code: status, error_string: 'Insufficient scope' })
+        it('points at the user:write scope on a 403', async () => {
+            refuseWith(403, { error_code: 403, error_string: 'Insufficient scope' })
 
             await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
-                `Comms refused to change the status (HTTP ${status}): Insufficient scope. It was not changed. Changing it needs the user:write scope, so the connection may need reconnecting to grant it.`,
+                `Comms refused to change the status (HTTP 403): Insufficient scope. Changing it needs the user:write scope, so the connection may need reconnecting to grant it. ${CHECK_IT}`,
             )
         })
 
-        it('still points at the scope when the refusal has no reason', async () => {
+        it('points at the token, not the scope, on a 401', async () => {
+            refuseWith(401, { error_code: 401, error_string: 'Token expired' })
+
+            await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
+                `Comms refused to change the status (HTTP 401): Token expired. Comms rejected the token, so the connection may need reconnecting. ${CHECK_IT}`,
+            )
+        })
+
+        it('reads well when the refusal has no reason', async () => {
             refuseWith(403)
 
             await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
-                'Comms refused to change the status (HTTP 403). It was not changed. Changing it needs',
+                'Comms refused to change the status (HTTP 403). Changing it needs',
             )
         })
 
-        it('gives the reason without a scope hint on a 400', async () => {
+        it('gives the reason alone on any other 4xx', async () => {
             refuseWith(400, { error_code: 400, error_string: 'Emoji is not valid' })
 
-            const failure = setUserStatus.execute(args, mockCommsApi)
-
-            await expect(failure).rejects.toThrow(
-                'Comms refused to change the status (HTTP 400): Emoji is not valid. It was not changed.',
+            await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
+                `Comms refused to change the status (HTTP 400): Emoji is not valid. ${CHECK_IT}`,
             )
-            await expect(failure).rejects.not.toThrow('user:write')
         })
 
-        it('leaves a server error untouched, because the write may have applied', async () => {
+        it('calls a server error unconfirmed, because the write may have applied', async () => {
             refuseWith(500)
 
             await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
-                'Request failed with status 500',
+                `The status change is unconfirmed: Request failed with status 500. ${CHECK_IT}`,
+            )
+        })
+
+        it('calls a transport or parse failure unconfirmed', async () => {
+            mockCommsApi.users[method].mockRejectedValue(new Error('fetch failed'))
+
+            await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
+                `The status change is unconfirmed: fetch failed. ${CHECK_IT}`,
             )
         })
     })

@@ -1,4 +1,9 @@
-import { CommsRequestError, getCommsErrorString, type SetStatusArgs } from '@doist/comms-sdk'
+import {
+    CommsRequestError,
+    getCommsErrorString,
+    type SetStatusArgs,
+    type UserStatus,
+} from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
@@ -132,23 +137,49 @@ function buildStatus(args: SetUserStatusArgs, now: Date): SetStatusArgs | null {
     }
 }
 
+const SCOPE_HINTS: Record<number, string> = {
+    401: ' Comms rejected the token, so the connection may need reconnecting.',
+    403: ' Changing it needs the user:write scope, so the connection may need reconnecting to grant it.',
+}
+
 /**
  * The SDK's message for a refusal is only the status code, and connections made before this tool
- * existed hold no `user:write`, so a refusal says what it needs. A 5xx stays as it is, because
- * that write may have applied.
+ * existed hold no `user:write`, so a refusal says what it needs. No failure claims the status is
+ * unchanged: the SDK retries a POST after a network error, so an earlier attempt may have applied.
  */
-function rethrowRefusal(error: unknown): never {
+function explainWriteFailure(error: unknown): never {
+    const checkIt = `Use ${ToolNames.GET_USER_STATUS} to check it.`
     const status = error instanceof CommsRequestError ? error.httpStatusCode : undefined
     if (status === undefined || status >= 500) {
-        throw error
+        const detail = error instanceof Error ? error.message : String(error)
+        throw new Error(`The status change is unconfirmed: ${detail}. ${checkIt}`)
     }
     const reason = getCommsErrorString(error)
-    const scopeHint =
-        status === 401 || status === 403
-            ? ' Changing it needs the user:write scope, so the connection may need reconnecting to grant it.'
-            : ''
     throw new Error(
-        `Comms refused to change the status (HTTP ${status})${reason ? `: ${reason}` : ''}. It was not changed.${scopeHint}`,
+        `Comms refused to change the status (HTTP ${status})${reason ? `: ${reason}` : ''}.${SCOPE_HINTS[status] ?? ''} ${checkIt}`,
+    )
+}
+
+// Whether an emoji carries U+FE0F (🏝️ or 🏝) changes nothing on screen, so a server that adds or
+// drops it has not stored a different status. Nor has one that normalises a message's Unicode form
+// or runs of whitespace.
+function withoutVariationSelectors(emoji: string | null | undefined): string | null {
+    return emoji ? emoji.replace(/\uFE0F/g, '') : null
+}
+
+function normaliseMessage(message: string | undefined): string | undefined {
+    return message?.normalize('NFC').replace(/\s+/g, ' ')
+}
+
+function sameStatus(held: UserStatus, sent: SetStatusArgs): boolean {
+    const heldUntil = held.activeUntil ? new Date(held.activeUntil).getTime() : null
+    const sentUntil = sent.activeUntil ? new Date(sent.activeUntil).getTime() : null
+    return (
+        normaliseMessage(held.message) === normaliseMessage(sent.message) &&
+        withoutVariationSelectors(held.emoji) === withoutVariationSelectors(sent.emoji) &&
+        heldUntil === sentUntil &&
+        Boolean(held.effects?.pauseNotifications) === Boolean(sent.effects?.pauseNotifications) &&
+        Boolean(held.effects?.pauseActivity) === Boolean(sent.effects?.pauseActivity)
     )
 }
 
@@ -163,7 +194,7 @@ const setUserStatus = {
         const status = buildStatus(args, new Date())
 
         if (status === null) {
-            const user = await client.users.clearStatus().catch(rethrowRefusal)
+            const user = await client.users.clearStatus().catch(explainWriteFailure)
             if (user.status) {
                 throw new Error(
                     `Comms accepted the clear but still reports a status; use ${ToolNames.GET_USER_STATUS} to see it.`,
@@ -172,15 +203,14 @@ const setUserStatus = {
             return getToolOutput(buildUserStatusResult(null, 'Status cleared'))
         }
 
-        // The response carries the status Comms now holds, which is what gets reported. An emoji can
-        // come back without its variation selector, but a trimmed message comes back as it was sent.
-        const user = await client.users.setStatus(status).catch(rethrowRefusal)
+        // The response carries the status Comms now holds, which is what gets reported.
+        const user = await client.users.setStatus(status).catch(explainWriteFailure)
         if (!user.status) {
             throw new Error(
                 `Comms accepted the status but reports no active status; use ${ToolNames.GET_USER_STATUS} to check it.`,
             )
         }
-        if (user.status.message !== status.message) {
+        if (!sameStatus(user.status, status)) {
             throw new Error(
                 `Comms accepted the status but reports a different one; use ${ToolNames.GET_USER_STATUS} to see it.`,
             )
