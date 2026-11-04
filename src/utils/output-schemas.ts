@@ -341,6 +341,27 @@ export const UserInfoOutputSchema = z.object({
 })
 
 /**
+ * Schema for get-user-status and set-user-status tool output
+ */
+export const UserStatusOutputSchema = z.object({
+    type: z.literal('user_status'),
+    hasStatus: z.boolean(),
+    status: z
+        .object({
+            message: z.string(),
+            emoji: z.string().optional(),
+            activeUntil: z
+                .string()
+                .optional()
+                .describe('ISO 8601 end. Omitted when it has no end.'),
+            pauseNotifications: z.boolean().describe('Comms notifications held back.'),
+            pauseActivity: z.boolean().describe('Karma and streaks paused.'),
+        })
+        .optional()
+        .describe('Omitted when there is no active status.'),
+})
+
+/**
  * Schema for build-link tool output
  */
 export const BuildLinkOutputSchema = z.object({
@@ -716,6 +737,7 @@ export const StructuredOutputSchema = z.union([
     GetUsersOutputSchema,
     GetGroupsOutputSchema,
     UserInfoOutputSchema,
+    UserStatusOutputSchema,
     BuildLinkOutputSchema,
     CreateChannelOutputSchema,
     UpdateChannelOutputSchema,
@@ -774,6 +796,7 @@ export type GetUsersOutput = z.infer<typeof GetUsersOutputSchema>
 export type GetGroupsOutput = z.infer<typeof GetGroupsOutputSchema>
 export type GroupMember = z.infer<typeof GroupMemberSchema>
 export type UserInfoOutput = z.infer<typeof UserInfoOutputSchema>
+export type UserStatusOutput = z.infer<typeof UserStatusOutputSchema>
 export type BuildLinkOutput = z.infer<typeof BuildLinkOutputSchema>
 export type ReplyOutput = z.infer<typeof ReplyOutputSchema>
 export type ReactOutput = z.infer<typeof ReactOutputSchema>

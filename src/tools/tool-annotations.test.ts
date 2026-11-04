@@ -20,6 +20,20 @@ const TOOL_EXPECTATIONS: ToolExpectation[] = [
         idempotentHint: true,
     },
     {
+        name: ToolNames.GET_USER_STATUS,
+        title: 'Comms: Get User Status',
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+    },
+    {
+        name: ToolNames.SET_USER_STATUS,
+        title: 'Comms: Set User Status',
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: true,
+    },
+    {
         name: ToolNames.FETCH_INBOX,
         title: 'Comms: Fetch Inbox',
         readOnlyHint: true,

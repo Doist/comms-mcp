@@ -9,6 +9,7 @@ import { deleteObject } from './tools/delete-object.js'
 import { fetchInbox } from './tools/fetch-inbox.js'
 import { getGroups } from './tools/get-groups.js'
 import { getMentions } from './tools/get-mentions.js'
+import { getUserStatus } from './tools/get-user-status.js'
 import { getUsers } from './tools/get-users.js'
 import { getWorkspaces } from './tools/get-workspaces.js'
 import { listChannels } from './tools/list-channels.js'
@@ -20,6 +21,7 @@ import { markRead } from './tools/mark-read.js'
 import { react } from './tools/react.js'
 import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
+import { setUserStatus } from './tools/set-user-status.js'
 import { updateChannel } from './tools/update-channel.js'
 import { updateObject } from './tools/update-object.js'
 import { userInfo } from './tools/user-info.js'
@@ -50,6 +52,7 @@ You have access to comprehensive Comms management tools for team communication a
 - **get-mentions**: Use to fetch threads, comments, and messages that mention the current user. Prefer this over search-content when no keyword query is needed (search-content requires a non-empty query). Supports filtering by channel, author, and date range, and exposes a cursor for pagination.
 - **update-object**: Use to edit something you previously sent. Pass targetType ("thread", "comment", or "message"), targetId, and the new content. For threads you may also pass title (and may pass title without content). title is only valid for threads.
 - **delete-object**: Use to permanently delete a thread, comment, or conversation message. Pass targetType ("thread", "comment", or "message") and targetId. Deletion is irreversible — confirm with the user before invoking. Deleting a thread also removes all of its comments. Only the object's creator or a workspace admin can delete; the Comms API will reject the call otherwise.
+- **get-user-status** / **set-user-status**: The status is shared with Todoist, so it shows in both apps. set-user-status replaces the whole status, so pass every part the user wants to keep, and call get-user-status first when they only want to change one part. Use clear: true to remove it. pauseNotifications holds back Comms notifications while the status is active, and they are not sent later.
 
 ### Writing Content (threads, comments, and messages):
 
@@ -100,6 +103,8 @@ function getMcpServer({ commsApiKey, baseUrl }: { commsApiKey: string; baseUrl?:
 
     // Register tools
     registerTool(userInfo, server, comms)
+    registerTool(getUserStatus, server, comms)
+    registerTool(setUserStatus, server, comms)
     registerTool(getWorkspaces, server, comms)
     registerTool(getUsers, server, comms)
     registerTool(getGroups, server, comms)
