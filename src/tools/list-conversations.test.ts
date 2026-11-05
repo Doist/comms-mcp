@@ -446,7 +446,10 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
     describe('searchText', () => {
         beforeEach(() => {
             mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
-                usersByIds([{ id: TEST_IDS.USER_1, fullName: 'Alice' }]),
+                usersByIds([
+                    { id: TEST_IDS.USER_1, fullName: 'Alice' },
+                    { id: TEST_IDS.USER_2, fullName: 'Bob' },
+                ]),
             )
         })
 
