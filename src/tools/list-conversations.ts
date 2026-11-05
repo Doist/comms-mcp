@@ -2,7 +2,8 @@ import type { CommsApi, Conversation } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
-import { resolveUsersWithLog } from '../utils/degrade.js'
+import { limitedAll } from '../utils/concurrency.js'
+import { degradeAllWithLog, resolveUsersWithLog } from '../utils/degrade.js'
 import { ListConversationsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getConversationUrl } from '../utils/url-helpers.js'
@@ -14,6 +15,12 @@ const ArgsSchema = {
         .optional()
         .describe(
             'Whether to include archived conversations. If true, both active and archived conversations are returned. Defaults to false (active conversations only).',
+        ),
+    searchText: z
+        .string()
+        .optional()
+        .describe(
+            'Optional search text to find group chats by title, up to 20 matches. Matches whole words in the titles of titled group chats only: direct messages, untitled group chats, and participant names do not match.',
         ),
 }
 
@@ -42,6 +49,8 @@ type ListConversationsStructured = Record<string, unknown> & {
 // participant IDs is still returned in `userIds`.
 const MAX_DISPLAYED_PARTICIPANTS = 5
 
+const SEARCH_RESULT_LIMIT = 20
+
 // Resolve user IDs to names. IDs that can't be resolved are simply absent from
 // the returned map.
 async function resolveParticipantNames(
@@ -63,14 +72,45 @@ async function resolveParticipantNames(
     return lookup
 }
 
+async function searchConversations(
+    client: CommsApi,
+    workspaceId: number,
+    searchText: string,
+    includeArchived: boolean,
+): Promise<Conversation[]> {
+    const { items } = await client.search.search({
+        type: 'conversations',
+        query: searchText,
+        workspaceId,
+        limit: SEARCH_RESULT_LIMIT,
+    })
+    const conversationIds = new Set(
+        items.flatMap((hit) => (hit.type === 'conversation' ? [hit.conversationId] : [])),
+    )
+    const conversations = await degradeAllWithLog(
+        ToolNames.LIST_CONVERSATIONS,
+        'failed to load conversation from search hit',
+        [...conversationIds],
+        (id) => client.conversations.getConversation(id),
+        { runner: limitedAll },
+    )
+    return conversations.filter(
+        (conversation): conversation is Conversation =>
+            conversation !== null && (includeArchived || !conversation.archived),
+    )
+}
+
 async function generateConversationsList(
     client: CommsApi,
     workspaceId: number,
     includeArchived: boolean,
+    searchText: string | undefined,
 ): Promise<{ textContent: string; structuredContent: ListConversationsStructured }> {
     // By default only fetch active conversations; optionally include archived ones too
     let conversations: Conversation[]
-    if (includeArchived) {
+    if (searchText) {
+        conversations = await searchConversations(client, workspaceId, searchText, includeArchived)
+    } else if (includeArchived) {
         const [active, archived] = await Promise.all([
             client.conversations.getConversations({ workspaceId }),
             client.conversations.getConversations({ workspaceId, archived: true }),
@@ -181,13 +221,18 @@ async function generateConversationsList(
 const listConversations = {
     name: ToolNames.LIST_CONVERSATIONS,
     description:
-        'List conversations (direct messages) in a workspace. By default returns only active conversations; set includeArchived to true to also include archived conversations. Returns conversation IDs, titles, the full list of participant user IDs (with names resolved for the first few), archive status, last-active timestamps, snippets, and URLs.',
+        'List conversations (direct messages and group chats) in a workspace, or find group chats by title with searchText. Without searchText, returns the first page of conversations. searchText matches whole words in the titles of titled group chats only, and returns up to 20 matches: direct messages, untitled group chats, and participant names do not match. By default returns only active conversations; set includeArchived to true to also include archived conversations. Returns conversation IDs, titles, the full list of participant user IDs (with names resolved for the first few), archive status, last-active timestamps, snippets, and URLs.',
     parameters: ArgsSchema,
     outputSchema: ListConversationsOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     async execute(args, client) {
-        const { workspaceId, includeArchived = false } = args
-        const result = await generateConversationsList(client, workspaceId, includeArchived)
+        const { workspaceId, includeArchived = false, searchText } = args
+        const result = await generateConversationsList(
+            client,
+            workspaceId,
+            includeArchived,
+            searchText,
+        )
 
         return getToolOutput({
             textContent: result.textContent,
