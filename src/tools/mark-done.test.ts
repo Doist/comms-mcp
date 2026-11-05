@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { type Mocked, vi } from 'vitest'
+import { vi } from 'vitest'
 import {
     createMockConversation,
     createMockThread,
@@ -10,23 +10,26 @@ import { ToolNames } from '../utils/tool-names.js'
 import { markDone } from './mark-done.js'
 
 // Mock the Comms API
-const mockCommsApi = {
-    threads: {
-        getThread: vi.fn(),
-        markRead: vi.fn(),
-        markAllRead: vi.fn(),
-        clearUnread: vi.fn(),
-    },
-    conversations: {
-        getConversation: vi.fn(),
-        markRead: vi.fn(),
-        archiveConversation: vi.fn(),
-    },
-    inbox: {
-        archiveThread: vi.fn(),
-        archiveAll: vi.fn(),
-    },
-} as unknown as Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        threads: {
+            getThread: vi.fn(),
+            markRead: vi.fn(),
+            markAllRead: vi.fn(),
+            clearUnread: vi.fn(),
+        },
+        conversations: {
+            getConversation: vi.fn(),
+            markRead: vi.fn(),
+            archiveConversation: vi.fn(),
+        },
+        inbox: {
+            archiveThread: vi.fn(),
+            archiveAll: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { MARK_DONE } = ToolNames
 

@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { type Mocked, vi } from 'vitest'
+import { vi } from 'vitest'
 import {
     createMockThread,
     extractStructuredContent,
@@ -9,14 +9,17 @@ import {
 import { ToolNames } from '../utils/tool-names.js'
 import { createThread } from './create-thread.js'
 
-const mockCommsApi = {
-    threads: {
-        createThread: vi.fn(),
-    },
-    inbox: {
-        unarchiveThread: vi.fn(),
-    },
-} as unknown as Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        threads: {
+            createThread: vi.fn(),
+        },
+        inbox: {
+            unarchiveThread: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { CREATE_THREAD } = ToolNames
 

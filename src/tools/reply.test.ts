@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { type Mocked, vi } from 'vitest'
+import { vi } from 'vitest'
 import {
     createMockComment,
     createMockConversationMessage,
@@ -11,14 +11,17 @@ import { ToolNames } from '../utils/tool-names.js'
 import { reply } from './reply.js'
 
 // Mock the Comms API
-const mockCommsApi = {
-    comments: {
-        createComment: vi.fn(),
-    },
-    conversationMessages: {
-        createMessage: vi.fn(),
-    },
-} as unknown as Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        comments: {
+            createComment: vi.fn(),
+        },
+        conversationMessages: {
+            createMessage: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { REPLY } = ToolNames
 

@@ -1,20 +1,23 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { type Mocked, type Mock, vi } from 'vitest'
+import { type Mock, vi } from 'vitest'
 import { extractTextContent, TEST_IDS } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { deleteObject } from './delete-object.js'
 
-const mockCommsApi = {
-    threads: {
-        deleteThread: vi.fn(),
-    },
-    comments: {
-        deleteComment: vi.fn(),
-    },
-    conversationMessages: {
-        deleteMessage: vi.fn(),
-    },
-} as unknown as Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        threads: {
+            deleteThread: vi.fn(),
+        },
+        comments: {
+            deleteComment: vi.fn(),
+        },
+        conversationMessages: {
+            deleteMessage: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { DELETE_OBJECT } = ToolNames
 

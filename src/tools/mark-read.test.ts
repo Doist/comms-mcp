@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { type Mocked, vi } from 'vitest'
+import { vi } from 'vitest'
 import {
     createMockConversation,
     createMockThread,
@@ -9,19 +9,22 @@ import {
 import { ToolNames } from '../utils/tool-names.js'
 import { markRead } from './mark-read.js'
 
-const mockCommsApi = {
-    threads: {
-        getUnread: vi.fn(),
-        getThread: vi.fn(),
-        markRead: vi.fn(),
-        markAllRead: vi.fn(),
-    },
-    conversations: {
-        getUnread: vi.fn(),
-        getConversation: vi.fn(),
-        markRead: vi.fn(),
-    },
-} as unknown as Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        threads: {
+            getUnread: vi.fn(),
+            getThread: vi.fn(),
+            markRead: vi.fn(),
+            markAllRead: vi.fn(),
+        },
+        conversations: {
+            getUnread: vi.fn(),
+            getConversation: vi.fn(),
+            markRead: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { MARK_READ } = ToolNames
 const WORKSPACE_ID = TEST_IDS.WORKSPACE_1

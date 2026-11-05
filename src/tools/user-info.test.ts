@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { type Mocked, vi } from 'vitest'
+import { vi } from 'vitest'
 import {
     createMockUser,
     extractStructuredContent,
@@ -11,11 +11,14 @@ import { ToolNames } from '../utils/tool-names.js'
 import { userInfo } from './user-info.js'
 
 // Mock the Comms API
-const mockCommsApi = {
-    users: {
-        getSessionUser: vi.fn(),
-    },
-} as unknown as Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        users: {
+            getSessionUser: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { USER_INFO } = ToolNames
 

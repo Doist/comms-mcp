@@ -1,29 +1,32 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { type Mocked, vi } from 'vitest'
+import { vi } from 'vitest'
 import { extractTextContent, TEST_IDS, usersByIds } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { fetchInbox } from './fetch-inbox.js'
 
 // Mock the Comms API
-const mockCommsApi = {
-    inbox: {
-        getInbox: vi.fn(),
-        getCount: vi.fn(),
-    },
-    threads: {
-        getUnread: vi.fn(),
-    },
-    conversations: {
-        getUnread: vi.fn(),
-        getConversation: vi.fn(),
-    },
-    channels: {
-        getChannel: vi.fn(),
-    },
-    workspaceUsers: {
-        getUsersByIds: vi.fn(),
-    },
-} as unknown as Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        inbox: {
+            getInbox: vi.fn(),
+            getCount: vi.fn(),
+        },
+        threads: {
+            getUnread: vi.fn(),
+        },
+        conversations: {
+            getUnread: vi.fn(),
+            getConversation: vi.fn(),
+        },
+        channels: {
+            getChannel: vi.fn(),
+        },
+        workspaceUsers: {
+            getUsersByIds: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { FETCH_INBOX } = ToolNames
 

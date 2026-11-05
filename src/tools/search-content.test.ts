@@ -1,22 +1,25 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { type Mocked, vi } from 'vitest'
+import { vi } from 'vitest'
 import { extractTextContent, TEST_IDS, usersByIds } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { searchContent } from './search-content.js'
 
 // Mock the Comms API
-const mockCommsApi = {
-    batch: vi.fn(),
-    search: {
-        search: vi.fn(),
-    },
-    channels: {
-        getChannel: vi.fn(),
-    },
-    workspaceUsers: {
-        getUsersByIds: vi.fn(),
-    },
-} as unknown as Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        batch: vi.fn(),
+        search: {
+            search: vi.fn(),
+        },
+        channels: {
+            getChannel: vi.fn(),
+        },
+        workspaceUsers: {
+            getUsersByIds: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { SEARCH_CONTENT } = ToolNames
 

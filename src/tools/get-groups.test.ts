@@ -1,5 +1,5 @@
 import type { Group, CommsApi } from '@doist/comms-sdk'
-import { type Mocked, vi } from 'vitest'
+import { vi } from 'vitest'
 import {
     createMockUser,
     extractStructuredContent,
@@ -10,15 +10,18 @@ import {
 import { ToolNames } from '../utils/tool-names.js'
 import { getGroups } from './get-groups.js'
 
-const mockCommsApi = {
-    groups: {
-        getGroups: vi.fn(),
-        getGroup: vi.fn(),
-    },
-    workspaceUsers: {
-        getWorkspaceUsers: vi.fn(),
-    },
-} as unknown as Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        groups: {
+            getGroups: vi.fn(),
+            getGroup: vi.fn(),
+        },
+        workspaceUsers: {
+            getWorkspaceUsers: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { GET_GROUPS } = ToolNames
 
