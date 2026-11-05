@@ -1,3 +1,9 @@
+## [8.2.0](https://github.com/Doist/comms-mcp/compare/v8.1.2...v8.2.0) (2026-11-05)
+
+### Features
+
+* **list-conversations:** Find group chats by title ([#73](https://github.com/Doist/comms-mcp/issues/73)) ([bd57792](https://github.com/Doist/comms-mcp/commit/bd57792c65af55977e69bfa80891089e168d3992))
+
 ## [8.1.2](https://github.com/Doist/comms-mcp/compare/v8.1.1...v8.1.2) (2026-11-02)
 
 ### Performance Improvements
