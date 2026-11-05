@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`reply tool replying to conversations should post a message to a conversation 1`] = `
+exports[`reply tool > replying to conversations > should post a message to a conversation 1`] = `
 "# Reply Posted
 
 **Target:** Conversation conv-id-1
@@ -12,7 +12,7 @@ exports[`reply tool replying to conversations should post a message to a convers
 This is my message"
 `;
 
-exports[`reply tool replying to threads should post a comment to a thread 1`] = `
+exports[`reply tool > replying to threads > should post a comment to a thread 1`] = `
 "# Reply Posted
 
 **Target:** Thread thread-id-1
@@ -24,7 +24,7 @@ exports[`reply tool replying to threads should post a comment to a thread 1`] = 
 This is my reply"
 `;
 
-exports[`reply tool replying to threads should post a comment with recipients 1`] = `
+exports[`reply tool > replying to threads > should post a comment with recipients 1`] = `
 "# Reply Posted
 
 **Target:** Thread thread-id-1

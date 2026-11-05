@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { type Mocked, vi } from 'vitest'
 import {
     createMockConversation,
     createMockThread,
@@ -11,17 +11,17 @@ import { markRead } from './mark-read.js'
 
 const mockCommsApi = {
     threads: {
-        getUnread: jest.fn(),
-        getThread: jest.fn(),
-        markRead: jest.fn(),
-        markAllRead: jest.fn(),
+        getUnread: vi.fn(),
+        getThread: vi.fn(),
+        markRead: vi.fn(),
+        markAllRead: vi.fn(),
     },
     conversations: {
-        getUnread: jest.fn(),
-        getConversation: jest.fn(),
-        markRead: jest.fn(),
+        getUnread: vi.fn(),
+        getConversation: vi.fn(),
+        markRead: vi.fn(),
     },
-} as unknown as jest.Mocked<CommsApi>
+} as unknown as Mocked<CommsApi>
 
 const { MARK_READ } = ToolNames
 const WORKSPACE_ID = TEST_IDS.WORKSPACE_1
@@ -56,8 +56,8 @@ describe(`${MARK_READ} tool`, () => {
     const originalConsoleError = console.error
 
     beforeEach(() => {
-        jest.clearAllMocks()
-        console.error = jest.fn()
+        vi.clearAllMocks()
+        console.error = vi.fn()
 
         setUnread({})
         mockCommsApi.threads.getThread.mockImplementation(async (id: string) =>

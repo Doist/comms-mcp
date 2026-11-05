@@ -180,7 +180,7 @@ npm run build
 
 - `npm start` — Build and run the MCP inspector
 - `npm run dev` — Watch mode with auto-restart
-- `npm test` — Jest
+- `npm test` — Vitest
 - `npm run type-check` — TypeScript
 - `npm run format:check` / `npm run format:fix` — oxlint + oxfmt
 

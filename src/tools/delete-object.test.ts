@@ -1,31 +1,31 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { type Mocked, type Mock, vi } from 'vitest'
 import { extractTextContent, TEST_IDS } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { deleteObject } from './delete-object.js'
 
 const mockCommsApi = {
     threads: {
-        deleteThread: jest.fn(),
+        deleteThread: vi.fn(),
     },
     comments: {
-        deleteComment: jest.fn(),
+        deleteComment: vi.fn(),
     },
     conversationMessages: {
-        deleteMessage: jest.fn(),
+        deleteMessage: vi.fn(),
     },
-} as unknown as jest.Mocked<CommsApi>
+} as unknown as Mocked<CommsApi>
 
 const { DELETE_OBJECT } = ToolNames
 
 describe(`${DELETE_OBJECT} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('targetType: thread', () => {
         it('should delete a thread by ID', async () => {
-            ;(mockCommsApi.threads.deleteThread as jest.Mock).mockResolvedValue(undefined as never)
+            ;(mockCommsApi.threads.deleteThread as Mock).mockResolvedValue(undefined as never)
 
             const result = await deleteObject.execute(
                 {
@@ -48,7 +48,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
         })
 
         it('should propagate API errors when deleting a thread', async () => {
-            ;(mockCommsApi.threads.deleteThread as jest.Mock).mockRejectedValue(
+            ;(mockCommsApi.threads.deleteThread as Mock).mockRejectedValue(
                 new Error('Thread not found') as never,
             )
 
@@ -66,9 +66,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
 
     describe('targetType: comment', () => {
         it('should delete a comment by ID', async () => {
-            ;(mockCommsApi.comments.deleteComment as jest.Mock).mockResolvedValue(
-                undefined as never,
-            )
+            ;(mockCommsApi.comments.deleteComment as Mock).mockResolvedValue(undefined as never)
 
             const result = await deleteObject.execute(
                 {
@@ -91,7 +89,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
         })
 
         it('should propagate API errors when deleting a comment', async () => {
-            ;(mockCommsApi.comments.deleteComment as jest.Mock).mockRejectedValue(
+            ;(mockCommsApi.comments.deleteComment as Mock).mockRejectedValue(
                 new Error('Comment not found') as never,
             )
 
@@ -109,7 +107,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
 
     describe('targetType: message', () => {
         it('should delete a conversation message by ID', async () => {
-            ;(mockCommsApi.conversationMessages.deleteMessage as jest.Mock).mockResolvedValue(
+            ;(mockCommsApi.conversationMessages.deleteMessage as Mock).mockResolvedValue(
                 undefined as never,
             )
 
@@ -136,7 +134,7 @@ describe(`${DELETE_OBJECT} tool`, () => {
         })
 
         it('should propagate API errors when deleting a message', async () => {
-            ;(mockCommsApi.conversationMessages.deleteMessage as jest.Mock).mockRejectedValue(
+            ;(mockCommsApi.conversationMessages.deleteMessage as Mock).mockRejectedValue(
                 new Error('Message not found') as never,
             )
 
@@ -174,13 +172,9 @@ describe(`${DELETE_OBJECT} tool`, () => {
         it.each(routingCases)(
             'should only call $expectedMethod when targetType is $targetType',
             async ({ targetType, targetId }) => {
-                ;(mockCommsApi.threads.deleteThread as jest.Mock).mockResolvedValue(
-                    undefined as never,
-                )
-                ;(mockCommsApi.comments.deleteComment as jest.Mock).mockResolvedValue(
-                    undefined as never,
-                )
-                ;(mockCommsApi.conversationMessages.deleteMessage as jest.Mock).mockResolvedValue(
+                ;(mockCommsApi.threads.deleteThread as Mock).mockResolvedValue(undefined as never)
+                ;(mockCommsApi.comments.deleteComment as Mock).mockResolvedValue(undefined as never)
+                ;(mockCommsApi.conversationMessages.deleteMessage as Mock).mockResolvedValue(
                     undefined as never,
                 )
 

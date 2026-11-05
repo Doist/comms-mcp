@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`delete-object tool targetType: comment should delete a comment by ID 1`] = `
+exports[`delete-object tool > targetType: comment > should delete a comment by ID 1`] = `
 "# Comment Deleted
 
 **Comment ID:** comment-id-1
@@ -8,7 +8,7 @@ exports[`delete-object tool targetType: comment should delete a comment by ID 1`
 The comment has been permanently deleted."
 `;
 
-exports[`delete-object tool targetType: message should delete a conversation message by ID 1`] = `
+exports[`delete-object tool > targetType: message > should delete a conversation message by ID 1`] = `
 "# Message Deleted
 
 **Message ID:** msg-id-1
@@ -16,7 +16,7 @@ exports[`delete-object tool targetType: message should delete a conversation mes
 The conversation message has been permanently deleted."
 `;
 
-exports[`delete-object tool targetType: thread should delete a thread by ID 1`] = `
+exports[`delete-object tool > targetType: thread > should delete a thread by ID 1`] = `
 "# Thread Deleted
 
 **Thread ID:** thread-id-1

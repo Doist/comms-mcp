@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { type Mocked, vi } from 'vitest'
 import {
     extractStructuredContent,
     extractTextContent,
@@ -13,10 +13,10 @@ import { getUsers } from './get-users.js'
 // Mock the Comms API
 const mockCommsApi = {
     workspaceUsers: {
-        getWorkspaceUsers: jest.fn(),
-        getUsersByIds: jest.fn(),
+        getWorkspaceUsers: vi.fn(),
+        getUsersByIds: vi.fn(),
     },
-} as unknown as jest.Mocked<CommsApi>
+} as unknown as Mocked<CommsApi>
 
 const { GET_USERS } = ToolNames
 
@@ -47,7 +47,7 @@ const createMockRestrictedUser = (overrides: Partial<Record<string, unknown>> = 
 
 describe(`${GET_USERS} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('fetching all users', () => {

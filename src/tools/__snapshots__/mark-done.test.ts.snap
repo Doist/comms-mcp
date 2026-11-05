@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`mark-done tool bulk thread operations marks all read in a channel without archiving when archive=false 1`] = `
+exports[`mark-done tool > bulk thread operations > marks all read in a channel without archiving when archive=false 1`] = `
 "# Mark Threads Done
 
 **Mode:** Bulk Operation
@@ -14,7 +14,7 @@ Bulk operation completed successfully
 Use \`fetch-inbox\` to see remaining unread threads."
 `;
 
-exports[`mark-done tool bulk thread operations should archive all without marking as read in workspace 1`] = `
+exports[`mark-done tool > bulk thread operations > should archive all without marking as read in workspace 1`] = `
 "# Mark Threads Done
 
 **Mode:** Bulk Operation
@@ -28,7 +28,7 @@ Bulk operation completed successfully
 Use \`fetch-inbox\` to see remaining unread threads."
 `;
 
-exports[`mark-done tool bulk thread operations should clear all unread markers in a workspace 1`] = `
+exports[`mark-done tool > bulk thread operations > should clear all unread markers in a workspace 1`] = `
 "# Mark Threads Done
 
 **Mode:** Bulk Operation
@@ -41,7 +41,7 @@ Bulk operation completed successfully
 Use \`fetch-inbox\` to see remaining unread threads."
 `;
 
-exports[`mark-done tool bulk thread operations should mark all as read without archiving in workspace 1`] = `
+exports[`mark-done tool > bulk thread operations > should mark all as read without archiving in workspace 1`] = `
 "# Mark Threads Done
 
 **Mode:** Bulk Operation
@@ -55,7 +55,7 @@ Bulk operation completed successfully
 Use \`fetch-inbox\` to see remaining unread threads."
 `;
 
-exports[`mark-done tool bulk thread operations should mark all threads as read and archive in a workspace 1`] = `
+exports[`mark-done tool > bulk thread operations > should mark all threads as read and archive in a workspace 1`] = `
 "# Mark Threads Done
 
 **Mode:** Bulk Operation
@@ -69,7 +69,7 @@ Bulk operation completed successfully
 Use \`fetch-inbox\` to see remaining unread threads."
 `;
 
-exports[`mark-done tool marking conversations as done should handle conversation not found error 1`] = `
+exports[`mark-done tool > marking conversations as done > should handle conversation not found error 1`] = `
 "# Mark Conversations Done
 
 **Mode:** Individual IDs
@@ -88,7 +88,7 @@ exports[`mark-done tool marking conversations as done should handle conversation
 Review failed items and retry if needed."
 `;
 
-exports[`mark-done tool marking conversations as done should mark all conversations as done successfully 1`] = `
+exports[`mark-done tool > marking conversations as done > should mark all conversations as done successfully 1`] = `
 "# Mark Conversations Done
 
 **Mode:** Individual IDs
@@ -107,7 +107,7 @@ conv-id-1, conv-id-2
 Check your conversations for remaining unread messages."
 `;
 
-exports[`mark-done tool marking threads as done reports a warning (not a failure) when only the secondary markRead fails 1`] = `
+exports[`mark-done tool > marking threads as done > reports a warning (not a failure) when only the secondary markRead fails 1`] = `
 "# Mark Threads Done
 
 **Mode:** Individual IDs
@@ -133,7 +133,7 @@ Use \`fetch-inbox\` to see remaining unread threads.
 Warning threads are archived but still unread — use \`fetch-inbox\` with \`archiveFilter: "all"\` or \`"archived"\` to inspect them."
 `;
 
-exports[`mark-done tool marking threads as done should archive thread only 1`] = `
+exports[`mark-done tool > marking threads as done > should archive thread only 1`] = `
 "# Mark Threads Done
 
 **Mode:** Individual IDs
@@ -152,7 +152,7 @@ thread-id-1
 Use \`fetch-inbox\` to see remaining unread threads."
 `;
 
-exports[`mark-done tool marking threads as done should handle all threads failing 1`] = `
+exports[`mark-done tool > marking threads as done > should handle all threads failing 1`] = `
 "# Mark Threads Done
 
 **Mode:** Individual IDs
@@ -172,7 +172,7 @@ exports[`mark-done tool marking threads as done should handle all threads failin
 Review failed items and retry if needed."
 `;
 
-exports[`mark-done tool marking threads as done should handle partial failures gracefully 1`] = `
+exports[`mark-done tool > marking threads as done > should handle partial failures gracefully 1`] = `
 "# Mark Threads Done
 
 **Mode:** Individual IDs
@@ -195,7 +195,7 @@ thread-id-1, thread-id-3
 Review failed items and retry if needed."
 `;
 
-exports[`mark-done tool marking threads as done should mark all threads as done successfully 1`] = `
+exports[`mark-done tool > marking threads as done > should mark all threads as done successfully 1`] = `
 "# Mark Threads Done
 
 **Mode:** Individual IDs
@@ -214,7 +214,7 @@ thread-id-1, thread-id-2, thread-id-3
 Use \`fetch-inbox\` to see remaining unread threads."
 `;
 
-exports[`mark-done tool marking threads as done should mark thread as read only 1`] = `
+exports[`mark-done tool > marking threads as done > should mark thread as read only 1`] = `
 "# Mark Threads Done
 
 **Mode:** Individual IDs
@@ -233,7 +233,7 @@ thread-id-1
 Use \`fetch-inbox\` to see remaining unread threads."
 `;
 
-exports[`mark-done tool next steps logic validation should suggest fetch-inbox when all threads complete successfully 1`] = `
+exports[`mark-done tool > next steps logic validation > should suggest fetch-inbox when all threads complete successfully 1`] = `
 "# Mark Threads Done
 
 **Mode:** Individual IDs
@@ -252,7 +252,7 @@ thread-id-1, thread-id-2
 Use \`fetch-inbox\` to see remaining unread threads."
 `;
 
-exports[`mark-done tool next steps logic validation should suggest reviewing failures when mixed results 1`] = `
+exports[`mark-done tool > next steps logic validation > should suggest reviewing failures when mixed results 1`] = `
 "# Mark Threads Done
 
 **Mode:** Individual IDs

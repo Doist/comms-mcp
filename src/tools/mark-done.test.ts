@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { type Mocked, vi } from 'vitest'
 import {
     createMockConversation,
     createMockThread,
@@ -12,21 +12,21 @@ import { markDone } from './mark-done.js'
 // Mock the Comms API
 const mockCommsApi = {
     threads: {
-        getThread: jest.fn(),
-        markRead: jest.fn(),
-        markAllRead: jest.fn(),
-        clearUnread: jest.fn(),
+        getThread: vi.fn(),
+        markRead: vi.fn(),
+        markAllRead: vi.fn(),
+        clearUnread: vi.fn(),
     },
     conversations: {
-        getConversation: jest.fn(),
-        markRead: jest.fn(),
-        archiveConversation: jest.fn(),
+        getConversation: vi.fn(),
+        markRead: vi.fn(),
+        archiveConversation: vi.fn(),
     },
     inbox: {
-        archiveThread: jest.fn(),
-        archiveAll: jest.fn(),
+        archiveThread: vi.fn(),
+        archiveAll: vi.fn(),
     },
-} as unknown as jest.Mocked<CommsApi>
+} as unknown as Mocked<CommsApi>
 
 const { MARK_DONE } = ToolNames
 
@@ -34,8 +34,8 @@ describe(`${MARK_DONE} tool`, () => {
     const originalConsoleError = console.error
 
     beforeEach(() => {
-        jest.clearAllMocks()
-        console.error = jest.fn()
+        vi.clearAllMocks()
+        console.error = vi.fn()
 
         mockCommsApi.threads.getThread.mockImplementation(async (id: string) =>
             createMockThread({ id, commentCount: 4, lastObjIndex: 3 }),

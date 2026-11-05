@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { type Mocked, vi } from 'vitest'
 import {
     createMockUser,
     extractStructuredContent,
@@ -13,15 +13,15 @@ import { userInfo } from './user-info.js'
 // Mock the Comms API
 const mockCommsApi = {
     users: {
-        getSessionUser: jest.fn(),
+        getSessionUser: vi.fn(),
     },
-} as unknown as jest.Mocked<CommsApi>
+} as unknown as Mocked<CommsApi>
 
 const { USER_INFO } = ToolNames
 
 describe(`${USER_INFO} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     it('should generate user info with all required fields', async () => {

@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { type Mocked, vi } from 'vitest'
 import {
     createMockWorkspace,
     extractStructuredContent,
@@ -13,15 +13,15 @@ import { getWorkspaces } from './get-workspaces.js'
 // Mock the Comms API
 const mockCommsApi = {
     workspaces: {
-        getWorkspaces: jest.fn(),
+        getWorkspaces: vi.fn(),
     },
     conversations: {
-        getConversation: jest.fn(),
+        getConversation: vi.fn(),
     },
     workspaceUsers: {
-        getUserById: jest.fn(),
+        getUserById: vi.fn(),
     },
-} as unknown as jest.Mocked<CommsApi>
+} as unknown as Mocked<CommsApi>
 
 const { GET_WORKSPACES } = ToolNames
 
@@ -51,7 +51,7 @@ const mockConversation = {
 
 describe(`${GET_WORKSPACES} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     it('should generate workspaces list with all required fields', async () => {

@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { type Mocked, vi } from 'vitest'
 import {
     createMockConversation,
     createMockConversationMessage,
@@ -13,15 +13,15 @@ import { loadConversation } from './load-conversation.js'
 // Mock the Comms API
 const mockCommsApi = {
     conversations: {
-        getConversation: jest.fn(),
+        getConversation: vi.fn(),
     },
     conversationMessages: {
-        getMessages: jest.fn(),
+        getMessages: vi.fn(),
     },
     workspaceUsers: {
-        getUsersByIds: jest.fn(),
+        getUsersByIds: vi.fn(),
     },
-} as unknown as jest.Mocked<CommsApi>
+} as unknown as Mocked<CommsApi>
 
 const { LOAD_CONVERSATION } = ToolNames
 
@@ -38,7 +38,7 @@ const makeUser = (id: number, name: string) => ({
 
 describe(`${LOAD_CONVERSATION} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('loading conversations successfully', () => {

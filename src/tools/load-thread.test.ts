@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { type Mocked, vi } from 'vitest'
 import {
     createMockComment,
     createMockThread,
@@ -13,18 +13,18 @@ import { loadThread } from './load-thread.js'
 // Mock the Comms API
 const mockCommsApi = {
     threads: {
-        getThread: jest.fn(),
+        getThread: vi.fn(),
     },
     comments: {
-        getComments: jest.fn(),
+        getComments: vi.fn(),
     },
     channels: {
-        getChannel: jest.fn(),
+        getChannel: vi.fn(),
     },
     workspaceUsers: {
-        getUsersByIds: jest.fn(),
+        getUsersByIds: vi.fn(),
     },
-} as unknown as jest.Mocked<CommsApi>
+} as unknown as Mocked<CommsApi>
 
 const { LOAD_THREAD } = ToolNames
 
@@ -53,7 +53,7 @@ const makeUser = (id: number, name: string) => ({
 
 describe(`${LOAD_THREAD} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('loading threads successfully', () => {

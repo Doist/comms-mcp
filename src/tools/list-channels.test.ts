@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { type Mocked, vi } from 'vitest'
 import {
     createMockChannel,
     extractStructuredContent,
@@ -13,18 +13,18 @@ import { listChannels } from './list-channels.js'
 
 const mockCommsApi = {
     channels: {
-        getChannels: jest.fn(),
+        getChannels: vi.fn(),
     },
     workspaceUsers: {
-        getUsersByIds: jest.fn(),
+        getUsersByIds: vi.fn(),
     },
-} as unknown as jest.Mocked<CommsApi>
+} as unknown as Mocked<CommsApi>
 
 const { LIST_CHANNELS } = ToolNames
 
 describe(`${LIST_CHANNELS} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('listing channels', () => {
