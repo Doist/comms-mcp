@@ -3,8 +3,10 @@ dist
 .env
 *.log
 .DS_Store
-# Personal Claude Code state stays local. Only the links to the shared skills are tracked.
+# Personal Claude Code state stays local (settings.local.json, other skills). The shared hooks
+# (settings.json) and the links to the shared skills are tracked.
 .claude/*
+!.claude/settings.json
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/verify
