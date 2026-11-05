@@ -1,4 +1,4 @@
-import type { CommsApi } from '@doist/comms-sdk'
+import { type CommsApi, CommsRequestError, type SearchResult } from '@doist/comms-sdk'
 import { vi } from 'vitest'
 import {
     createMockConversation,
@@ -15,6 +15,10 @@ const mockCommsApi = vi.mocked(
     {
         conversations: {
             getConversations: vi.fn(),
+            getConversation: vi.fn(),
+        },
+        search: {
+            search: vi.fn(),
         },
         workspaceUsers: {
             getUsersByIds: vi.fn(),
@@ -24,6 +28,28 @@ const mockCommsApi = vi.mocked(
 )
 
 const { LIST_CONVERSATIONS } = ToolNames
+
+function createConversationHit(conversationId: string): SearchResult {
+    return {
+        id: `conversation_${conversationId}`,
+        type: 'conversation',
+        title: `Title ${conversationId}`,
+        snippet: `Title ${conversationId}`,
+        snippetCreatorId: TEST_IDS.USER_1,
+        snippetLastUpdated: new Date('2024-01-01T00:00:00Z'),
+        conversationId,
+        userIds: [TEST_IDS.USER_1],
+    }
+}
+
+function mockSearchHits(hits: SearchResult[], nextCursorMark?: string) {
+    mockCommsApi.search.search.mockResolvedValue({
+        items: hits,
+        hasMore: nextCursorMark !== undefined,
+        nextCursorMark,
+        isPlanRestricted: false,
+    })
+}
 
 describe(`${LIST_CONVERSATIONS} tool`, () => {
     beforeEach(() => {
@@ -414,6 +440,369 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                     expect.objectContaining({ title: 'Archived Chat', archived: true }),
                 ]),
             )
+        })
+    })
+
+    describe('searchText', () => {
+        beforeEach(() => {
+            mockCommsApi.workspaceUsers.getUsersByIds.mockImplementation(
+                usersByIds([
+                    { id: TEST_IDS.USER_1, fullName: 'Alice' },
+                    { id: TEST_IDS.USER_2, fullName: 'Bob' },
+                ]),
+            )
+        })
+
+        it('should search conversations by title with the default limit', async () => {
+            mockSearchHits([])
+
+            await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.search.search).toHaveBeenCalledWith({
+                type: 'conversations',
+                query: 'Outcasts',
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                limit: 20,
+            })
+        })
+
+        it('should return a hit that is not on the first list page', async () => {
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                createMockConversation({ id: TEST_IDS.CONVERSATION_1, title: 'First page chat' }),
+            ])
+            mockSearchHits([createConversationHit(TEST_IDS.CONVERSATION_2)])
+            mockCommsApi.conversations.getConversation.mockResolvedValue(
+                createMockConversation({
+                    id: TEST_IDS.CONVERSATION_2,
+                    title: 'Outcasts',
+                    userIds: [TEST_IDS.USER_1],
+                    url: undefined,
+                }),
+            )
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.conversations.getConversations).not.toHaveBeenCalled()
+            expect(mockCommsApi.conversations.getConversation).toHaveBeenCalledWith(
+                TEST_IDS.CONVERSATION_2,
+            )
+
+            const textContent = extractTextContent(result)
+            expect(textContent).toContain('Found 1 conversation in')
+            expect(textContent).toContain('## [Outcasts]')
+            expect(textContent).toContain('**Participants:** Alice')
+            expect(textContent).not.toContain('First page chat')
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent).toEqual({
+                type: 'list_conversations',
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                totalConversations: 1,
+                hasMore: false,
+                conversations: [
+                    {
+                        id: TEST_IDS.CONVERSATION_2,
+                        workspaceId: TEST_IDS.WORKSPACE_1,
+                        title: 'Outcasts',
+                        userIds: [TEST_IDS.USER_1],
+                        participantNames: ['Alice'],
+                        archived: false,
+                        lastActive: '2024-01-01T00:00:00.000Z',
+                        conversationUrl: expect.stringContaining(`/msg/${TEST_IDS.CONVERSATION_2}`),
+                    },
+                ],
+            })
+        })
+
+        it('should load a conversation once when several hits share it', async () => {
+            mockSearchHits([
+                createConversationHit(TEST_IDS.CONVERSATION_1),
+                createConversationHit(TEST_IDS.CONVERSATION_1),
+            ])
+            mockCommsApi.conversations.getConversation.mockResolvedValue(
+                createMockConversation({ id: TEST_IDS.CONVERSATION_1 }),
+            )
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.conversations.getConversation).toHaveBeenCalledTimes(1)
+            expect(extractStructuredContent(result).totalConversations).toBe(1)
+        })
+
+        it('should drop archived hits by default', async () => {
+            mockSearchHits([
+                createConversationHit(TEST_IDS.CONVERSATION_1),
+                createConversationHit(TEST_IDS.CONVERSATION_2),
+            ])
+            mockCommsApi.conversations.getConversation.mockImplementation(async (id) =>
+                createMockConversation({ id, archived: id === TEST_IDS.CONVERSATION_2 }),
+            )
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.totalConversations).toBe(1)
+            expect(structuredContent.conversations).toEqual([
+                expect.objectContaining({ id: TEST_IDS.CONVERSATION_1, archived: false }),
+            ])
+        })
+
+        it('should keep archived hits when includeArchived is true', async () => {
+            mockSearchHits([
+                createConversationHit(TEST_IDS.CONVERSATION_1),
+                createConversationHit(TEST_IDS.CONVERSATION_2),
+            ])
+            mockCommsApi.conversations.getConversation.mockImplementation(async (id) =>
+                createMockConversation({ id, archived: id === TEST_IDS.CONVERSATION_2 }),
+            )
+
+            const result = await listConversations.execute(
+                {
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    searchText: 'Outcasts',
+                    includeArchived: true,
+                },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.totalConversations).toBe(2)
+            expect(structuredContent.conversations).toEqual([
+                expect.objectContaining({ id: TEST_IDS.CONVERSATION_1, archived: false }),
+                expect.objectContaining({ id: TEST_IDS.CONVERSATION_2, archived: true }),
+            ])
+        })
+
+        it('should drop a hit whose conversation no longer exists and log it', async () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+            mockSearchHits([
+                createConversationHit(TEST_IDS.CONVERSATION_1),
+                createConversationHit(TEST_IDS.CONVERSATION_2),
+            ])
+            mockCommsApi.conversations.getConversation.mockImplementation(async (id) => {
+                if (id === TEST_IDS.CONVERSATION_1) {
+                    throw new CommsRequestError('Not found', 404)
+                }
+                return createMockConversation({ id })
+            })
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent.totalConversations).toBe(1)
+            expect(structuredContent.conversations).toEqual([
+                expect.objectContaining({ id: TEST_IDS.CONVERSATION_2 }),
+            ])
+            expect(consoleError).toHaveBeenCalledWith(
+                `${LIST_CONVERSATIONS}: dropped search hits for missing conversations`,
+                { dropped: 1, of: 2 },
+            )
+
+            consoleError.mockRestore()
+        })
+
+        it('should report no conversations when every hit no longer exists', async () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+            mockSearchHits([createConversationHit(TEST_IDS.CONVERSATION_1)])
+            mockCommsApi.conversations.getConversation.mockRejectedValue(
+                new CommsRequestError('Not found', 404),
+            )
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            expect(extractTextContent(result)).toContain('No conversations found.')
+            consoleError.mockRestore()
+        })
+
+        it.each([
+            ['a forbidden request', new CommsRequestError('Forbidden', 403)],
+            ['a network failure', new Error('socket hang up')],
+        ])('should surface %s from a lookup', async (_name, lookupError) => {
+            mockSearchHits([createConversationHit(TEST_IDS.CONVERSATION_1)])
+            mockCommsApi.conversations.getConversation.mockRejectedValue(lookupError)
+
+            await expect(
+                listConversations.execute(
+                    { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                    mockCommsApi,
+                ),
+            ).rejects.toThrow(lookupError.message)
+        })
+
+        it('should report no conversations when search has no hits', async () => {
+            mockSearchHits([])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Nothing' },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.conversations.getConversation).not.toHaveBeenCalled()
+            expect(extractTextContent(result)).toContain('No conversations found.')
+            expect(extractStructuredContent(result)).toEqual({
+                type: 'list_conversations',
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                conversations: [],
+                totalConversations: 0,
+                hasMore: false,
+            })
+        })
+
+        it('should not call search when searchText is absent', async () => {
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                createMockConversation(),
+            ])
+
+            await listConversations.execute({ workspaceId: TEST_IDS.WORKSPACE_1 }, mockCommsApi)
+
+            expect(mockCommsApi.search.search).not.toHaveBeenCalled()
+            expect(mockCommsApi.conversations.getConversation).not.toHaveBeenCalled()
+            expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledWith({
+                workspaceId: TEST_IDS.WORKSPACE_1,
+            })
+        })
+
+        it('should list conversations when searchText is empty', async () => {
+            mockCommsApi.conversations.getConversations.mockResolvedValue([
+                createMockConversation(),
+            ])
+
+            await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: '' },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.search.search).not.toHaveBeenCalled()
+            expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledTimes(1)
+        })
+
+        it('should skip a hit with no conversation id', async () => {
+            const hitWithoutConversationId = {
+                ...createConversationHit(TEST_IDS.CONVERSATION_1),
+                conversationId: null,
+            } as unknown as SearchResult
+            mockSearchHits([hitWithoutConversationId])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.conversations.getConversation).not.toHaveBeenCalled()
+            expect(extractStructuredContent(result).totalConversations).toBe(0)
+        })
+
+        it('should pass limit and cursor to the search', async () => {
+            mockSearchHits([])
+
+            await listConversations.execute(
+                {
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    searchText: 'Outcasts',
+                    limit: 5,
+                    cursor: 'next-page',
+                },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.search.search).toHaveBeenCalledWith({
+                type: 'conversations',
+                query: 'Outcasts',
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                limit: 5,
+                cursor: 'next-page',
+            })
+        })
+
+        it('should return the next cursor when more results are available', async () => {
+            mockSearchHits([createConversationHit(TEST_IDS.CONVERSATION_1)], 'next-page')
+            mockCommsApi.conversations.getConversation.mockResolvedValue(
+                createMockConversation({ id: TEST_IDS.CONVERSATION_1 }),
+            )
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            expect(extractTextContent(result)).toContain('More results available.')
+            expect(extractStructuredContent(result)).toMatchObject({
+                hasMore: true,
+                cursor: 'next-page',
+            })
+        })
+
+        it('should keep the cursor when a page has only archived hits', async () => {
+            mockSearchHits([createConversationHit(TEST_IDS.CONVERSATION_1)], 'next-page')
+            mockCommsApi.conversations.getConversation.mockResolvedValue(
+                createMockConversation({ id: TEST_IDS.CONVERSATION_1, archived: true }),
+            )
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            expect(extractTextContent(result)).toContain('More results available.')
+            expect(extractStructuredContent(result)).toMatchObject({
+                totalConversations: 0,
+                hasMore: true,
+                cursor: 'next-page',
+            })
+        })
+
+        it('should leave paging fields out without searchText', async () => {
+            mockCommsApi.conversations.getConversations.mockResolvedValue([])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1 },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent).not.toHaveProperty('hasMore')
+            expect(structuredContent).not.toHaveProperty('cursor')
+        })
+
+        it.each([
+            ['limit', { limit: 5 }],
+            ['cursor', { cursor: 'next-page' }],
+        ])('should reject %s without searchText', async (_name, paging) => {
+            await expect(
+                listConversations.execute(
+                    { workspaceId: TEST_IDS.WORKSPACE_1, ...paging },
+                    mockCommsApi,
+                ),
+            ).rejects.toThrow('`limit` and `cursor` require `searchText`.')
+        })
+
+        it('should propagate search errors', async () => {
+            mockCommsApi.search.search.mockRejectedValue(new Error(TEST_ERRORS.API_UNAUTHORIZED))
+
+            await expect(
+                listConversations.execute(
+                    { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                    mockCommsApi,
+                ),
+            ).rejects.toThrow(TEST_ERRORS.API_UNAUTHORIZED)
         })
     })
 
