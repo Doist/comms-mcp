@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`fetch-inbox tool fetching inbox successfully should fetch inbox with threads 1`] = `
+exports[`fetch-inbox tool > fetching inbox successfully > should fetch inbox with threads 1`] = `
 "# Inbox for Workspace 11111
 
 **Total Threads:** 2
@@ -18,7 +18,7 @@ exports[`fetch-inbox tool fetching inbox successfully should fetch inbox with th
 - Use \`mark-done\` to mark items as read and archive them"
 `;
 
-exports[`fetch-inbox tool fetching inbox successfully should fetch inbox with unread conversations 1`] = `
+exports[`fetch-inbox tool > fetching inbox successfully > should fetch inbox with unread conversations 1`] = `
 "# Inbox for Workspace 11111
 
 **Total Threads:** 0
@@ -42,7 +42,7 @@ _No threads in inbox_
 - Use \`mark-done\` to mark items as read and archive them"
 `;
 
-exports[`fetch-inbox tool fetching inbox successfully should filter by date range 1`] = `
+exports[`fetch-inbox tool > fetching inbox successfully > should filter by date range 1`] = `
 "# Inbox for Workspace 11111
 
 **Total Threads:** 0
@@ -54,7 +54,7 @@ _No threads in inbox_
 "
 `;
 
-exports[`fetch-inbox tool fetching inbox successfully should filter only unread items when requested 1`] = `
+exports[`fetch-inbox tool > fetching inbox successfully > should filter only unread items when requested 1`] = `
 "# Inbox for Workspace 11111
 
 **Total Threads:** 1
@@ -71,7 +71,7 @@ exports[`fetch-inbox tool fetching inbox successfully should filter only unread 
 - Use \`mark-done\` to mark items as read and archive them"
 `;
 
-exports[`fetch-inbox tool fetching inbox successfully should handle empty inbox 1`] = `
+exports[`fetch-inbox tool > fetching inbox successfully > should handle empty inbox 1`] = `
 "# Inbox for Workspace 11111
 
 **Total Threads:** 0
@@ -83,7 +83,7 @@ _No threads in inbox_
 "
 `;
 
-exports[`fetch-inbox tool fetching inbox successfully should not display conversations when none are unread 1`] = `
+exports[`fetch-inbox tool > fetching inbox successfully > should not display conversations when none are unread 1`] = `
 "# Inbox for Workspace 11111
 
 **Total Threads:** 1

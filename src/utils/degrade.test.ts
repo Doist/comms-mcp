@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { type MockInstance, vi } from 'vitest'
 import {
     degradeAllWithLog,
     degradeWithLog,
@@ -9,10 +9,10 @@ import {
 import { usersByIds } from './test-helpers.js'
 
 describe('degradeAllWithLog', () => {
-    let consoleErrorSpy: jest.SpiedFunction<typeof console.error>
+    let consoleErrorSpy: MockInstance<typeof console.error>
 
     beforeEach(() => {
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     })
 
     afterEach(() => {
@@ -64,7 +64,7 @@ describe('degradeAllWithLog', () => {
     })
 
     it('runs the batch through a supplied runner', async () => {
-        const runner = jest.fn(<T, R>(items: readonly T[], worker: (item: T) => Promise<R>) =>
+        const runner = vi.fn(<T, R>(items: readonly T[], worker: (item: T) => Promise<R>) =>
             Promise.all(items.map(worker)),
         )
 
@@ -96,12 +96,12 @@ describe('degradeAllWithLog', () => {
 })
 
 describe('resolveUsersWithLog', () => {
-    let consoleErrorSpy: jest.SpiedFunction<typeof console.error>
-    const getUsersByIds = jest.fn()
+    let consoleErrorSpy: MockInstance<typeof console.error>
+    const getUsersByIds = vi.fn()
     const client = { workspaceUsers: { getUsersByIds } } as unknown as CommsApi
 
     beforeEach(() => {
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
         getUsersByIds.mockReset()
     })
 
@@ -162,10 +162,10 @@ describe('resolveUsersWithLog', () => {
 })
 
 describe('degradeWithLog', () => {
-    let consoleErrorSpy: jest.SpiedFunction<typeof console.error>
+    let consoleErrorSpy: MockInstance<typeof console.error>
 
     beforeEach(() => {
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     })
 
     afterEach(() => {
@@ -191,10 +191,10 @@ describe('degradeWithLog', () => {
 })
 
 describe('logOperationFailures', () => {
-    let consoleErrorSpy: jest.SpiedFunction<typeof console.error>
+    let consoleErrorSpy: MockInstance<typeof console.error>
 
     beforeEach(() => {
-        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     })
 
     afterEach(() => {

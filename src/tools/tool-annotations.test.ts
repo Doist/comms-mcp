@@ -1,5 +1,5 @@
-import { jest } from '@jest/globals'
 import { McpServer } from '@modelcontextprotocol/server'
+import { vi } from 'vitest'
 import { getMcpServer } from '../mcp-server.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -186,7 +186,7 @@ describe('Tool annotations', () => {
     const registered: Map<string, { annotations?: unknown }> = new Map()
 
     beforeAll(() => {
-        const registerToolSpy = jest.spyOn(McpServer.prototype, 'registerTool')
+        const registerToolSpy = vi.spyOn(McpServer.prototype, 'registerTool')
         getMcpServer({ commsApiKey: 'test-token' })
 
         const calls = registerToolSpy.mock.calls as unknown as unknown[][]

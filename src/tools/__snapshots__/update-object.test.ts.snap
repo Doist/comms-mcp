@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`update-object tool targetType: comment should update a comment content 1`] = `
+exports[`update-object tool > targetType: comment > should update a comment content 1`] = `
 "# Comment Updated
 
 **Comment ID:** comment-id-1
@@ -14,7 +14,7 @@ exports[`update-object tool targetType: comment should update a comment content 
 Updated comment content"
 `;
 
-exports[`update-object tool targetType: message should update a conversation message content 1`] = `
+exports[`update-object tool > targetType: message > should update a conversation message content 1`] = `
 "# Message Updated
 
 **Message ID:** msg-id-1
@@ -28,7 +28,7 @@ exports[`update-object tool targetType: message should update a conversation mes
 Updated message content"
 `;
 
-exports[`update-object tool targetType: thread should update a thread title and content 1`] = `
+exports[`update-object tool > targetType: thread > should update a thread title and content 1`] = `
 "# Thread Updated
 
 **Title:** Updated Title
@@ -42,7 +42,7 @@ exports[`update-object tool targetType: thread should update a thread title and 
 Updated content"
 `;
 
-exports[`update-object tool targetType: thread should update only the thread content 1`] = `
+exports[`update-object tool > targetType: thread > should update only the thread content 1`] = `
 "# Thread Updated
 
 **Title:** Test Thread
@@ -55,7 +55,7 @@ exports[`update-object tool targetType: thread should update only the thread con
 New content only"
 `;
 
-exports[`update-object tool targetType: thread should update only the thread title 1`] = `
+exports[`update-object tool > targetType: thread > should update only the thread title 1`] = `
 "# Thread Updated
 
 **Title:** New Title Only

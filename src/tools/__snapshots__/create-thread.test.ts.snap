@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`create-thread tool creating threads should create a thread in a channel 1`] = `
+exports[`create-thread tool > creating threads > should create a thread in a channel 1`] = `
 "# Thread Created
 
 **Title:** New Discussion
@@ -16,7 +16,7 @@ Let us discuss this topic
 > Note: Threads you create do not appear in your own Inbox by default — only recipients see them there. Find the thread in the channel view or via its URL."
 `;
 
-exports[`create-thread tool creating threads should create a thread with recipients 1`] = `
+exports[`create-thread tool > creating threads > should create a thread with recipients 1`] = `
 "# Thread Created
 
 **Title:** Notify Users
@@ -32,7 +32,7 @@ Important update
 > Note: Threads you create do not appear in your own Inbox by default — only recipients see them there. Find the thread in the channel view or via its URL."
 `;
 
-exports[`create-thread tool creating threads should unarchive the thread when COMMS_CREATE_THREAD_DISPLAY_IN_INBOX env var is set 1`] = `
+exports[`create-thread tool > creating threads > should unarchive the thread when COMMS_CREATE_THREAD_DISPLAY_IN_INBOX env var is set 1`] = `
 "# Thread Created
 
 **Title:** Env Var Thread
@@ -48,7 +48,7 @@ Should appear in Inbox via env var
 > Thread is in your Inbox (auto-unarchived after creation)."
 `;
 
-exports[`create-thread tool creating threads should unarchive the thread when displayInInbox is true 1`] = `
+exports[`create-thread tool > creating threads > should unarchive the thread when displayInInbox is true 1`] = `
 "# Thread Created
 
 **Title:** Inbox Thread

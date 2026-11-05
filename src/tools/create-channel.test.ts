@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import {
     createMockChannel,
     extractStructuredContent,
@@ -9,17 +9,20 @@ import {
 import { ToolNames } from '../utils/tool-names.js'
 import { createChannel } from './create-channel.js'
 
-const mockCommsApi = {
-    channels: {
-        createChannel: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        channels: {
+            createChannel: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { CREATE_CHANNEL } = ToolNames
 
 describe(`${CREATE_CHANNEL} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     it('should create a channel with optional fields', async () => {

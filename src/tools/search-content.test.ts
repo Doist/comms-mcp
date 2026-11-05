@@ -1,28 +1,31 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import { extractTextContent, TEST_IDS, usersByIds } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { searchContent } from './search-content.js'
 
 // Mock the Comms API
-const mockCommsApi = {
-    batch: jest.fn(),
-    search: {
-        search: jest.fn(),
-    },
-    channels: {
-        getChannel: jest.fn(),
-    },
-    workspaceUsers: {
-        getUsersByIds: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        batch: vi.fn(),
+        search: {
+            search: vi.fn(),
+        },
+        channels: {
+            getChannel: vi.fn(),
+        },
+        workspaceUsers: {
+            getUsersByIds: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { SEARCH_CONTENT } = ToolNames
 
 describe(`${SEARCH_CONTENT} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
         // Mock batch to return responses with .data property
         mockCommsApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
             const results = []

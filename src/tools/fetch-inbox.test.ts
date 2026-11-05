@@ -1,29 +1,32 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import { extractTextContent, TEST_IDS, usersByIds } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { fetchInbox } from './fetch-inbox.js'
 
 // Mock the Comms API
-const mockCommsApi = {
-    inbox: {
-        getInbox: jest.fn(),
-        getCount: jest.fn(),
-    },
-    threads: {
-        getUnread: jest.fn(),
-    },
-    conversations: {
-        getUnread: jest.fn(),
-        getConversation: jest.fn(),
-    },
-    channels: {
-        getChannel: jest.fn(),
-    },
-    workspaceUsers: {
-        getUsersByIds: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        inbox: {
+            getInbox: vi.fn(),
+            getCount: vi.fn(),
+        },
+        threads: {
+            getUnread: vi.fn(),
+        },
+        conversations: {
+            getUnread: vi.fn(),
+            getConversation: vi.fn(),
+        },
+        channels: {
+            getChannel: vi.fn(),
+        },
+        workspaceUsers: {
+            getUsersByIds: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { FETCH_INBOX } = ToolNames
 
@@ -67,7 +70,7 @@ function makeChannel(overrides: Partial<Record<string, unknown>> = {}) {
 
 describe(`${FETCH_INBOX} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('fetching inbox successfully', () => {
@@ -331,7 +334,7 @@ describe(`${FETCH_INBOX} tool`, () => {
         })
 
         it('should keep the inbox when a participant cannot be resolved', async () => {
-            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
             mockCommsApi.inbox.getInbox.mockResolvedValue([])
             mockCommsApi.inbox.getCount.mockResolvedValue(0)
             mockCommsApi.threads.getUnread.mockResolvedValue({ data: [], version: 1 })
@@ -394,7 +397,7 @@ describe(`${FETCH_INBOX} tool`, () => {
         })
 
         it('should fall back to the conversation id when every participant lookup fails', async () => {
-            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
             mockCommsApi.inbox.getInbox.mockResolvedValue([])
             mockCommsApi.inbox.getCount.mockResolvedValue(0)
             mockCommsApi.threads.getUnread.mockResolvedValue({ data: [], version: 1 })

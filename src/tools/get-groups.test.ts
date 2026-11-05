@@ -1,5 +1,5 @@
 import type { Group, CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import {
     createMockUser,
     extractStructuredContent,
@@ -10,15 +10,18 @@ import {
 import { ToolNames } from '../utils/tool-names.js'
 import { getGroups } from './get-groups.js'
 
-const mockCommsApi = {
-    groups: {
-        getGroups: jest.fn(),
-        getGroup: jest.fn(),
-    },
-    workspaceUsers: {
-        getWorkspaceUsers: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        groups: {
+            getGroups: vi.fn(),
+            getGroup: vi.fn(),
+        },
+        workspaceUsers: {
+            getWorkspaceUsers: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { GET_GROUPS } = ToolNames
 
@@ -34,7 +37,7 @@ const createMockGroup = (overrides: Partial<Group> = {}): Group => ({
 
 describe(`${GET_GROUPS} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('fetching groups', () => {

@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import {
     createMockThread,
     extractStructuredContent,
@@ -9,20 +9,23 @@ import {
 import { ToolNames } from '../utils/tool-names.js'
 import { createThread } from './create-thread.js'
 
-const mockCommsApi = {
-    threads: {
-        createThread: jest.fn(),
-    },
-    inbox: {
-        unarchiveThread: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        threads: {
+            createThread: vi.fn(),
+        },
+        inbox: {
+            unarchiveThread: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { CREATE_THREAD } = ToolNames
 
 describe(`${CREATE_THREAD} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
         delete process.env.COMMS_CREATE_THREAD_DISPLAY_IN_INBOX
     })
 
@@ -371,7 +374,7 @@ describe(`${CREATE_THREAD} tool`, () => {
         })
 
         it('should still return a successful result when unarchiveThread fails', async () => {
-            const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
             const mockThread = createMockThread({
                 title: 'Unarchive Fails',
                 content: 'Thread created but unarchive failed',

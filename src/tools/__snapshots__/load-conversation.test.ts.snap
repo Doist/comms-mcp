@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`load-conversation tool loading conversations successfully should filter messages by date range 1`] = `
+exports[`load-conversation tool > loading conversations successfully > should filter messages by date range 1`] = `
 "# Conversation conv-id-1
 
 **Conversation ID:** conv-id-1
@@ -16,7 +16,7 @@ Test User 1, Unknown user
 "
 `;
 
-exports[`load-conversation tool loading conversations successfully should handle conversation with no messages 1`] = `
+exports[`load-conversation tool > loading conversations successfully > should handle conversation with no messages 1`] = `
 "# Conversation conv-id-1
 
 **Conversation ID:** conv-id-1
@@ -32,7 +32,7 @@ Test User 1, Unknown user
 "
 `;
 
-exports[`load-conversation tool loading conversations successfully should load conversation with messages and participants 1`] = `
+exports[`load-conversation tool > loading conversations successfully > should load conversation with messages and participants 1`] = `
 "# Conversation conv-id-1
 
 **Conversation ID:** conv-id-1
@@ -58,7 +58,7 @@ Test message content
 "
 `;
 
-exports[`load-conversation tool loading conversations successfully should load conversation without participants when includeParticipants is false 1`] = `
+exports[`load-conversation tool > loading conversations successfully > should load conversation without participants when includeParticipants is false 1`] = `
 "# Conversation conv-id-1
 
 **Conversation ID:** conv-id-1
