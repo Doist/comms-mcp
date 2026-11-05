@@ -676,6 +676,22 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledTimes(1)
         })
 
+        it('should skip a hit with no conversation id', async () => {
+            const hitWithoutConversationId = {
+                ...createConversationHit(TEST_IDS.CONVERSATION_1),
+                conversationId: null,
+            } as unknown as SearchResult
+            mockSearchHits([hitWithoutConversationId])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.conversations.getConversation).not.toHaveBeenCalled()
+            expect(extractStructuredContent(result).totalConversations).toBe(0)
+        })
+
         it('should pass limit and cursor to the search', async () => {
             mockSearchHits([])
 

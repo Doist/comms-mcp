@@ -109,7 +109,9 @@ async function searchConversations(
         cursor,
     })
     const conversationIds = new Set(
-        items.flatMap((hit) => (hit.type === 'conversation' ? [hit.conversationId] : [])),
+        items.flatMap((hit) =>
+            hit.type === 'conversation' && hit.conversationId ? [hit.conversationId] : [],
+        ),
     )
     const conversations = await degradeAllWithLog(
         ToolNames.LIST_CONVERSATIONS,
