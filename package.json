@@ -52,7 +52,8 @@
         "prepare": "lefthook install --reset-hooks-path",
         "verify": "node .agents/scripts/verify.ts",
         "tool": "tsx scripts/run-tool.ts",
-        "tool:list": "tsx scripts/run-tool.ts --list"
+        "tool:list": "tsx scripts/run-tool.ts --list",
+        "review:worktree": "node .agents/scripts/review-worktree.ts"
     },
     "dependencies": {
         "@doist/comms-sdk": "3.11.0",
