@@ -45,10 +45,11 @@
         "postbuild": "chmod +x dist/main.js",
         "start": "npm run build && npx @modelcontextprotocol/inspector node dist/main.js",
         "dev": "concurrently \"npx tsc --watch\" \"npx @modelcontextprotocol/inspector npx nodemon --quiet --watch dist --ext js --exec node dist/main.js\"",
-        "type-check": "npx tsc --noEmit",
-        "format:check": "oxlint src scripts *.config.js *.config.ts && oxfmt --check",
-        "format:fix": "oxlint src scripts *.config.js *.config.ts --fix && oxfmt",
-        "prepublishOnly": "npm run build && npm test"
+        "type-check": "npx tsc --noEmit && npx tsc --noEmit -p .agents/scripts",
+        "format:check": "oxlint src scripts .agents/scripts *.config.js *.config.ts && oxfmt --check",
+        "format:fix": "oxlint src scripts .agents/scripts *.config.js *.config.ts --fix && oxfmt",
+        "prepublishOnly": "npm run build && npm test",
+        "prepare": "lefthook install --reset-hooks-path"
     },
     "dependencies": {
         "@doist/comms-sdk": "3.11.0",
@@ -67,6 +68,7 @@
         "@vitest/coverage-v8": "4.1.12",
         "concurrently": "10.0.6",
         "conventional-changelog-conventionalcommits": "9.3.1",
+        "lefthook": "2.2.2",
         "nodemon": "3.1.14",
         "oxfmt": "0.72.0",
         "oxlint": "1.63.0",
