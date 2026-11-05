@@ -129,6 +129,7 @@ small number of calls.
 ### Available tools
 
 - **userInfo** — Information about the current user and their workspaces
+- **getUserStatus** / **setUserStatus** — Read or replace the status shared with Todoist (message, emoji, end, paused notifications or Karma). Replacing it needs a token with the `user:write` scope
 - **fetchInbox** — Threads and conversations from the inbox
 - **loadThread** — Load a thread with its comments
 - **loadConversation** — Load a conversation with its messages
