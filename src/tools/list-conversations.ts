@@ -58,6 +58,12 @@ type ListConversationsStructured = Record<string, unknown> & {
     cursor?: string
 }
 
+type ConversationSearch = {
+    searchText: string
+    limit: number
+    cursor: string | undefined
+}
+
 type SearchPage = {
     conversations: Conversation[]
     hasMore: boolean
@@ -96,10 +102,8 @@ async function resolveParticipantNames(
 async function searchConversations(
     client: CommsApi,
     workspaceId: number,
-    searchText: string,
     includeArchived: boolean,
-    limit: number,
-    cursor: string | undefined,
+    { searchText, limit, cursor }: ConversationSearch,
 ): Promise<SearchPage> {
     const { items, hasMore, nextCursorMark } = await client.search.search({
         type: 'conversations',
@@ -164,22 +168,13 @@ async function generateConversationsList(
     client: CommsApi,
     workspaceId: number,
     includeArchived: boolean,
-    searchText: string | undefined,
-    limit: number | undefined,
-    cursor: string | undefined,
+    search: ConversationSearch | undefined,
 ): Promise<{ textContent: string; structuredContent: ListConversationsStructured }> {
     // By default only fetch active conversations; optionally include archived ones too
     let conversations: Conversation[]
     let searchPage: SearchPage | undefined
-    if (searchText) {
-        searchPage = await searchConversations(
-            client,
-            workspaceId,
-            searchText,
-            includeArchived,
-            limit ?? DEFAULT_SEARCH_LIMIT,
-            cursor,
-        )
+    if (search) {
+        searchPage = await searchConversations(client, workspaceId, includeArchived, search)
         conversations = searchPage.conversations
     } else if (includeArchived) {
         const [active, archived] = await Promise.all([
@@ -316,9 +311,7 @@ const listConversations = {
             client,
             workspaceId,
             includeArchived,
-            searchText,
-            limit,
-            cursor,
+            searchText ? { searchText, limit: limit ?? DEFAULT_SEARCH_LIMIT, cursor } : undefined,
         )
 
         return getToolOutput({
