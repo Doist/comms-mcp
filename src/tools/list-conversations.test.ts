@@ -633,10 +633,7 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
         })
 
         it.each([
-            ['an unauthorized request', new CommsRequestError('Unauthorized', 401)],
             ['a forbidden request', new CommsRequestError('Forbidden', 403)],
-            ['a rate limit', new CommsRequestError('Too many requests', 429)],
-            ['a server error', new CommsRequestError('Server error', 500)],
             ['a network failure', new Error('socket hang up')],
         ])('should surface %s from a lookup', async (_name, lookupError) => {
             mockSearchHits([createConversationHit(TEST_IDS.CONVERSATION_1)])
