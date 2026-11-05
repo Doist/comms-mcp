@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import { UserStatusOutputSchema } from '../utils/output-schemas.js'
 import {
     createMockUser,
@@ -10,17 +10,20 @@ import {
 import { ToolNames } from '../utils/tool-names.js'
 import { getUserStatus } from './get-user-status.js'
 
-const mockCommsApi = {
-    users: {
-        getSessionUser: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        users: {
+            getSessionUser: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { GET_USER_STATUS } = ToolNames
 
 describe(`${GET_USER_STATUS} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     it('returns the active status with its end and effects', async () => {

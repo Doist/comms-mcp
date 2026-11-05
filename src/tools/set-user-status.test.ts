@@ -1,5 +1,5 @@
 import { type CommsApi, CommsRequestError, type UserStatus } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import { z } from 'zod'
 import { UserStatusOutputSchema } from '../utils/output-schemas.js'
 import {
@@ -10,12 +10,15 @@ import {
 import { ToolNames } from '../utils/tool-names.js'
 import { setUserStatus } from './set-user-status.js'
 
-const mockCommsApi = {
-    users: {
-        setStatus: jest.fn(),
-        clearStatus: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        users: {
+            setStatus: vi.fn(),
+            clearStatus: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const NOW = new Date('2026-11-03T12:00:00Z')
 const ALL_SCOPE = { scope: { mode: 'all' } }
@@ -52,13 +55,13 @@ function sentArgs() {
 
 describe(`${SET_USER_STATUS} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
-        jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] }).setSystemTime(NOW)
+        vi.clearAllMocks()
+        vi.useFakeTimers({ toFake: ['Date'] }).setSystemTime(NOW)
         echoSentStatus()
     })
 
     afterEach(() => {
-        jest.useRealTimers()
+        vi.useRealTimers()
     })
 
     it('replaces the whole status, clearing every field it is not given', async () => {
