@@ -18,5 +18,19 @@
         "import/no-namespace": "error",
         "oxc/no-const-enum": "error"
     },
-    "ignorePatterns": ["dist/**", "node_modules/**"]
+    "ignorePatterns": ["dist/**", "node_modules/**"],
+    "overrides": [
+        {
+            "files": [".agents/scripts/**"],
+            "rules": {
+                "func-style": [
+                    "error",
+                    "declaration",
+                    {
+                        "allowArrowFunctions": false
+                    }
+                ]
+            }
+        }
+    ]
 }

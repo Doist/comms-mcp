@@ -1,5 +1,18 @@
 # Comms MCP Server - Development Guidelines
 
+## Definition of done
+
+- **Done means proven:** a test that failed before the change and passes after, or the tool's real answer (`npm run tool`, on a test account). For a refactor: tests that pin the behaviour, passing before and after. Reading code or a passing compile is not proof.
+- **Run `npm run verify` before calling a change done.** It runs every check CI runs, in a few seconds, and records the pass. It prints what it cannot see. When only docs changed, it checks just their formatting.
+- **Never weaken a check to pass it.** Don't skip, delete or loosen tests, edit lint, type or test config to get green, or use `--no-verify`. If a check looks wrong, say so and stop.
+- **Report honestly:** what ran, what it showed, and what you did not verify.
+
+## Git hooks and agent tooling
+
+- Commits and pushes to `main` are refused by the git hooks. Work on a branch.
+- Agent tooling lives in `.agents/scripts/`, never in `scripts/`.
+- How it all fits together: [`docs/agents.md`](docs/agents.md).
+
 ## Adding a New Tool
 
 When adding a new tool, it must be registered in **all** of these locations:
@@ -16,7 +29,7 @@ When adding a new tool, it must be registered in **all** of these locations:
 
 - Prefer `function` declarations over `const` arrow-function assignments for named
   helpers (module-level or nested). Reserve arrow functions for inline callbacks
-  (e.g. `.map()`, `.filter()`, `.catch()`).
+  (e.g. `.map()`, `.filter()`, `.catch()`). Lint (`func-style` in `.oxlintrc.json`) enforces this in `.agents/scripts/`; `src/` still has a few older exceptions.
 
 ## Testing Requirements
 
@@ -25,8 +38,7 @@ When adding new tool parameters:
 1. Add comprehensive test coverage for new fields
 2. Test setting values
 3. Test clearing values (if applicable)
-4. Verify build and type checking pass
-5. Run full test suite (all tests must pass)
+4. Run `npm run verify`, and `npm run build`, which CI and verify do not run
 
 ## Documentation Requirements
 
@@ -37,27 +49,21 @@ When adding new tool features:
 3. Add tests demonstrating the feature
 4. Include examples in descriptions where helpful
 
-## Git hooks and agent tooling
-
-- Commits and pushes to `main` are refused by the git hooks. Work on a branch.
-- Agent tooling lives in `.agents/scripts/`, never in `scripts/`.
-- How it all fits together: [`docs/agents.md`](docs/agents.md).
-
 ## Running Tools Directly
 
-Use `scripts/run-tool.ts` to execute any tool without the MCP server:
+`npm run tool` runs any tool through `scripts/run-tool.ts`, without the MCP server:
 
 ```bash
-npx tsx scripts/run-tool.ts <tool-name> '<json-args>'
-npx tsx scripts/run-tool.ts --list  # list all tools
+npm run tool -- <tool-name> '<json-args>'
+npm run tool:list  # list all tools
 ```
 
 Examples:
 
 ```bash
-npx tsx scripts/run-tool.ts user-info '{}'
-npx tsx scripts/run-tool.ts search-content '{"query":"project update"}'
-npx tsx scripts/run-tool.ts fetch-inbox '{"workspaceId":12345}'
+npm run tool -- user-info '{}'
+npm run tool -- search-content '{"query":"project update"}'
+npm run tool -- fetch-inbox '{"workspaceId":12345}'
 ```
 
 Requires `COMMS_API_KEY` in `.env` (and optionally `COMMS_BASE_URL`, e.g. `https://comms.staging.todoist.com` for staging).
