@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`mark-read tool all unread in workspace reports nothing to do when the workspace has no unread items 1`] = `
+exports[`mark-read tool > all unread in workspace > reports nothing to do when the workspace has no unread items 1`] = `
 "# Mark Read
 
 **Workspace ID:** 11111
@@ -21,7 +21,7 @@ exports[`mark-read tool all unread in workspace reports nothing to do when the w
 Nothing was unread, so no changes were made."
 `;
 
-exports[`mark-read tool all unread in workspace uses one markAllRead call for threads and marks conversations individually 1`] = `
+exports[`mark-read tool > all unread in workspace > uses one markAllRead call for threads and marks conversations individually 1`] = `
 "# Mark Read
 
 **Workspace ID:** 11111
@@ -42,7 +42,7 @@ exports[`mark-read tool all unread in workspace uses one markAllRead call for th
 Items remain in the inbox. Use \`mark-done\` to archive them, or \`fetch-inbox\` with \`onlyUnread: true\` to see what is still unread."
 `;
 
-exports[`mark-read tool individual IDs marks unread conversations read through their last message 1`] = `
+exports[`mark-read tool > individual IDs > marks unread conversations read through their last message 1`] = `
 "# Mark Read
 
 **Workspace ID:** 11111
@@ -61,7 +61,7 @@ exports[`mark-read tool individual IDs marks unread conversations read through t
 Items remain in the inbox. Use \`mark-done\` to archive them, or \`fetch-inbox\` with \`onlyUnread: true\` to see what is still unread."
 `;
 
-exports[`mark-read tool individual IDs marks unread threads read through their last comment 1`] = `
+exports[`mark-read tool > individual IDs > marks unread threads read through their last comment 1`] = `
 "# Mark Read
 
 **Workspace ID:** 11111
@@ -80,7 +80,7 @@ exports[`mark-read tool individual IDs marks unread threads read through their l
 Items remain in the inbox. Use \`mark-done\` to archive them, or \`fetch-inbox\` with \`onlyUnread: true\` to see what is still unread."
 `;
 
-exports[`mark-read tool individual IDs reports a thread whose record cannot be loaded as failed and continues 1`] = `
+exports[`mark-read tool > individual IDs > reports a thread whose record cannot be loaded as failed and continues 1`] = `
 "# Mark Read
 
 **Workspace ID:** 11111
@@ -103,7 +103,7 @@ exports[`mark-read tool individual IDs reports a thread whose record cannot be l
 Review failed items and retry if needed."
 `;
 
-exports[`mark-read tool individual IDs skips items that are not in the unread list and reports them as alreadyRead 1`] = `
+exports[`mark-read tool > individual IDs > skips items that are not in the unread list and reports them as alreadyRead 1`] = `
 "# Mark Read
 
 **Workspace ID:** 11111

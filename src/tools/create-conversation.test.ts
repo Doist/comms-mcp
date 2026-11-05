@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import {
     createMockConversation,
     createMockConversationMessage,
@@ -10,20 +10,23 @@ import {
 import { ToolNames } from '../utils/tool-names.js'
 import { createConversation } from './create-conversation.js'
 
-const mockCommsApi = {
-    conversations: {
-        getOrCreateConversation: jest.fn(),
-    },
-    conversationMessages: {
-        createMessage: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        conversations: {
+            getOrCreateConversation: vi.fn(),
+        },
+        conversationMessages: {
+            createMessage: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { CREATE_CONVERSATION } = ToolNames
 
 describe(`${CREATE_CONVERSATION} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('creating conversations', () => {

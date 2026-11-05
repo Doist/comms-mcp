@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import {
     createMockComment,
     createMockConversationMessage,
@@ -11,30 +11,33 @@ import { ToolNames } from '../utils/tool-names.js'
 import { react } from './react.js'
 
 // Mock the Comms API
-const mockCommsApi = {
-    threads: {
-        getThread: jest.fn(),
-    },
-    comments: {
-        getComment: jest.fn(),
-    },
-    conversationMessages: {
-        getMessage: jest.fn(),
-    },
-    conversations: {
-        getConversation: jest.fn(),
-    },
-    reactions: {
-        add: jest.fn(),
-        remove: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        threads: {
+            getThread: vi.fn(),
+        },
+        comments: {
+            getComment: vi.fn(),
+        },
+        conversationMessages: {
+            getMessage: vi.fn(),
+        },
+        conversations: {
+            getConversation: vi.fn(),
+        },
+        reactions: {
+            add: vi.fn(),
+            remove: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { REACT } = ToolNames
 
 describe(`${REACT} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('adding reactions', () => {

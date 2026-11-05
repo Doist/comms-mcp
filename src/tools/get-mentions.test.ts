@@ -1,27 +1,30 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import { extractTextContent, TEST_IDS, usersByIds } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getMentions } from './get-mentions.js'
 
-const mockCommsApi = {
-    batch: jest.fn(),
-    search: {
-        search: jest.fn(),
-    },
-    channels: {
-        getChannel: jest.fn(),
-    },
-    workspaceUsers: {
-        getUsersByIds: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        batch: vi.fn(),
+        search: {
+            search: vi.fn(),
+        },
+        channels: {
+            getChannel: vi.fn(),
+        },
+        workspaceUsers: {
+            getUsersByIds: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { GET_MENTIONS } = ToolNames
 
 describe(`${GET_MENTIONS} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
         mockCommsApi.batch.mockImplementation(async (...args: readonly unknown[]) => {
             const results = []
             for (const arg of args) {

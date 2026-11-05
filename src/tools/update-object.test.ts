@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import {
     createMockComment,
     createMockConversationMessage,
@@ -10,23 +10,26 @@ import {
 import { ToolNames } from '../utils/tool-names.js'
 import { updateObject } from './update-object.js'
 
-const mockCommsApi = {
-    threads: {
-        updateThread: jest.fn(),
-    },
-    comments: {
-        updateComment: jest.fn(),
-    },
-    conversationMessages: {
-        updateMessage: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        threads: {
+            updateThread: vi.fn(),
+        },
+        comments: {
+            updateComment: vi.fn(),
+        },
+        conversationMessages: {
+            updateMessage: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { UPDATE_OBJECT } = ToolNames
 
 describe(`${UPDATE_OBJECT} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('targetType: thread', () => {

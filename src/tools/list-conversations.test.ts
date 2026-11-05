@@ -1,5 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { vi } from 'vitest'
 import {
     createMockConversation,
     extractStructuredContent,
@@ -11,20 +11,23 @@ import {
 import { ToolNames } from '../utils/tool-names.js'
 import { listConversations } from './list-conversations.js'
 
-const mockCommsApi = {
-    conversations: {
-        getConversations: jest.fn(),
-    },
-    workspaceUsers: {
-        getUsersByIds: jest.fn(),
-    },
-} as unknown as jest.Mocked<CommsApi>
+const mockCommsApi = vi.mocked(
+    {
+        conversations: {
+            getConversations: vi.fn(),
+        },
+        workspaceUsers: {
+            getUsersByIds: vi.fn(),
+        },
+    } as unknown as CommsApi,
+    true,
+)
 
 const { LIST_CONVERSATIONS } = ToolNames
 
 describe(`${LIST_CONVERSATIONS} tool`, () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
     })
 
     describe('listing conversations', () => {

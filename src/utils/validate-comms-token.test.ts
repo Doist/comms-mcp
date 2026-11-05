@@ -1,5 +1,5 @@
 import { CommsRequestError } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
+import { type Mock, vi } from 'vitest'
 import { validateCommsToken } from './validate-comms-token.js'
 
 describe('validateCommsToken', () => {
@@ -7,14 +7,14 @@ describe('validateCommsToken', () => {
 
     afterEach(() => {
         global.fetch = originalFetch
-        jest.restoreAllMocks()
+        vi.restoreAllMocks()
     })
 
-    function mockFetch(status: number): jest.Mock {
-        const fn = jest.fn().mockResolvedValue({
+    function mockFetch(status: number): Mock {
+        const fn = vi.fn().mockResolvedValue({
             ok: status >= 200 && status < 300,
             status,
-            body: { cancel: jest.fn().mockResolvedValue(undefined) },
+            body: { cancel: vi.fn().mockResolvedValue(undefined) },
         })
         global.fetch = fn as unknown as typeof fetch
         return fn
@@ -53,7 +53,7 @@ describe('validateCommsToken', () => {
 
     test('propagates fetch rejections (network/timeout) unchanged', async () => {
         const networkError = new Error('network down')
-        global.fetch = jest.fn().mockRejectedValue(networkError) as unknown as typeof fetch
+        global.fetch = vi.fn().mockRejectedValue(networkError) as unknown as typeof fetch
 
         await expect(validateCommsToken('tok', 'https://comms.test')).rejects.toBe(networkError)
     })

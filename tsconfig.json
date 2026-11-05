@@ -27,7 +27,7 @@
         "isolatedModules": true,
 
         /* Other */
-        "types": ["node", "jest"],
+        "types": ["node", "vitest/globals"],
         "skipLibCheck": true,
         "declaration": true,
         "declarationMap": false

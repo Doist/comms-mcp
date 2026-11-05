@@ -1,6 +1,6 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { jest } from '@jest/globals'
 import type { McpServer, StandardSchemaWithJSON } from '@modelcontextprotocol/server'
+import { vi } from 'vitest'
 import { z } from 'zod'
 import type { CommsTool } from './comms-tool.js'
 import { registerTool } from './mcp-helpers.js'
@@ -12,12 +12,12 @@ function buildTool() {
         parameters: { limit: z.number().default(10), date: z.string().pipe(z.iso.date()) },
         outputSchema: { date: z.string().pipe(z.iso.date()) },
         annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-        execute: jest.fn<CommsTool<z.ZodRawShape>['execute']>(),
+        execute: vi.fn<CommsTool<z.ZodRawShape>['execute']>(),
     }
 }
 
 function captureRegistration(tool: ReturnType<typeof buildTool>, client = {} as CommsApi) {
-    const mock = jest.fn<McpServer['registerTool']>()
+    const mock = vi.fn<McpServer['registerTool']>()
     registerTool(tool, { registerTool: mock } as unknown as McpServer, client)
     const registration = mock.mock.calls[0]!
     return {
