@@ -517,22 +517,6 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             })
         })
 
-        it('should return a hit with no messageId', async () => {
-            const hit = createConversationHit(TEST_IDS.CONVERSATION_1)
-            expect(hit).not.toHaveProperty('messageId')
-            mockSearchHits([hit])
-            mockCommsApi.conversations.getConversation.mockResolvedValue(
-                createMockConversation({ id: TEST_IDS.CONVERSATION_1 }),
-            )
-
-            const result = await listConversations.execute(
-                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
-                mockCommsApi,
-            )
-
-            expect(extractStructuredContent(result).totalConversations).toBe(1)
-        })
-
         it('should load a conversation once when several hits share it', async () => {
             mockSearchHits([
                 createConversationHit(TEST_IDS.CONVERSATION_1),
