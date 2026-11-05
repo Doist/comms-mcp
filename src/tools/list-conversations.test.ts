@@ -1,4 +1,4 @@
-import type { CommsApi, SearchResult } from '@doist/comms-sdk'
+import { type CommsApi, CommsRequestError, type SearchResult } from '@doist/comms-sdk'
 import { vi } from 'vitest'
 import {
     createMockConversation,
@@ -585,7 +585,7 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             ])
         })
 
-        it('should degrade past a failed lookup and log it', async () => {
+        it('should drop a hit whose conversation no longer exists and log it', async () => {
             const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
             mockSearchHits([
                 createConversationHit(TEST_IDS.CONVERSATION_1),
@@ -593,7 +593,7 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             ])
             mockCommsApi.conversations.getConversation.mockImplementation(async (id) => {
                 if (id === TEST_IDS.CONVERSATION_1) {
-                    throw new Error(TEST_ERRORS.API_UNAUTHORIZED)
+                    throw new CommsRequestError('Not found', 404)
                 }
                 return createMockConversation({ id })
             })
@@ -609,11 +609,45 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                 expect.objectContaining({ id: TEST_IDS.CONVERSATION_2 }),
             ])
             expect(consoleError).toHaveBeenCalledWith(
-                `${LIST_CONVERSATIONS}: failed to load conversation from search hit`,
-                expect.objectContaining({ failed: 1, of: 2, sample: [TEST_IDS.CONVERSATION_1] }),
+                `${LIST_CONVERSATIONS}: dropped search hits for missing conversations`,
+                { dropped: 1, of: 2 },
             )
 
             consoleError.mockRestore()
+        })
+
+        it('should report no conversations when every hit no longer exists', async () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+            mockSearchHits([createConversationHit(TEST_IDS.CONVERSATION_1)])
+            mockCommsApi.conversations.getConversation.mockRejectedValue(
+                new CommsRequestError('Not found', 404),
+            )
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            expect(extractTextContent(result)).toContain('No conversations found.')
+            consoleError.mockRestore()
+        })
+
+        it.each([
+            ['an unauthorized request', new CommsRequestError('Unauthorized', 401)],
+            ['a forbidden request', new CommsRequestError('Forbidden', 403)],
+            ['a rate limit', new CommsRequestError('Too many requests', 429)],
+            ['a server error', new CommsRequestError('Server error', 500)],
+            ['a network failure', new Error('socket hang up')],
+        ])('should surface %s from a lookup', async (_name, lookupError) => {
+            mockSearchHits([createConversationHit(TEST_IDS.CONVERSATION_1)])
+            mockCommsApi.conversations.getConversation.mockRejectedValue(lookupError)
+
+            await expect(
+                listConversations.execute(
+                    { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                    mockCommsApi,
+                ),
+            ).rejects.toThrow(lookupError.message)
         })
 
         it('should report no conversations when search has no hits', async () => {

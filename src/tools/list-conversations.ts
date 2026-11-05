@@ -1,9 +1,9 @@
-import type { CommsApi, Conversation } from '@doist/comms-sdk'
+import { type CommsApi, type Conversation, isNotFound } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
-import { degradeAllWithLog, resolveUsersWithLog } from '../utils/degrade.js'
+import { resolveUsersWithLog } from '../utils/degrade.js'
 import { ListConversationsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getConversationUrl } from '../utils/url-helpers.js'
@@ -113,13 +113,23 @@ async function searchConversations(
             hit.type === 'conversation' && hit.conversationId ? [hit.conversationId] : [],
         ),
     )
-    const conversations = await degradeAllWithLog(
-        ToolNames.LIST_CONVERSATIONS,
-        'failed to load conversation from search hit',
-        [...conversationIds],
-        (id) => client.conversations.getConversation(id),
-        { runner: limitedAll },
-    )
+    const conversations = await limitedAll([...conversationIds], async (id) => {
+        try {
+            return await client.conversations.getConversation(id)
+        } catch (error) {
+            if (isNotFound(error)) {
+                return null
+            }
+            throw error
+        }
+    })
+    const dropped = conversations.filter((conversation) => conversation === null).length
+    if (dropped > 0) {
+        console.error(
+            `${ToolNames.LIST_CONVERSATIONS}: dropped search hits for missing conversations`,
+            { dropped, of: conversations.length },
+        )
+    }
     return {
         conversations: conversations.filter(
             (conversation): conversation is Conversation =>
