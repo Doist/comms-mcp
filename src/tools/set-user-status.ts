@@ -171,6 +171,13 @@ function normaliseMessage(message: string | undefined): string | undefined {
     return message?.normalize('NFC').replace(/\s+/g, ' ')
 }
 
+type StatusEffect = { scope?: { mode?: string } } | null | undefined
+
+// A pause Comms holds with another scope is not the one asked for, so presence alone is not enough.
+function samePause(held: StatusEffect, sent: StatusEffect): boolean {
+    return Boolean(held) === Boolean(sent) && held?.scope?.mode === sent?.scope?.mode
+}
+
 function sameStatus(held: UserStatus, sent: SetStatusArgs): boolean {
     const heldUntil = held.activeUntil ? new Date(held.activeUntil).getTime() : null
     const sentUntil = sent.activeUntil ? new Date(sent.activeUntil).getTime() : null
@@ -178,8 +185,8 @@ function sameStatus(held: UserStatus, sent: SetStatusArgs): boolean {
         normaliseMessage(held.message) === normaliseMessage(sent.message) &&
         withoutVariationSelectors(held.emoji) === withoutVariationSelectors(sent.emoji) &&
         heldUntil === sentUntil &&
-        Boolean(held.effects?.pauseNotifications) === Boolean(sent.effects?.pauseNotifications) &&
-        Boolean(held.effects?.pauseActivity) === Boolean(sent.effects?.pauseActivity)
+        samePause(held.effects?.pauseNotifications, sent.effects?.pauseNotifications) &&
+        samePause(held.effects?.pauseActivity, sent.effects?.pauseActivity)
     )
 }
 

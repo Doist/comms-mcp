@@ -6,7 +6,6 @@ import {
     createMockUser,
     extractStructuredContent,
     extractTextContent,
-    TEST_ERRORS,
 } from '../utils/test-helpers.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { setUserStatus } from './set-user-status.js'
@@ -224,7 +223,7 @@ describe(`${SET_USER_STATUS} tool`, () => {
         mockCommsApi.users.setStatus.mockResolvedValue(createMockUser())
 
         await expect(setUserStatus.execute({ message: 'Away' }, mockCommsApi)).rejects.toThrow(
-            'Comms accepted the status but reports no active status',
+            `Comms accepted the status but reports no active status; use ${ToolNames.GET_USER_STATUS} to check it.`,
         )
     })
 
@@ -273,6 +272,29 @@ describe(`${SET_USER_STATUS} tool`, () => {
             { message: 'Away', pauseActivity: true },
             { message: 'Away', effects: {} },
         ],
+        [
+            'notification pause scope',
+            { message: 'Away', pauseNotifications: true },
+            {
+                message: 'Away',
+                effects: { pauseNotifications: { scope: { mode: 'some' } } },
+            },
+        ],
+        [
+            'activity pause scope',
+            { message: 'Away', pauseActivity: true },
+            { message: 'Away', effects: { pauseActivity: { scope: { mode: 'some' } } } },
+        ],
+        [
+            'pause with no scope',
+            { message: 'Away', pauseNotifications: true },
+            { message: 'Away', effects: { pauseNotifications: {} } },
+        ],
+        [
+            'pause it was not asked for',
+            { message: 'Away' },
+            { message: 'Away', effects: { pauseActivity: {} } },
+        ],
     ])(
         'fails when Comms reports a different %s from the one sent',
         async (_label, args, status) => {
@@ -309,14 +331,6 @@ describe(`${SET_USER_STATUS} tool`, () => {
         const result = await setUserStatus.execute({ message: 'Cafe\u0301  at noon' }, mockCommsApi)
 
         expect(extractStructuredContent(result).hasStatus).toBe(true)
-    })
-
-    it('names the next step when Comms reports no active status', async () => {
-        mockCommsApi.users.setStatus.mockResolvedValue(createMockUser())
-
-        await expect(setUserStatus.execute({ message: 'Away' }, mockCommsApi)).rejects.toThrow(
-            ToolNames.GET_USER_STATUS,
-        )
     })
 
     describe.each([
@@ -378,14 +392,6 @@ describe(`${SET_USER_STATUS} tool`, () => {
                 `The status change is unconfirmed: fetch failed. ${CHECK_IT}`,
             )
         })
-    })
-
-    it('propagates API errors', async () => {
-        mockCommsApi.users.setStatus.mockRejectedValue(new Error(TEST_ERRORS.API_UNAUTHORIZED))
-
-        await expect(setUserStatus.execute({ message: 'Away' }, mockCommsApi)).rejects.toThrow(
-            TEST_ERRORS.API_UNAUTHORIZED,
-        )
     })
 
     it('returns output that matches its schema', async () => {
