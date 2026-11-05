@@ -8,24 +8,28 @@ This repository is set up so coding agents prove their work before they call it 
 2. **`npm run verify`** runs every CI check locally and records a pass.
 3. **`AGENTS.md`** tells agents what done means. Claude Code reads it through `CLAUDE.md`; Codex and Cursor read it directly.
 4. **Skills** in `.agents/skills/` give step-by-step procedures for recurring work. They load only when a task needs them.
+5. **Review**: fresh reviewers and Doistbot check a finished change against the checks in `.agents/checks/`.
 
 ## Rules and what holds them
 
-| Rule                                                          | Held by                                                              | Certainty                                |
-| ------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------- |
-| No commits on `main`                                          | `pre-commit` and `commit-msg` → `.agents/scripts/branch-guard.sh`    | Enforced locally; `--no-verify` skips it |
-| No pushes to `main`                                           | `pre-push` → `branch-guard.sh`; the "Protect default branch" ruleset | Enforced on GitHub                       |
-| Committed files are linted and formatted                      | `pre-commit` (lefthook, staged files only); CI                       | Checked in CI                            |
-| Type check passes before a commit                             | `pre-commit`; CI                                                     | Checked in CI                            |
-| Tests pass before a push                                      | `pre-push`; CI                                                       | Checked in CI                            |
-| Agent tooling never ships in the npm package                  | `.agents/scripts/package-contents.test.ts`                           | Checked in CI                            |
-| `npm run verify` runs what CI runs                            | `.agents/scripts/lib/steps.test.ts` compares it with `ci.yml`        | Checked in CI                            |
-| Run `npm run verify` before calling work done                 | `AGENTS.md`                                                          | Asked                                    |
-| Never weaken a check to pass it                               | `AGENTS.md`                                                          | Asked                                    |
-| Instructions name only files, links and scripts that exist    | `.agents/scripts/instructions.test.ts`                               | Checked in CI                            |
-| Every skill says when to use it and is linked for Claude Code | `.agents/scripts/instructions.test.ts`                               | Checked in CI                            |
-| Use the matching skill for each task                          | `AGENTS.md`                                                          | Asked                                    |
-| Tests meet the quality bar                                    | `.agents/skills/write-tests/references/test-rules.md`                | Asked                                    |
+| Rule                                                                                                    | Held by                                                              | Certainty                                |
+| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------- |
+| No commits on `main`                                                                                    | `pre-commit` and `commit-msg` → `.agents/scripts/branch-guard.sh`    | Enforced locally; `--no-verify` skips it |
+| No pushes to `main`                                                                                     | `pre-push` → `branch-guard.sh`; the "Protect default branch" ruleset | Enforced on GitHub                       |
+| Committed files are linted and formatted                                                                | `pre-commit` (lefthook, staged files only); CI                       | Checked in CI                            |
+| Type check passes before a commit                                                                       | `pre-commit`; CI                                                     | Checked in CI                            |
+| Tests pass before a push                                                                                | `pre-push`; CI                                                       | Checked in CI                            |
+| Agent tooling never ships in the npm package                                                            | `.agents/scripts/package-contents.test.ts`                           | Checked in CI                            |
+| `npm run verify` runs what CI runs                                                                      | `.agents/scripts/lib/steps.test.ts` compares it with `ci.yml`        | Checked in CI                            |
+| Run `npm run verify` before calling work done                                                           | `AGENTS.md`                                                          | Asked                                    |
+| Never weaken a check to pass it                                                                         | `AGENTS.md`                                                          | Asked                                    |
+| Instructions name only files, links and scripts that exist                                              | `.agents/scripts/instructions.test.ts`                               | Checked in CI                            |
+| Every skill says when to use it and is linked for Claude Code                                           | `.agents/scripts/instructions.test.ts`                               | Checked in CI                            |
+| Use the matching skill for each task                                                                    | `AGENTS.md`                                                          | Asked                                    |
+| Tests meet the quality bar                                                                              | `.agents/skills/write-tests/references/test-rules.md`                | Asked                                    |
+| Review checks say what to report and what is fine, and AGENTS.md links them                             | `.agents/scripts/instructions.test.ts`                               | Checked in CI                            |
+| A finished change gets a task review, a blast-radius review when shared code changed, and a code review | `review-changes` skill                                               | Asked                                    |
+| Reviewers never edit the shared checkout                                                                | the reviewer brief; `npm run review:worktree` gives them their own   | Asked                                    |
 
 "Checked in CI" means the `Test` workflow fails on a pull request that breaks it. No status check is required on `main`, so a red pull request can still be merged: the person merging has to look. A local hook alone is a speed bump: `git commit --no-verify` skips it.
 
@@ -65,18 +69,33 @@ If CI gains a step, a job or a test environment variable, `.agents/scripts/lib/s
 
 Each skill is a short procedure with a check at the end of every step. Agents load one when the task matches its description.
 
-| Skill           | For                                | Ends with                                                          |
-| --------------- | ---------------------------------- | ------------------------------------------------------------------ |
-| `verify`        | Any change about to be called done | `npm run verify`, proof matched to the change, an evidence report  |
-| `fix-bug`       | Something broken                   | A test that failed on the symptom, the root cause, undo/restore    |
-| `build-feature` | A new tool, parameter or behaviour | Decisions settled up front, test-first slices, a "touches X" map   |
-| `refactor`      | Structure, not behaviour           | Behaviour pinned first, assertions and snapshots unchanged         |
-| `write-tests`   | Any test                           | The repository's test rules, each test seen failing once           |
-| `learn`         | A correction or a repeated mistake | The strongest structure that holds it, proven to catch the mistake |
+| Skill            | For                                | Ends with                                                                                      |
+| ---------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `verify`         | Any change about to be called done | `npm run verify`, proof matched to the change, an evidence report                              |
+| `fix-bug`        | Something broken                   | A test that failed on the symptom, the root cause, undo/restore                                |
+| `build-feature`  | A new tool, parameter or behaviour | Decisions settled up front, test-first slices, a "touches X" map                               |
+| `refactor`       | Structure, not behaviour           | Behaviour pinned first, assertions and snapshots unchanged                                     |
+| `write-tests`    | Any test                           | The repository's test rules, each test seen failing once                                       |
+| `learn`          | A correction or a repeated mistake | The strongest structure that holds it, proven to catch the mistake                             |
+| `review-changes` | A change the owner calls ready     | Task, blast-radius and code reviews, each finding fixed, dismissed with evidence, or left open |
 
 The evidence ladder in `verify` rates each claim: **said**, **cited** (a line), **traced** (followed the code), **ran** (a test or command executed it), **seen** (in the running server, or a real Comms answer). "Fixed" or "safe" needs **ran**. Anything less is listed under "Not verified".
 
 The test rules were measured against this repository's tests first, so they accept the patterns that are fine here: `.not.toHaveBeenCalled()`, `toBeDefined()` as a guard, and snapshots of model-facing text next to assertions on the call.
+
+## Review
+
+When you say a change is ready, the agent runs `review-changes`:
+
+- **Task review:** a fresh subagent gets your request in your words, what done means and the decisions made, never the author's reasoning. It looks for what is missing or unrequested. Doistbot can't do this, since it never sees the task.
+- **Blast-radius review:** only when shared code changed (`src/utils/`, `src/mcp-helpers.ts`, `src/index.ts` exports, dependencies, build or CI config; the `review-changes` skill has the full list). It names the one fact that makes the change safe and proves it by running code.
+- **Code review:** Doistbot locally (`doistbot review --json`, or `--base <branch below>` in a stack) when version 1.0.12+ is installed and `doistbot doctor` passes. Otherwise one subagent per check in `.agents/checks/`. Doistbot reads `AGENTS.md` and its links, so the checks apply to its pull request reviews too.
+
+Findings are fixed, dismissed with evidence (a line or a test run, never an argument), or left open for you. Reviewers that need to run code get their own worktree from `npm run review:worktree -- <dir>`; the shared one stays read-only.
+
+The checks cover tests, architecture, security, privacy, the tool surface and evidence. Two kinds Doist uses elsewhere don't apply here: there are no translations and no database migrations. The closest thing to a destructive migration is a tool that deletes, archives or overwrites Comms data. The architecture and security checks cover deletes and archives through tool annotations; whether edits in place count as destructive is still open (see the architecture check).
+
+A review costs several agent runs, so it runs when you ask, not on every change. A Doistbot run with a failed provider (`providerFailures`) is partial; the agent should say so.
 
 ## Where the tooling lives
 

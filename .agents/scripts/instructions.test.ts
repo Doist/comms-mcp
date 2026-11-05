@@ -220,6 +220,27 @@ it('names only helpers that exist, wherever the write-tests skill mentions one',
     ).toEqual([])
 })
 
+const checks = readdirSync(join(REPO_ROOT, '.agents/checks')).filter((name) => name.endsWith('.md'))
+
+it('has review checks to test', () => {
+    expect(checks.length).toBeGreaterThan(0)
+})
+
+const agentsText = readFileSync(join(REPO_ROOT, 'AGENTS.md'), 'utf8')
+
+describe.each(checks)('check %s', (check) => {
+    const text = readFileSync(join(REPO_ROOT, '.agents/checks', check), 'utf8')
+
+    it('says what to report and what is fine', () => {
+        expect(text).toMatch(/^## Report$/m)
+        expect(text).toMatch(/^## Fine$/m)
+    })
+
+    it('is linked from AGENTS.md, where Doistbot finds it', () => {
+        expect(agentsText).toContain(`](.agents/checks/${check})`)
+    })
+})
+
 it('tracks a Claude Code skill link for every skill, and no other', () => {
     // Tracked links only: a personal skill in .claude/skills stays local and ignored.
     const links = tracked
