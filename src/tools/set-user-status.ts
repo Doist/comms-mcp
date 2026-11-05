@@ -162,13 +162,13 @@ function explainWriteFailure(error: unknown): never {
 
 // Whether an emoji carries U+FE0F (🏝️ or 🏝) changes nothing on screen, so a server that adds or
 // drops it has not stored a different status. Nor has one that normalises a message's Unicode form
-// or runs of whitespace.
-function withoutVariationSelectors(emoji: string | null | undefined): string | null {
-    return emoji ? emoji.replace(/\uFE0F/g, '') : null
+// or runs of whitespace, or trims what a caller skipping the schema left padded.
+function normaliseEmoji(emoji: string | null | undefined): string | null {
+    return emoji?.replace(/\uFE0F/g, '').trim() || null
 }
 
 function normaliseMessage(message: string | undefined): string | undefined {
-    return message?.normalize('NFC').replace(/\s+/g, ' ')
+    return message?.normalize('NFC').replace(/\s+/g, ' ').trim()
 }
 
 type StatusEffect = { scope?: { mode?: string } } | null | undefined
@@ -183,7 +183,7 @@ function sameStatus(held: UserStatus, sent: SetStatusArgs): boolean {
     const sentUntil = sent.activeUntil ? new Date(sent.activeUntil).getTime() : null
     return (
         normaliseMessage(held.message) === normaliseMessage(sent.message) &&
-        withoutVariationSelectors(held.emoji) === withoutVariationSelectors(sent.emoji) &&
+        normaliseEmoji(held.emoji) === normaliseEmoji(sent.emoji) &&
         heldUntil === sentUntil &&
         samePause(held.effects?.pauseNotifications, sent.effects?.pauseNotifications) &&
         samePause(held.effects?.pauseActivity, sent.effects?.pauseActivity)

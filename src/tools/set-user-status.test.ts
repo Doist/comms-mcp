@@ -269,6 +269,21 @@ describe(`${SET_USER_STATUS} tool`, () => {
             { message: 'Away', activeUntil: '2026-11-10T09:00:00Z' },
             { message: 'Away' },
         ],
+        [
+            'end a second later',
+            { message: 'Away', activeUntil: '2026-11-10T09:00:00Z' },
+            { message: 'Away', activeUntil: '2026-11-10T09:00:01Z' },
+        ],
+        [
+            'end it was not asked for',
+            { message: 'Away' },
+            { message: 'Away', activeUntil: '2026-11-10T09:00:00Z' },
+        ],
+        [
+            'end that cannot be read',
+            { message: 'Away', activeUntil: '2026-11-10T09:00:00Z' },
+            { message: 'Away', activeUntil: 'tomorrow' },
+        ],
         ['notification pause', { message: 'Away', pauseNotifications: true }, { message: 'Away' }],
         [
             'activity pause',
@@ -322,6 +337,44 @@ describe(`${SET_USER_STATUS} tool`, () => {
             { message: 'Away', activeUntil: '2026-11-10T09:00:00Z' },
             mockCommsApi,
         )
+
+        expect(extractStructuredContent(result).hasStatus).toBe(true)
+    })
+
+    it('accepts a fractional end Comms returns in microseconds', async () => {
+        mockCommsApi.users.setStatus.mockResolvedValue(
+            createMockUser({
+                status: { message: 'Away', activeUntil: '2026-11-10T09:00:00.215000Z' },
+            }),
+        )
+
+        const result = await setUserStatus.execute(
+            { message: 'Away', activeUntil: '2026-11-10T09:00:00.215Z' },
+            mockCommsApi,
+        )
+
+        expect(extractStructuredContent(result).hasStatus).toBe(true)
+    })
+
+    it('accepts a status Comms trims for a caller that skipped the schema', async () => {
+        mockCommsApi.users.setStatus.mockResolvedValue(
+            createMockUser({ status: { message: 'Away', emoji: '🎯' } }),
+        )
+
+        const result = await setUserStatus.execute(
+            { message: '  Away  ', emoji: ' 🎯 ' },
+            mockCommsApi,
+        )
+
+        expect(extractStructuredContent(result).hasStatus).toBe(true)
+    })
+
+    it('accepts an empty emoji from Comms when none was sent', async () => {
+        mockCommsApi.users.setStatus.mockResolvedValue(
+            createMockUser({ status: { message: 'Away', emoji: '' } }),
+        )
+
+        const result = await setUserStatus.execute({ message: 'Away' }, mockCommsApi)
 
         expect(extractStructuredContent(result).hasStatus).toBe(true)
     })
@@ -393,6 +446,14 @@ describe(`${SET_USER_STATUS} tool`, () => {
 
             await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
                 `The status change is unconfirmed: fetch failed. ${CHECK_IT}`,
+            )
+        })
+
+        it('calls a rejection that is not an Error unconfirmed', async () => {
+            mockCommsApi.users[method].mockRejectedValue('boom')
+
+            await expect(setUserStatus.execute(args, mockCommsApi)).rejects.toThrow(
+                `The status change is unconfirmed: boom. ${CHECK_IT}`,
             )
         })
     })

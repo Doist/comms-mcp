@@ -3,8 +3,8 @@ import type { UserStatusOutput } from './output-schemas.js'
 
 type StatusOutput = NonNullable<UserStatusOutput['status']>
 
-// Comms sends RFC 3339, but an end that fails to parse must not turn a write that applied into an
-// error, so it is reported as sent.
+// Comms sends RFC 3339, but an end that fails to parse is still worth showing, so it is reported as
+// sent. A set never gets this far with one: it fails the comparison with the end it asked for.
 function normaliseActiveUntil(activeUntil: string): string {
     const parsed = new Date(activeUntil)
     return Number.isNaN(parsed.getTime()) ? activeUntil : parsed.toISOString()
