@@ -20,8 +20,21 @@ const ArgsSchema = {
         .string()
         .optional()
         .describe(
-            'Optional search text to find group chats by title, up to 20 matches. Matches whole words in the titles of titled group chats only: direct messages, untitled group chats, and participant names do not match.',
+            'Optional search text to find group chats by title. Matches whole words in the titles of titled group chats only: direct messages, untitled group chats, and participant names do not match.',
         ),
+    limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe(
+            'Maximum number of search results per page. Only used with searchText. Defaults to 20.',
+        ),
+    cursor: z
+        .string()
+        .optional()
+        .describe('Cursor for the next page of search results. Only used with searchText.'),
 }
 
 type ConversationData = {
@@ -41,6 +54,14 @@ type ListConversationsStructured = Record<string, unknown> & {
     workspaceId: number
     conversations: ConversationData[]
     totalConversations: number
+    hasMore?: boolean
+    cursor?: string
+}
+
+type SearchPage = {
+    conversations: Conversation[]
+    hasMore: boolean
+    cursor?: string
 }
 
 // Only resolve names for the first few participants of each conversation. A large
@@ -49,7 +70,7 @@ type ListConversationsStructured = Record<string, unknown> & {
 // participant IDs is still returned in `userIds`.
 const MAX_DISPLAYED_PARTICIPANTS = 5
 
-const SEARCH_RESULT_LIMIT = 20
+const DEFAULT_SEARCH_LIMIT = 20
 
 // Resolve user IDs to names. IDs that can't be resolved are simply absent from
 // the returned map.
@@ -77,12 +98,15 @@ async function searchConversations(
     workspaceId: number,
     searchText: string,
     includeArchived: boolean,
-): Promise<Conversation[]> {
-    const { items } = await client.search.search({
+    limit: number,
+    cursor: string | undefined,
+): Promise<SearchPage> {
+    const { items, hasMore, nextCursorMark } = await client.search.search({
         type: 'conversations',
         query: searchText,
         workspaceId,
-        limit: SEARCH_RESULT_LIMIT,
+        limit,
+        cursor,
     })
     const conversationIds = new Set(
         items.flatMap((hit) => (hit.type === 'conversation' ? [hit.conversationId] : [])),
@@ -94,10 +118,34 @@ async function searchConversations(
         (id) => client.conversations.getConversation(id),
         { runner: limitedAll },
     )
-    return conversations.filter(
-        (conversation): conversation is Conversation =>
-            conversation !== null && (includeArchived || !conversation.archived),
-    )
+    return {
+        conversations: conversations.filter(
+            (conversation): conversation is Conversation =>
+                conversation !== null && (includeArchived || !conversation.archived),
+        ),
+        hasMore,
+        cursor: nextCursorMark,
+    }
+}
+
+function getSearchPageOutput(searchPage: SearchPage | undefined): {
+    lines: string[]
+    fields: { hasMore?: boolean; cursor?: string }
+} {
+    if (!searchPage) {
+        return { lines: [], fields: {} }
+    }
+    const { hasMore, cursor } = searchPage
+    return {
+        lines: hasMore
+            ? [
+                  '## Next Steps',
+                  '',
+                  'More results available. Use the cursor to fetch the next page.',
+              ]
+            : [],
+        fields: { hasMore, ...(cursor && { cursor }) },
+    }
 }
 
 async function generateConversationsList(
@@ -105,11 +153,22 @@ async function generateConversationsList(
     workspaceId: number,
     includeArchived: boolean,
     searchText: string | undefined,
+    limit: number | undefined,
+    cursor: string | undefined,
 ): Promise<{ textContent: string; structuredContent: ListConversationsStructured }> {
     // By default only fetch active conversations; optionally include archived ones too
     let conversations: Conversation[]
+    let searchPage: SearchPage | undefined
     if (searchText) {
-        conversations = await searchConversations(client, workspaceId, searchText, includeArchived)
+        searchPage = await searchConversations(
+            client,
+            workspaceId,
+            searchText,
+            includeArchived,
+            limit ?? DEFAULT_SEARCH_LIMIT,
+            cursor,
+        )
+        conversations = searchPage.conversations
     } else if (includeArchived) {
         const [active, archived] = await Promise.all([
             client.conversations.getConversations({ workspaceId }),
@@ -120,14 +179,22 @@ async function generateConversationsList(
         conversations = await client.conversations.getConversations({ workspaceId })
     }
 
+    const searchPageOutput = getSearchPageOutput(searchPage)
+
     if (conversations.length === 0) {
         return {
-            textContent: '# Conversations\n\nNo conversations found.',
+            textContent: [
+                '# Conversations',
+                '',
+                'No conversations found.',
+                ...(searchPageOutput.lines.length > 0 ? ['', ...searchPageOutput.lines] : []),
+            ].join('\n'),
             structuredContent: {
                 type: 'list_conversations',
                 workspaceId,
                 conversations: [],
                 totalConversations: 0,
+                ...searchPageOutput.fields,
             },
         }
     }
@@ -190,6 +257,8 @@ async function generateConversationsList(
         lines.push('')
     }
 
+    lines.push(...searchPageOutput.lines)
+
     const textContent = lines.join('\n')
 
     const structuredContent: ListConversationsStructured = {
@@ -213,6 +282,7 @@ async function generateConversationsList(
             }
         }),
         totalConversations: conversations.length,
+        ...searchPageOutput.fields,
     }
 
     return { textContent, structuredContent }
@@ -221,17 +291,22 @@ async function generateConversationsList(
 const listConversations = {
     name: ToolNames.LIST_CONVERSATIONS,
     description:
-        'List conversations (direct messages and group chats) in a workspace, or find group chats by title with searchText. Without searchText, returns the first page of conversations. searchText matches whole words in the titles of titled group chats only, and returns up to 20 matches: direct messages, untitled group chats, and participant names do not match. By default returns only active conversations; set includeArchived to true to also include archived conversations. Returns conversation IDs, titles, the full list of participant user IDs (with names resolved for the first few), archive status, last-active timestamps, snippets, and URLs.',
+        'List conversations (direct messages and group chats) in a workspace, or find group chats by title with searchText. Without searchText, returns the first page of conversations. searchText matches whole words in the titles of titled group chats only: direct messages, untitled group chats, and participant names do not match. Its results are paged with limit and cursor, and a page can have fewer results than limit, so follow hasMore. By default returns only active conversations; set includeArchived to true to also include archived conversations. Returns conversation IDs, titles, the full list of participant user IDs (with names resolved for the first few), archive status, last-active timestamps, snippets, and URLs.',
     parameters: ArgsSchema,
     outputSchema: ListConversationsOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     async execute(args, client) {
-        const { workspaceId, includeArchived = false, searchText } = args
+        const { workspaceId, includeArchived = false, searchText, limit, cursor } = args
+        if (!searchText && (limit !== undefined || cursor !== undefined)) {
+            throw new Error('`limit` and `cursor` require `searchText`.')
+        }
         const result = await generateConversationsList(
             client,
             workspaceId,
             includeArchived,
             searchText,
+            limit,
+            cursor,
         )
 
         return getToolOutput({

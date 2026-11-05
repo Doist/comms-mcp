@@ -42,10 +42,11 @@ function createConversationHit(conversationId: string): SearchResult {
     }
 }
 
-function mockSearchHits(hits: SearchResult[]) {
+function mockSearchHits(hits: SearchResult[], nextCursorMark?: string) {
     mockCommsApi.search.search.mockResolvedValue({
         items: hits,
-        hasMore: false,
+        hasMore: nextCursorMark !== undefined,
+        nextCursorMark,
         isPlanRestricted: false,
     })
 }
@@ -449,7 +450,7 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
             )
         })
 
-        it('should search conversations by title with a fixed limit', async () => {
+        it('should search conversations by title with the default limit', async () => {
             mockSearchHits([])
 
             await listConversations.execute(
@@ -500,6 +501,7 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                 type: 'list_conversations',
                 workspaceId: TEST_IDS.WORKSPACE_1,
                 totalConversations: 1,
+                hasMore: false,
                 conversations: [
                     {
                         id: TEST_IDS.CONVERSATION_2,
@@ -642,6 +644,7 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
                 workspaceId: TEST_IDS.WORKSPACE_1,
                 conversations: [],
                 totalConversations: 0,
+                hasMore: false,
             })
         })
 
@@ -671,6 +674,90 @@ describe(`${LIST_CONVERSATIONS} tool`, () => {
 
             expect(mockCommsApi.search.search).not.toHaveBeenCalled()
             expect(mockCommsApi.conversations.getConversations).toHaveBeenCalledTimes(1)
+        })
+
+        it('should pass limit and cursor to the search', async () => {
+            mockSearchHits([])
+
+            await listConversations.execute(
+                {
+                    workspaceId: TEST_IDS.WORKSPACE_1,
+                    searchText: 'Outcasts',
+                    limit: 5,
+                    cursor: 'next-page',
+                },
+                mockCommsApi,
+            )
+
+            expect(mockCommsApi.search.search).toHaveBeenCalledWith({
+                type: 'conversations',
+                query: 'Outcasts',
+                workspaceId: TEST_IDS.WORKSPACE_1,
+                limit: 5,
+                cursor: 'next-page',
+            })
+        })
+
+        it('should return the next cursor when more results are available', async () => {
+            mockSearchHits([createConversationHit(TEST_IDS.CONVERSATION_1)], 'next-page')
+            mockCommsApi.conversations.getConversation.mockResolvedValue(
+                createMockConversation({ id: TEST_IDS.CONVERSATION_1 }),
+            )
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            expect(extractTextContent(result)).toContain('More results available.')
+            expect(extractStructuredContent(result)).toMatchObject({
+                hasMore: true,
+                cursor: 'next-page',
+            })
+        })
+
+        it('should keep the cursor when a page has only archived hits', async () => {
+            mockSearchHits([createConversationHit(TEST_IDS.CONVERSATION_1)], 'next-page')
+            mockCommsApi.conversations.getConversation.mockResolvedValue(
+                createMockConversation({ id: TEST_IDS.CONVERSATION_1, archived: true }),
+            )
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1, searchText: 'Outcasts' },
+                mockCommsApi,
+            )
+
+            expect(extractTextContent(result)).toContain('More results available.')
+            expect(extractStructuredContent(result)).toMatchObject({
+                totalConversations: 0,
+                hasMore: true,
+                cursor: 'next-page',
+            })
+        })
+
+        it('should leave paging fields out without searchText', async () => {
+            mockCommsApi.conversations.getConversations.mockResolvedValue([])
+
+            const result = await listConversations.execute(
+                { workspaceId: TEST_IDS.WORKSPACE_1 },
+                mockCommsApi,
+            )
+
+            const structuredContent = extractStructuredContent(result)
+            expect(structuredContent).not.toHaveProperty('hasMore')
+            expect(structuredContent).not.toHaveProperty('cursor')
+        })
+
+        it.each([
+            ['limit', { limit: 5 }],
+            ['cursor', { cursor: 'next-page' }],
+        ])('should reject %s without searchText', async (_name, paging) => {
+            await expect(
+                listConversations.execute(
+                    { workspaceId: TEST_IDS.WORKSPACE_1, ...paging },
+                    mockCommsApi,
+                ),
+            ).rejects.toThrow('`limit` and `cursor` require `searchText`.')
         })
 
         it('should propagate search errors', async () => {
