@@ -6,3 +6,4 @@ dist
 .claude
 .vscode/launch.json
 coverage
+.tmp
