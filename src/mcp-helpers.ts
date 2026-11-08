@@ -149,10 +149,8 @@ function registerTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape
             const result = await tool.execute(args, client)
             return result
         } catch (error) {
-            console.error(`Error executing tool ${tool.name}:`, {
-                args,
-                error,
-            })
+            // Arguments stay out of the log: message, thread and channel content all arrive in them.
+            console.error(`Error executing tool ${tool.name}:`, error)
             const message = error instanceof Error ? error.message : 'An unknown error occurred'
             return getErrorOutput(message)
         }
