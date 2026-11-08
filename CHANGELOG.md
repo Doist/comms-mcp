@@ -1,3 +1,13 @@
+## [9.0.0](https://github.com/Doist/comms-mcp/compare/v8.2.1...v9.0.0) (2026-11-08)
+
+### ⚠ BREAKING CHANGES
+
+* build tool registration on @doist/mcp-core (#82)
+
+### Features
+
+* build tool registration on @doist/mcp-core ([#82](https://github.com/Doist/comms-mcp/issues/82)) ([3e42378](https://github.com/Doist/comms-mcp/commit/3e4237814dbd78c99fa8c5a408a99572589655a7))
+
 ## [8.2.1](https://github.com/Doist/comms-mcp/compare/v8.2.0...v8.2.1) (2026-11-08)
 
 ### Bug Fixes
