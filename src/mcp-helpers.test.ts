@@ -78,6 +78,26 @@ describe('cached tool schemas', () => {
         }
     })
 
+    it('logs a failing tool without its arguments, which carry message content', async () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const tool = buildTool()
+        const failure = new Error('Thread not found')
+        tool.execute.mockRejectedValue(failure)
+        const { callback } = captureRegistration(tool)
+        const args = { limit: 10, date: '2026-09-06', content: 'Private plans for the offsite' }
+        const context = {} as Parameters<typeof callback>[1]
+
+        const result = await callback(args, context)
+
+        expect(result).toEqual({
+            content: [{ type: 'text', text: 'Thread not found' }],
+            isError: true,
+        })
+        expect(consoleError).toHaveBeenCalledWith('Error executing tool schema-tool:', failure)
+        expect(JSON.stringify(consoleError.mock.calls)).not.toContain('Private plans')
+        consoleError.mockRestore()
+    })
+
     it('keeps execution clients isolated when servers share schemas', async () => {
         const tool = buildTool()
         tool.execute.mockResolvedValue({ content: [] })
