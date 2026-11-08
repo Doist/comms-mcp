@@ -1,3 +1,9 @@
+## [8.2.1](https://github.com/Doist/comms-mcp/compare/v8.2.0...v8.2.1) (2026-11-08)
+
+### Bug Fixes
+
+* keep tool arguments out of the error log ([#81](https://github.com/Doist/comms-mcp/issues/81)) ([6a19abc](https://github.com/Doist/comms-mcp/commit/6a19abc6feb6ae52d31811fa8c92ffdd5335f124))
+
 ## [8.2.0](https://github.com/Doist/comms-mcp/compare/v8.1.2...v8.2.0) (2026-11-05)
 
 ### Features
