@@ -1,4 +1,6 @@
 import { type Attachment } from '@doist/comms-sdk'
+import { removeNullFields } from '@doist/mcp-core'
+import type { OutputAttachment } from './output-schemas.js'
 
 export type { Attachment }
 
@@ -15,11 +17,14 @@ const URL_SEPARATOR = ' — '
  * nothing valid remains so callers can omit the field entirely rather than
  * emitting an empty array or a malformed entry that fails the output schema.
  *
+ * The API sends `null` for fields an attachment lacks. Those are dropped here,
+ * since the output schema declares them optional rather than nullable.
+ *
  * Note: an attachment's `url` points at the Comms file store and currently
  * requires a browser session cookie to download — there is no OAuth-authenticated
  * attachment download endpoint on the public Comms REST API today.
  */
-export function normalizeAttachments(value: unknown): Attachment[] | undefined {
+export function normalizeAttachments(value: unknown): OutputAttachment[] | undefined {
     if (!Array.isArray(value)) {
         return undefined
     }
@@ -30,7 +35,9 @@ export function normalizeAttachments(value: unknown): Attachment[] | undefined {
         const candidate = item as Record<string, unknown>
         return typeof candidate.attachmentId === 'string' && typeof candidate.urlType === 'string'
     })
-    return attachments.length > 0 ? attachments : undefined
+    return attachments.length > 0
+        ? attachments.map((attachment) => removeNullFields(attachment) as OutputAttachment)
+        : undefined
 }
 
 /**

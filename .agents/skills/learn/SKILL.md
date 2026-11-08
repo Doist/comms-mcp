@@ -13,7 +13,7 @@ Write the mistake as a check: "a tool is registered in `src/mcp-server.ts` but m
 
 In this order, take the first that works:
 
-1. **A type** the compiler rejects, like `RequiredToolAnnotations` in `src/utils/required-tool-annotations.ts`.
+1. **A type** the compiler rejects, like `RequiredToolAnnotations` from `@doist/mcp-core`, which makes every tool state its three hints.
 2. **A lint rule** in `.oxlintrc.json`.
 3. **A test** that scans the code or the registered tools, like `src/tools/tool-annotations.test.ts` or `src/tool-schema-dialect.test.ts`.
 4. **A script check** in `.agents/scripts/` (verify, a hook).

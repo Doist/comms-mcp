@@ -1,11 +1,14 @@
 import { getMcpServer } from './mcp-server.js'
 import { buildLink } from './tools/build-link.js'
+import { createChannel } from './tools/create-channel.js'
 import { createConversation } from './tools/create-conversation.js'
 import { createThread } from './tools/create-thread.js'
 import { deleteObject } from './tools/delete-object.js'
 import { fetchInbox } from './tools/fetch-inbox.js'
 import { getGroups } from './tools/get-groups.js'
 import { getMentions } from './tools/get-mentions.js'
+import { getUsers } from './tools/get-users.js'
+import { getWorkspaces } from './tools/get-workspaces.js'
 import { listChannels } from './tools/list-channels.js'
 import { listConversations } from './tools/list-conversations.js'
 import { loadConversation } from './tools/load-conversation.js'
@@ -15,6 +18,7 @@ import { markRead } from './tools/mark-read.js'
 import { react } from './tools/react.js'
 import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
+import { updateChannel } from './tools/update-channel.js'
 import { updateObject } from './tools/update-object.js'
 import { userInfo } from './tools/user-info.js'
 import { validateCommsToken } from './utils/validate-comms-token.js'
@@ -38,6 +42,10 @@ const tools = {
     listChannels,
     listConversations,
     getGroups,
+    getUsers,
+    getWorkspaces,
+    createChannel,
+    updateChannel,
 }
 
 export { tools, getMcpServer, validateCommsToken }
@@ -65,4 +73,8 @@ export {
     listChannels,
     listConversations,
     getGroups,
+    getUsers,
+    getWorkspaces,
+    createChannel,
+    updateChannel,
 }

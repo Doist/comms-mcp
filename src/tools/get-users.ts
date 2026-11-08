@@ -5,7 +5,6 @@ import {
 } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { resolveUsersWithLog } from '../utils/degrade.js'
 import { GetUsersOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -144,10 +143,10 @@ const getUsers = {
             filteredUsers: filteredUsers.length,
         }
 
-        return getToolOutput({
+        return {
             textContent,
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof GetUsersOutputSchema.shape>
 

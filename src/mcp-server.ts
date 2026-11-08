@@ -1,28 +1,7 @@
 import { CommsApi } from '@doist/comms-sdk'
 import { McpServer } from '@modelcontextprotocol/server'
-import { registerTool } from './mcp-helpers.js'
-import { buildLink } from './tools/build-link.js'
-import { createChannel } from './tools/create-channel.js'
-import { createConversation } from './tools/create-conversation.js'
-import { createThread } from './tools/create-thread.js'
-import { deleteObject } from './tools/delete-object.js'
-import { fetchInbox } from './tools/fetch-inbox.js'
-import { getGroups } from './tools/get-groups.js'
-import { getMentions } from './tools/get-mentions.js'
-import { getUsers } from './tools/get-users.js'
-import { getWorkspaces } from './tools/get-workspaces.js'
-import { listChannels } from './tools/list-channels.js'
-import { listConversations } from './tools/list-conversations.js'
-import { loadConversation } from './tools/load-conversation.js'
-import { loadThread } from './tools/load-thread.js'
-import { markDone } from './tools/mark-done.js'
-import { markRead } from './tools/mark-read.js'
-import { react } from './tools/react.js'
-import { reply } from './tools/reply.js'
-import { searchContent } from './tools/search-content.js'
-import { updateChannel } from './tools/update-channel.js'
-import { updateObject } from './tools/update-object.js'
-import { userInfo } from './tools/user-info.js'
+import { registerTools } from './mcp-helpers.js'
+import { registeredTools } from './tool-registry.js'
 
 const instructions = `
 ## Comms Communication Tools
@@ -98,29 +77,7 @@ function getMcpServer({ commsApiKey, baseUrl }: { commsApiKey: string; baseUrl?:
 
     const comms = new CommsApi(commsApiKey, { baseUrl })
 
-    // Register tools
-    registerTool(userInfo, server, comms)
-    registerTool(getWorkspaces, server, comms)
-    registerTool(getUsers, server, comms)
-    registerTool(getGroups, server, comms)
-    registerTool(fetchInbox, server, comms)
-    registerTool(loadThread, server, comms)
-    registerTool(loadConversation, server, comms)
-    registerTool(searchContent, server, comms)
-    registerTool(getMentions, server, comms)
-    registerTool(buildLink, server, comms)
-    registerTool(createChannel, server, comms)
-    registerTool(updateChannel, server, comms)
-    registerTool(createThread, server, comms)
-    registerTool(createConversation, server, comms)
-    registerTool(updateObject, server, comms)
-    registerTool(deleteObject, server, comms)
-    registerTool(reply, server, comms)
-    registerTool(react, server, comms)
-    registerTool(markDone, server, comms)
-    registerTool(markRead, server, comms)
-    registerTool(listChannels, server, comms)
-    registerTool(listConversations, server, comms)
+    registerTools({ tools: registeredTools, server, client: comms })
 
     return server
 }

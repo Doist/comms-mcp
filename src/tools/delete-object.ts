@@ -1,7 +1,6 @@
 import type { CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import {
     type DeleteCommentOutput,
     type DeleteMessageOutput,
@@ -110,10 +109,10 @@ const deleteObject = {
                   ? await deleteCommentBranch(args, client)
                   : await deleteMessageBranch(args, client)
 
-        return getToolOutput({
+        return {
             textContent: branch.textContent,
             structuredContent: branch.structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof DeleteObjectOutputSchema.shape>
 

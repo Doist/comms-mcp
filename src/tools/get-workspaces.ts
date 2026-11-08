@@ -1,6 +1,5 @@
 import type { CommsApi, WorkspacePlan } from '@doist/comms-sdk'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { degradeAllWithLog } from '../utils/degrade.js'
 import { GetWorkspacesOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -179,10 +178,10 @@ const getWorkspaces = {
     async execute(_args, client) {
         const result = await generateWorkspacesList(client)
 
-        return getToolOutput({
+        return {
             textContent: result.textContent,
             structuredContent: result.structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof GetWorkspacesOutputSchema.shape>
 
