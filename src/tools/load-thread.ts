@@ -1,15 +1,10 @@
 import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
-import {
-    type Attachment,
-    formatAttachmentsLine,
-    normalizeAttachments,
-} from '../utils/attachments.js'
+import { formatAttachmentsLine, normalizeAttachments } from '../utils/attachments.js'
 import { UNKNOWN_USER } from '../utils/constants.js'
 import { resolveUsersWithLog } from '../utils/degrade.js'
-import { LoadThreadOutputSchema } from '../utils/output-schemas.js'
+import { LoadThreadOutputSchema, type OutputAttachment } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
 const ArgsSchema = {
@@ -55,7 +50,7 @@ type LoadThreadStructured = {
         participants?: number[]
         participantNames?: string[]
         threadUrl: string
-        attachments?: Attachment[]
+        attachments?: OutputAttachment[]
     }
     comments: Array<{
         id: string
@@ -65,7 +60,7 @@ type LoadThreadStructured = {
         threadId: string
         posted: string
         commentUrl: string
-        attachments?: Attachment[]
+        attachments?: OutputAttachment[]
     }>
     totalComments: number
 }
@@ -231,10 +226,10 @@ const loadThread = {
             totalComments: thread.commentCount,
         }
 
-        return getToolOutput({
+        return {
             textContent: lines.join('\n'),
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof LoadThreadOutputSchema.shape>
 

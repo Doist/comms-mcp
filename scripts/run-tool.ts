@@ -49,7 +49,7 @@ type ExecutableTool = {
         args: any,
         client: CommsApi,
     ) => Promise<{
-        content?: Array<{ type: string; text: string }>
+        textContent?: string
         structuredContent?: unknown
     }>
 }
@@ -163,9 +163,9 @@ async function main() {
     try {
         const result = await tool.execute(parsedArgs, client)
 
-        if (result.content?.[0]?.text) {
+        if (result.textContent) {
             console.log('\nText output:')
-            console.log(result.content[0].text)
+            console.log(result.textContent)
         }
 
         if (result.structuredContent) {

@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { degradeAllWithLog, resolveUsersWithLog } from '../utils/degrade.js'
 import { type SearchContentOutput, SearchContentOutputSchema } from '../utils/output-schemas.js'
 import { toRawSearchResults, toSearchResultItems } from '../utils/search-results.js'
@@ -175,10 +174,10 @@ const searchContent = {
             cursor: responseCursor,
         }
 
-        return getToolOutput({
+        return {
             textContent: lines.join('\n'),
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof SearchContentOutputSchema.shape>
 

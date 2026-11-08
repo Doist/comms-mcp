@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { type UpdateChannelOutput, UpdateChannelOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { getChannelMutationData, getChannelMutationText } from './channel-output.js'
@@ -55,10 +54,10 @@ const updateChannel = {
             ...getChannelMutationData(channel),
         }
 
-        return getToolOutput({
+        return {
             textContent: getChannelMutationText('Channel Updated', channel),
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof UpdateChannelOutputSchema.shape>
 

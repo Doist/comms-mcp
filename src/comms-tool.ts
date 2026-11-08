@@ -1,56 +1,20 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import type { CallToolResult } from '@modelcontextprotocol/server'
+import type { AnyMcpTool, McpTool } from '@doist/mcp-core'
 import type { z } from 'zod'
-import type { RequiredToolAnnotations } from './utils/required-tool-annotations.js'
 
 /**
- * A Comms tool that can be used in an MCP server or other conversational AI interfaces.
+ * A Comms tool that can be used in an MCP server or other conversational AI interfaces: an
+ * `McpTool` from `@doist/mcp-core` whose `execute` receives the Comms API client.
+ *
+ * `execute` returns `{ textContent, structuredContent }`; registration shapes that into the MCP
+ * result, so a tool never builds one itself.
  */
-type CommsTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape = z.ZodRawShape> = {
-    /**
-     * The name of the tool.
-     */
-    name: string
+type CommsTool<
+    Params extends z.ZodRawShape,
+    Output extends z.ZodRawShape = Record<string, never>,
+> = McpTool<Params, Output, CommsApi>
 
-    /**
-     * The description of the tool. This is important for the LLM to understand what the tool does,
-     * and how to use it.
-     */
-    description: string
+/** A Comms tool of any parameter and output shape, for collections that hold tools of mixed shapes. */
+type AnyCommsTool = AnyMcpTool<CommsApi>
 
-    /**
-     * The schema of the parameters of the tool.
-     *
-     * This is used to validate the parameters of the tool, as well as to let the LLM know what the
-     * parameters are.
-     */
-    parameters: Params
-
-    /**
-     * The schema of the output of the tool.
-     *
-     * This is used to validate the output of the tool, as well as to let MCP clients know what the
-     * structure of the returned data will be.
-     */
-    outputSchema: Output
-
-    /**
-     * MCP ToolAnnotations hints for this tool.
-     *
-     * Common defaults (e.g. title, openWorldHint) are applied when registering.
-     */
-    annotations: RequiredToolAnnotations
-
-    /**
-     * The function that executes the tool.
-     *
-     * This is the main function that will be called when the tool is used.
-     *
-     * @param args - The arguments of the tool.
-     * @param client - The Comms API client used to make requests to the Comms API.
-     * @returns The result of the tool.
-     */
-    execute: (args: z.infer<z.ZodObject<Params>>, client: CommsApi) => Promise<CallToolResult>
-}
-
-export type { CommsTool }
+export type { AnyCommsTool, CommsTool }

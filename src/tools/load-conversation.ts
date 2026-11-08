@@ -1,15 +1,10 @@
 import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
-import {
-    type Attachment,
-    formatAttachmentsLine,
-    normalizeAttachments,
-} from '../utils/attachments.js'
+import { formatAttachmentsLine, normalizeAttachments } from '../utils/attachments.js'
 import { UNKNOWN_USER } from '../utils/constants.js'
 import { resolveUsersWithLog } from '../utils/degrade.js'
-import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
+import { LoadConversationOutputSchema, type OutputAttachment } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
 const ArgsSchema = {
@@ -56,7 +51,7 @@ type LoadConversationStructured = {
         conversationId: string
         posted: string
         messageUrl: string
-        attachments?: Attachment[]
+        attachments?: OutputAttachment[]
     }>
     totalMessages: number
 }
@@ -170,10 +165,10 @@ const loadConversation = {
             totalMessages: conversation.messageCount ?? 0,
         }
 
-        return getToolOutput({
+        return {
             textContent: lines.join('\n'),
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof LoadConversationOutputSchema.shape>
 

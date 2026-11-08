@@ -9,7 +9,7 @@ description: Writes or changes tests in this repository to its quality bar, with
 
 - Next to the code: `src/tools/reply.ts` → `src/tools/reply.test.ts`. Vitest, globals on (`vi` is imported from `vitest`).
 - Tool tests call `<tool>.execute(args, mockCommsApi)`. The mock is `vi.mocked({ ... } as unknown as CommsApi, true)` with only the methods the tool uses (`true` makes it deep, since `CommsApi` is nested: `api.threads.getThread`). Clear it in `beforeEach` with `vi.clearAllMocks()`.
-- Contract tests check every registered tool: `src/tools/tool-annotations.test.ts` (annotations) and `src/tool-schema-dialect.test.ts` (the schemas a real client sees). `src/mcp-helpers.test.ts` covers `registerTool` itself.
+- Contract tests check every registered tool: `src/tools/tool-annotations.test.ts` (annotations), `src/tool-schema-dialect.test.ts` (the schemas a real client sees) and `src/tools/output-schema-nullability.test.ts` (no nullable output fields). `src/mcp-helpers.test.ts` covers `registerTools` itself.
 - Agent tooling tests live in `.agents/scripts/` and run copies of the tools in throwaway repos (`.agents/scripts/lib/test-repo.ts`).
 
 ## Helpers

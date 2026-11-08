@@ -3,7 +3,7 @@ import type { McpServer, StandardSchemaWithJSON } from '@modelcontextprotocol/se
 import { vi } from 'vitest'
 import { z } from 'zod'
 import type { CommsTool } from './comms-tool.js'
-import { registerTool } from './mcp-helpers.js'
+import { registerTools } from './mcp-helpers.js'
 
 function buildTool() {
     return {
@@ -18,7 +18,11 @@ function buildTool() {
 
 function captureRegistration(tool: ReturnType<typeof buildTool>, client = {} as CommsApi) {
     const mock = vi.fn<McpServer['registerTool']>()
-    registerTool(tool, { registerTool: mock } as unknown as McpServer, client)
+    registerTools({
+        tools: [tool],
+        server: { registerTool: mock } as unknown as McpServer,
+        client,
+    })
     const registration = mock.mock.calls[0]!
     return {
         input: registration[1].inputSchema as StandardSchemaWithJSON<unknown, unknown>,
@@ -100,7 +104,7 @@ describe('cached tool schemas', () => {
 
     it('keeps execution clients isolated when servers share schemas', async () => {
         const tool = buildTool()
-        tool.execute.mockResolvedValue({ content: [] })
+        tool.execute.mockResolvedValue({})
         const firstClient = {} as CommsApi
         const secondClient = {} as CommsApi
         const first = captureRegistration(tool, firstClient)
@@ -114,5 +118,63 @@ describe('cached tool schemas', () => {
             [args, firstClient],
             [args, secondClient],
         ])
+    })
+})
+
+describe('result content', () => {
+    afterEach(() => {
+        vi.unstubAllEnvs()
+        vi.resetModules()
+    })
+
+    // USE_STRUCTURED_CONTENT and NODE_ENV are read when mcp-helpers loads, so each case stubs them
+    // and imports a fresh copy.
+    async function callWithEnv(env: Record<string, string>) {
+        for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value)
+        vi.resetModules()
+        const { registerTools: freshRegisterTools } = await import('./mcp-helpers.js')
+        const mock = vi.fn<McpServer['registerTool']>()
+        freshRegisterTools({
+            tools: [
+                {
+                    name: 'find-thing',
+                    description: 'Finds a thing.',
+                    parameters: {},
+                    outputSchema: { id: z.string(), note: z.string().optional() },
+                    annotations: {
+                        readOnlyHint: true,
+                        destructiveHint: false,
+                        idempotentHint: true,
+                    },
+                    execute: async () => ({
+                        textContent: 'Found thing t1.',
+                        structuredContent: { id: 't1', note: null as unknown as undefined },
+                    }),
+                },
+            ],
+            server: { registerTool: mock } as unknown as McpServer,
+            client: {} as CommsApi,
+        })
+        const callback = mock.mock.calls[0]![2] as (args: object, ctx: object) => Promise<unknown>
+        return callback({}, {})
+    }
+
+    it('sends the payload as JSON first and the summary last when clients may ignore structuredContent', async () => {
+        expect(await callWithEnv({ NODE_ENV: 'production', USE_STRUCTURED_CONTENT: '' })).toEqual({
+            content: [
+                { type: 'text', text: '{"id":"t1"}' },
+                { type: 'text', text: 'Found thing t1.' },
+            ],
+            structuredContent: { id: 't1' },
+        })
+    })
+
+    it('sends the summary alone when USE_STRUCTURED_CONTENT is on', async () => {
+        expect(
+            await callWithEnv({ NODE_ENV: 'production', USE_STRUCTURED_CONTENT: 'true' }),
+        ).toEqual({
+            content: [{ type: 'text', text: 'Found thing t1.' }],
+            structuredContent: { id: 't1' },
+        })
     })
 })

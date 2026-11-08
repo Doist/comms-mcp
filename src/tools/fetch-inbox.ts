@@ -8,7 +8,6 @@ import type {
 import { ARCHIVE_FILTER_VALUES, getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
 import { degradeAllWithLog, resolveUsersWithLog } from '../utils/degrade.js'
 import { FetchInboxOutputSchema } from '../utils/output-schemas.js'
@@ -323,10 +322,10 @@ const fetchInbox = {
             totalConversations: conversationsWithDetails.length,
         }
 
-        return getToolOutput({
+        return {
             textContent: lines.join('\n'),
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof FetchInboxOutputSchema.shape>
 

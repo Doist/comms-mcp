@@ -39,11 +39,13 @@ Reviewers, Doistbot included, apply these to every change:
 
 ## Adding a New Tool
 
+A tool's `execute` returns `{ textContent, structuredContent }`. Registration, result shaping, null stripping and the schema contract suites come from [`@doist/mcp-core`](https://github.com/Doist/mcp-core), which todoist-mcp and automations-mcp share; change shared behaviour there, not in a local copy.
+
 When adding a new tool, it must be registered in **all** of these locations:
 
 1. `src/utils/tool-names.ts` — add tool name constant
 2. `src/tools/<tool-name>.ts` — create tool definition
-3. `src/mcp-server.ts` — import, register with `registerTool()`, and add to LLM `instructions` string
+3. `src/tool-registry.ts` — add it to `registeredTools`, which `src/mcp-server.ts` registers; add to the LLM `instructions` string in `src/mcp-server.ts` only when it needs cross-tool guidance
 4. `src/index.ts` — import and add to both the `tools` object and the named exports
 5. `scripts/run-tool.ts` — import and add to the `tools` record
 6. `src/tools/tool-annotations.test.ts` — add annotation expectation entry

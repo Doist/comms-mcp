@@ -1,7 +1,6 @@
 import { type CommsApi, type Conversation, isNotFound } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
 import { resolveUsersWithLog } from '../utils/degrade.js'
 import { ListConversationsOutputSchema } from '../utils/output-schemas.js'
@@ -314,10 +313,10 @@ const listConversations = {
             searchText ? { searchText, limit: limit ?? DEFAULT_SEARCH_LIMIT, cursor } : undefined,
         )
 
-        return getToolOutput({
+        return {
             textContent: result.textContent,
             structuredContent: result.structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof ListConversationsOutputSchema.shape>
 

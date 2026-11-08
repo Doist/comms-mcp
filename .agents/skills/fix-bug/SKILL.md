@@ -15,7 +15,7 @@ Write a test that fails on the exact symptom, at the lowest layer that shows it:
 
 - a helper in `src/utils/` → its `*.test.ts` next to it;
 - a tool's input handling, API call or output → `src/tools/<tool>.test.ts`, calling `<tool>.execute(args, mockCommsApi)`;
-- registration or schemas → `src/mcp-helpers.test.ts` (`registerTool`) or `src/tool-schema-dialect.test.ts` (what a client sees); annotations → `src/tools/tool-annotations.test.ts`.
+- registration or schemas → `src/mcp-helpers.test.ts` (`registerTools`) or `src/tool-schema-dialect.test.ts` (what a client sees); annotations → `src/tools/tool-annotations.test.ts`.
 
 If the bug is in how the real API answers (a field missing, a different shape), reproduce it once with `npm run tool` on a test account, then encode that response in the mock. Follow `write-tests` for helpers and the quality bar. Run the test and see it fail **for the reason in step 1**, not a typo or a missing mock. Done when the failure message describes the bug.
 

@@ -1,7 +1,6 @@
 import { getCommentURL, getCommsURL, getFullCommsURL, getMessageURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { BuildLinkOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -106,10 +105,10 @@ const buildLink = {
             },
         }
 
-        return getToolOutput({
+        return {
             textContent: url,
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof BuildLinkOutputSchema.shape>
 
