@@ -114,6 +114,11 @@ const loadConversation = {
         lines.push(`## Messages (${messages.length})`)
         lines.push('')
 
+        // Normalised once per message, for both the text and the structured content.
+        const attachmentsByMessage = new Map(
+            messages.map((m) => [m.id, normalizeAttachments(m.attachments)]),
+        )
+
         for (const message of messages) {
             const messageDate = message.posted.toISOString()
             lines.push(`### Message ${message.id}`)
@@ -122,7 +127,7 @@ const loadConversation = {
             )
             lines.push('')
             lines.push(message.content)
-            const attachmentsLine = formatAttachmentsLine(normalizeAttachments(message.attachments))
+            const attachmentsLine = formatAttachmentsLine(attachmentsByMessage.get(message.id))
             if (attachmentsLine) {
                 lines.push('')
                 lines.push(attachmentsLine)
@@ -160,7 +165,7 @@ const loadConversation = {
                         conversationId: m.conversationId,
                         messageId: m.id,
                     }),
-                attachments: normalizeAttachments(m.attachments),
+                attachments: attachmentsByMessage.get(m.id),
             })),
             totalMessages: conversation.messageCount ?? 0,
         }

@@ -136,9 +136,13 @@ const loadThread = {
             '',
         ]
 
-        const threadAttachmentsLine = formatAttachmentsLine(
-            normalizeAttachments(thread.attachments),
+        // Normalised once per thread and comment, for both the text and the structured content.
+        const threadAttachments = normalizeAttachments(thread.attachments)
+        const attachmentsByComment = new Map(
+            comments.map((c) => [c.id, normalizeAttachments(c.attachments)]),
         )
+
+        const threadAttachmentsLine = formatAttachmentsLine(threadAttachments)
         if (threadAttachmentsLine) {
             lines.push(threadAttachmentsLine)
             lines.push('')
@@ -157,7 +161,7 @@ const loadThread = {
             lines.push('')
             lines.push(comment.content)
             const commentAttachmentsLine = formatAttachmentsLine(
-                normalizeAttachments(comment.attachments),
+                attachmentsByComment.get(comment.id),
             )
             if (commentAttachmentsLine) {
                 lines.push('')
@@ -204,7 +208,7 @@ const loadThread = {
                         channelId: thread.channelId,
                         threadId: thread.id,
                     }),
-                attachments: normalizeAttachments(thread.attachments),
+                attachments: threadAttachments,
             },
             comments: comments.map((c) => ({
                 id: c.id,
@@ -221,7 +225,7 @@ const loadThread = {
                         threadId: c.threadId,
                         commentId: c.id,
                     }),
-                attachments: normalizeAttachments(c.attachments),
+                attachments: attachmentsByComment.get(c.id),
             })),
             totalComments: thread.commentCount,
         }

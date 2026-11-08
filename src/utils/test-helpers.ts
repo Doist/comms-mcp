@@ -207,30 +207,12 @@ export function extractTextContent(toolOutput: unknown): string {
 }
 
 /**
- * Extracts the structured content from a tool output for testing: a tool's own result, or an
- * MCP result carrying it in `structuredContent` or as a JSON text block.
+ * Extracts the structured content from a tool output for testing: a tool's own result, or the
+ * MCP result registration builds from it, which carries it in `structuredContent`.
  */
 export function extractStructuredContent(output: object): Record<string, unknown> {
-    // Check for new structuredContent field first
     if ('structuredContent' in output && typeof output.structuredContent === 'object') {
         return output.structuredContent as Record<string, unknown>
-    }
-
-    // Fall back to checking for JSON content in the content array
-    if ('content' in output && Array.isArray(output.content)) {
-        for (const item of output.content) {
-            if (
-                typeof item === 'object' &&
-                item !== null &&
-                'type' in item &&
-                'text' in item &&
-                item.type === 'text' &&
-                'mimeType' in item &&
-                item.mimeType === 'application/json'
-            ) {
-                return JSON.parse(item.text as string) as Record<string, unknown>
-            }
-        }
     }
 
     throw new Error('Expected tool output to have structured content')
