@@ -190,11 +190,16 @@ describe('usage-tracking headers', () => {
             await close()
         }
 
-        expect(api.received.map(({ path, mcpTool }) => ({ path, mcpTool }))).toEqual([
-            { path: WORKSPACES_PATH, mcpTool: 'get-workspaces' },
-            { path: SESSION_USER_PATH, mcpTool: 'user-info' },
-            { path: WORKSPACE_USER_PATH, mcpTool: 'get-workspaces' },
-        ])
+        // The two calls' first requests may arrive in either order; what matters is the tool each
+        // request names, so compare them sorted by path.
+        const byPath = (a: { path: string }, b: { path: string }) => a.path.localeCompare(b.path)
+        expect(api.received.map(({ path, mcpTool }) => ({ path, mcpTool })).sort(byPath)).toEqual(
+            [
+                { path: WORKSPACES_PATH, mcpTool: 'get-workspaces' },
+                { path: SESSION_USER_PATH, mcpTool: 'user-info' },
+                { path: WORKSPACE_USER_PATH, mcpTool: 'get-workspaces' },
+            ].sort(byPath),
+        )
     })
 
     it('tags a request made outside any tool as unknown', async () => {
