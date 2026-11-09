@@ -1,3 +1,9 @@
+## [10.0.1](https://github.com/Doist/comms-mcp/compare/v10.0.0...v10.0.1) (2026-11-09)
+
+### Bug Fixes
+
+* report the package version as the server version ([#85](https://github.com/Doist/comms-mcp/issues/85)) ([8d50087](https://github.com/Doist/comms-mcp/commit/8d500871842474a2e4e882350d16c74e088a0d65))
+
 ## [10.0.0](https://github.com/Doist/comms-mcp/compare/v9.0.0...v10.0.0) (2026-11-09)
 
 ### ⚠ BREAKING CHANGES
