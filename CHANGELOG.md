@@ -1,3 +1,13 @@
+## [10.0.0](https://github.com/Doist/comms-mcp/compare/v9.0.0...v10.0.0) (2026-11-09)
+
+### ⚠ BREAKING CHANGES
+
+* share the host contract from @doist/mcp-core/host (#83)
+
+### Features
+
+* share the host contract from @doist/mcp-core/host ([#83](https://github.com/Doist/comms-mcp/issues/83)) ([b2c83e0](https://github.com/Doist/comms-mcp/commit/b2c83e051d20409600d1a312dabd0aa9e7701229))
+
 ## [9.0.0](https://github.com/Doist/comms-mcp/compare/v8.2.1...v9.0.0) (2026-11-08)
 
 ### ⚠ BREAKING CHANGES
