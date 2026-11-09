@@ -1,3 +1,9 @@
+## [10.1.0](https://github.com/Doist/comms-mcp/compare/v10.0.2...v10.1.0) (2026-11-09)
+
+### Features
+
+* tag Comms API requests with usage-tracking headers ([#87](https://github.com/Doist/comms-mcp/issues/87)) ([b3dac0a](https://github.com/Doist/comms-mcp/commit/b3dac0a90cb8bb74de3b80f73fb5a1e6c0303718))
+
 ## [10.0.2](https://github.com/Doist/comms-mcp/compare/v10.0.1...v10.0.2) (2026-11-09)
 
 ### Bug Fixes
