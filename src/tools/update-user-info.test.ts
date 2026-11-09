@@ -620,7 +620,12 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
 
         const result = await setStatus({ message: 'Away', activeUntil: '2026-11-10T09:00:00Z' })
 
-        expect(statusOf(result)).toBeDefined()
+        expect(statusOf(result)).toEqual({
+            message: 'Away',
+            activeUntil: '2026-11-10T09:00:00.000Z',
+            pauseNotifications: false,
+            pauseActivity: false,
+        })
     })
 
     it('accepts a fractional end Comms returns in microseconds', async () => {
@@ -632,17 +637,34 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
 
         const result = await setStatus({ message: 'Away', activeUntil: '2026-11-10T09:00:00.215Z' })
 
-        expect(statusOf(result)).toBeDefined()
+        expect(statusOf(result)).toEqual({
+            message: 'Away',
+            activeUntil: '2026-11-10T09:00:00.215Z',
+            pauseNotifications: false,
+            pauseActivity: false,
+        })
     })
 
-    it('accepts a status Comms trims for a caller that skipped the schema', async () => {
+    it('trims the message and emoji for a caller that skipped the schema', async () => {
         mockCommsApi.users.setStatus.mockResolvedValue(
             createMockUser({ status: { message: 'Away', emoji: '🎯' } }),
         )
 
         const result = await setStatus({ message: '  Away  ', emoji: ' 🎯 ' })
 
-        expect(statusOf(result)).toBeDefined()
+        expect(sentStatus()).toEqual(expect.objectContaining({ message: 'Away', emoji: '🎯' }))
+        expect(statusOf(result)).toEqual({
+            message: 'Away',
+            emoji: '🎯',
+            pauseNotifications: false,
+            pauseActivity: false,
+        })
+    })
+
+    it('sends no emoji for a blank one from a caller that skipped the schema', async () => {
+        await setStatus({ message: 'Away', emoji: '  ' })
+
+        expect(sentStatus()?.emoji).toBeNull()
     })
 
     it('accepts an empty emoji from Comms when none was sent', async () => {
@@ -652,7 +674,11 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
 
         const result = await setStatus({ message: 'Away' })
 
-        expect(statusOf(result)).toBeDefined()
+        expect(statusOf(result)).toEqual({
+            message: 'Away',
+            pauseNotifications: false,
+            pauseActivity: false,
+        })
     })
 
     it('accepts a message Comms returns in another normal form or with spaces collapsed', async () => {
@@ -662,7 +688,11 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
 
         const result = await setStatus({ message: 'Café  at noon' })
 
-        expect(statusOf(result)).toBeDefined()
+        expect(statusOf(result)).toEqual({
+            message: 'Café at noon',
+            pauseNotifications: false,
+            pauseActivity: false,
+        })
     })
 
     describe.each([

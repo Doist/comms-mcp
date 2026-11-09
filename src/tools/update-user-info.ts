@@ -11,6 +11,7 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { UserInfoOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
+import { normaliseActiveUntil } from '../utils/user-status.js'
 import { buildUserInfoResult } from './user-output.js'
 
 const MAX_MESSAGE_LENGTH = 80
@@ -137,8 +138,9 @@ function buildStatus(status: StatusArgs, now: Date): SetStatusArgs {
     }
 
     return {
-        message,
-        emoji: emoji ?? null,
+        // Trimmed as the schema would, so a caller that skips it sends the same values.
+        message: message.trim(),
+        emoji: emoji?.trim() || null,
         activeUntil: activeUntil != null ? parseActiveUntil(activeUntil, now) : null,
         effects: {
             pauseNotifications: pauseNotifications ? ALL_SCOPE : null,
@@ -178,6 +180,10 @@ function profileDifferences(held: User, sent: UpdateUserArgs): string[] {
         )
 }
 
+function errorDetail(error: unknown): string {
+    return error instanceof Error ? error.message : String(error)
+}
+
 const SCOPE_HINTS: Record<number, string> = {
     401: ' Comms rejected the token, so the connection may need reconnecting.',
     403: ' Changing it needs the user:write scope, so the connection may need reconnecting to grant it.',
@@ -193,8 +199,7 @@ function explainWriteFailure(error: unknown, subject: 'profile' | 'status'): Err
     const checkIt = `Use ${ToolNames.USER_INFO} to check it.`
     const status = error instanceof CommsRequestError ? error.httpStatusCode : undefined
     if (status === undefined || status >= 500) {
-        const detail = error instanceof Error ? error.message : String(error)
-        return new Error(`The ${subject} change is unconfirmed: ${detail}. ${checkIt}`)
+        return new Error(`The ${subject} change is unconfirmed: ${errorDetail(error)}. ${checkIt}`)
     }
     const reason = getCommsErrorString(error)
     return new Error(
@@ -221,8 +226,10 @@ function samePause(held: StatusEffect, sent: StatusEffect): boolean {
 }
 
 function sameStatus(held: UserStatus, sent: SetStatusArgs): boolean {
-    const heldUntil = held.activeUntil ? new Date(held.activeUntil).getTime() : null
-    const sentUntil = sent.activeUntil ? new Date(sent.activeUntil).getTime() : null
+    // An end Comms sends that cannot be read stays as sent, so it never matches the one asked for.
+    const heldUntil = held.activeUntil ? normaliseActiveUntil(held.activeUntil) : null
+    // What was sent was built from a parsed end, so it always reads.
+    const sentUntil = sent.activeUntil ? new Date(sent.activeUntil).toISOString() : null
     return (
         normaliseMessage(held.message) === normaliseMessage(sent.message) &&
         normaliseEmoji(held.emoji) === normaliseEmoji(sent.emoji) &&
@@ -288,17 +295,20 @@ async function reportedUser(
     if (statusUser) {
         return statusUser
     }
-    const user = profileUser as User
-    if (user.status !== undefined) {
-        return user
+    if (!profileUser) {
+        throw new Error(
+            'Neither the profile nor the status was written, so there is no user to report.',
+        )
+    }
+    if (profileUser.status !== undefined) {
+        return profileUser
     }
     const current = await client.users.getSessionUser().catch((error: unknown) => {
-        const detail = error instanceof Error ? error.message : String(error)
         throw new Error(
-            `Comms accepted the profile change, but reading the status back failed: ${detail}. Use ${ToolNames.USER_INFO} to check it.`,
+            `Comms accepted the profile change, but reading the status back failed: ${errorDetail(error)}. Use ${ToolNames.USER_INFO} to check it.`,
         )
     })
-    return { ...user, status: current.status }
+    return { ...profileUser, status: current.status }
 }
 
 const updateUserInfo = {
@@ -331,9 +341,8 @@ const updateUserInfo = {
                       if (!profile) {
                           throw error
                       }
-                      const message = error instanceof Error ? error.message : String(error)
                       // The status failure may itself be unconfirmed, so this claims nothing about it.
-                      throw new Error(`Comms accepted the profile change. ${message}`)
+                      throw new Error(`Comms accepted the profile change. ${errorDetail(error)}`)
                   })
 
         const result = buildUserInfoResult(

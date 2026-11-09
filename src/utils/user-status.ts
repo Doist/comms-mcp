@@ -39,4 +39,4 @@ function describeStatus(status: StatusOutput | undefined): string[] {
     return lines
 }
 
-export { describeStatus, toStatusOutput }
+export { describeStatus, normaliseActiveUntil, toStatusOutput }
