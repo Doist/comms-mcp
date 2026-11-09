@@ -117,8 +117,10 @@ staging or a custom deployment, also set `COMMS_BASE_URL`:
 
 ### Getting a Comms API key
 
-Generate a personal API token from the Comms app console, then export
-it as `COMMS_API_KEY` (or paste it into the MCP client config above).
+Comms accepts your Todoist API token. In Todoist, open **Settings →
+Integrations → Developer** and copy the API token, then export it as
+`COMMS_API_KEY` (or paste it into the MCP client config above). It has
+full access to your account, so keep it secret.
 
 ## Features
 
