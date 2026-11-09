@@ -15,10 +15,14 @@ describe('validateCommsToken', () => {
 
     function sentRequest(fn: ReturnType<typeof stubFetch>) {
         const [url, init] = fn.mock.calls[0] as unknown as [string, RequestInit]
-        return { url, authorization: new Headers(init.headers).get('authorization') }
+        return {
+            url,
+            authorization: new Headers(init.headers).get('authorization'),
+            signal: init.signal,
+        }
     }
 
-    test('asks the session endpoint with the bearer token', async () => {
+    test('asks the session endpoint with the bearer token, bounded by a timeout', async () => {
         const fn = stubFetch(200)
 
         await expect(validateCommsToken('tok', 'https://comms.test')).resolves.toBe('valid')
@@ -26,6 +30,8 @@ describe('validateCommsToken', () => {
         expect(sentRequest(fn)).toEqual({
             url: 'https://comms.test/api/v1/users/get_session_user',
             authorization: 'Bearer tok',
+            // validateBearerToken's 5 s AbortSignal.timeout, the bound this validator always had.
+            signal: expect.any(AbortSignal),
         })
     })
 
