@@ -51,6 +51,8 @@ When adding a new tool, it must be registered in **all** of these locations:
 6. `src/tools/tool-annotations.test.ts` — add annotation expectation entry
 7. `src/tools/<tool-name>.test.ts` — create test file
 
+If the tool pushes the fixed cost (the `tools/list` payload plus `instructions`) over `DEFAULT_TOKEN_BUDGET` in `src/token-footprint.test.ts`, raise the budget in the same PR and say why in the description. The test prints the cost per tool, so a reviewer can see where it went.
+
 ## Code Style
 
 - Prefer `function` declarations over `const` arrow-function assignments for named

@@ -73,6 +73,7 @@
         "@vitest/coverage-v8": "4.1.12",
         "concurrently": "10.0.6",
         "conventional-changelog-conventionalcommits": "9.3.1",
+        "gpt-tokenizer": "3.4.0",
         "lefthook": "2.2.2",
         "nodemon": "3.1.14",
         "oxfmt": "0.72.0",
