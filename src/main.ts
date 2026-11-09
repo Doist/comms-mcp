@@ -9,7 +9,7 @@ function main() {
         throw new Error('COMMS_API_KEY is not set')
     }
 
-    const server = getMcpServer({ commsApiKey })
+    const server = getMcpServer({ token: commsApiKey })
     const transport = new StdioServerTransport()
     server
         .connect(transport)

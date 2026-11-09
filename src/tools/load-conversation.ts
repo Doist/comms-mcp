@@ -1,15 +1,10 @@
 import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
-import {
-    type Attachment,
-    formatAttachmentsLine,
-    normalizeAttachments,
-} from '../utils/attachments.js'
+import { formatAttachmentsLine, normalizeAttachments } from '../utils/attachments.js'
 import { UNKNOWN_USER } from '../utils/constants.js'
 import { resolveUsersWithLog } from '../utils/degrade.js'
-import { LoadConversationOutputSchema } from '../utils/output-schemas.js'
+import { LoadConversationOutputSchema, type OutputAttachment } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
 const ArgsSchema = {
@@ -56,7 +51,7 @@ type LoadConversationStructured = {
         conversationId: string
         posted: string
         messageUrl: string
-        attachments?: Attachment[]
+        attachments?: OutputAttachment[]
     }>
     totalMessages: number
 }
@@ -119,6 +114,11 @@ const loadConversation = {
         lines.push(`## Messages (${messages.length})`)
         lines.push('')
 
+        // Normalised once per message, for both the text and the structured content.
+        const attachmentsByMessage = new Map(
+            messages.map((m) => [m.id, normalizeAttachments(m.attachments)]),
+        )
+
         for (const message of messages) {
             const messageDate = message.posted.toISOString()
             lines.push(`### Message ${message.id}`)
@@ -127,7 +127,7 @@ const loadConversation = {
             )
             lines.push('')
             lines.push(message.content)
-            const attachmentsLine = formatAttachmentsLine(normalizeAttachments(message.attachments))
+            const attachmentsLine = formatAttachmentsLine(attachmentsByMessage.get(message.id))
             if (attachmentsLine) {
                 lines.push('')
                 lines.push(attachmentsLine)
@@ -165,15 +165,15 @@ const loadConversation = {
                         conversationId: m.conversationId,
                         messageId: m.id,
                     }),
-                attachments: normalizeAttachments(m.attachments),
+                attachments: attachmentsByMessage.get(m.id),
             })),
             totalMessages: conversation.messageCount ?? 0,
         }
 
-        return getToolOutput({
+        return {
             textContent: lines.join('\n'),
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof LoadConversationOutputSchema.shape>
 

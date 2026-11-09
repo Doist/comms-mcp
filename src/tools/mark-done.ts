@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { limitedAll } from '../utils/concurrency.js'
 import { logOperationFailures } from '../utils/degrade.js'
 import { type MarkDoneOp, MarkDoneOutputSchema } from '../utils/output-schemas.js'
@@ -342,10 +341,10 @@ const markDone = {
                     : undefined,
         }
 
-        return getToolOutput({
+        return {
             textContent: lines.join('\n'),
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof MarkDoneOutputSchema.shape>
 

@@ -1,6 +1,5 @@
 import type { CommsApi } from '@doist/comms-sdk'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { UserInfoOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -57,10 +56,10 @@ const userInfo = {
     async execute(_args, client) {
         const result = await generateUserInfo(client)
 
-        return getToolOutput({
+        return {
             textContent: result.textContent,
             structuredContent: result.structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof UserInfoOutputSchema.shape>
 

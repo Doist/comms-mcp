@@ -1,7 +1,6 @@
 import { getFullCommsURL, NOTIFY_AUDIENCES } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { type CreateThreadOutput, CreateThreadOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 
@@ -146,10 +145,10 @@ const createThread = {
             ...(appliedAudience ? { notifyAudience: appliedAudience } : {}),
         }
 
-        return getToolOutput({
+        return {
             textContent: lines.join('\n'),
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof CreateThreadOutputSchema.shape>
 

@@ -1,5 +1,6 @@
 import { getMcpServer } from './mcp-server.js'
 import { buildLink } from './tools/build-link.js'
+import { createChannel } from './tools/create-channel.js'
 import { createConversation } from './tools/create-conversation.js'
 import { createThread } from './tools/create-thread.js'
 import { deleteObject } from './tools/delete-object.js'
@@ -7,6 +8,8 @@ import { fetchInbox } from './tools/fetch-inbox.js'
 import { getGroups } from './tools/get-groups.js'
 import { getMentions } from './tools/get-mentions.js'
 import { getUserStatus } from './tools/get-user-status.js'
+import { getUsers } from './tools/get-users.js'
+import { getWorkspaces } from './tools/get-workspaces.js'
 import { listChannels } from './tools/list-channels.js'
 import { listConversations } from './tools/list-conversations.js'
 import { loadConversation } from './tools/load-conversation.js'
@@ -17,6 +20,7 @@ import { react } from './tools/react.js'
 import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
 import { setUserStatus } from './tools/set-user-status.js'
+import { updateChannel } from './tools/update-channel.js'
 import { updateObject } from './tools/update-object.js'
 import { userInfo } from './tools/user-info.js'
 import { validateCommsToken } from './utils/validate-comms-token.js'
@@ -42,12 +46,15 @@ const tools = {
     listChannels,
     listConversations,
     getGroups,
+    getUsers,
+    getWorkspaces,
+    createChannel,
+    updateChannel,
 }
 
 export { tools, getMcpServer, validateCommsToken }
-export type { CommsTokenValidationResult } from './utils/validate-comms-token.js'
-// Re-exported so consumers can catch the documented throw type of
-// validateCommsToken without taking a direct @doist/comms-sdk dependency.
+// Re-exported so consumers of the exported tools can catch the API's errors without taking a
+// direct @doist/comms-sdk dependency.
 export { CommsRequestError } from '@doist/comms-sdk'
 
 export {
@@ -71,4 +78,8 @@ export {
     listChannels,
     listConversations,
     getGroups,
+    getUsers,
+    getWorkspaces,
+    createChannel,
+    updateChannel,
 }

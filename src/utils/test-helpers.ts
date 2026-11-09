@@ -7,7 +7,6 @@ import type {
     User,
     Workspace,
 } from '@doist/comms-sdk'
-import type { getToolOutput } from '../mcp-helpers.js'
 
 /**
  * Creates a mock Channel with all required properties and sensible defaults.
@@ -179,6 +178,16 @@ export function extractTextContent(toolOutput: unknown): string {
         return toolOutput
     }
 
+    // A tool's own result, as `execute` returns it.
+    if (
+        typeof toolOutput === 'object' &&
+        toolOutput !== null &&
+        'textContent' in toolOutput &&
+        typeof toolOutput.textContent === 'string'
+    ) {
+        return toolOutput.textContent
+    }
+
     if (typeof toolOutput === 'object' && toolOutput !== null && 'content' in toolOutput) {
         const output = toolOutput as { content: unknown }
         if (
@@ -198,32 +207,12 @@ export function extractTextContent(toolOutput: unknown): string {
 }
 
 /**
- * Extracts the structured content from a tool output for testing.
- * This handles both the new `structuredContent` field and legacy JSON-encoded content.
+ * Extracts the structured content from a tool output for testing: a tool's own result, or the
+ * MCP result registration builds from it, which carries it in `structuredContent`.
  */
-export function extractStructuredContent(
-    output: ReturnType<typeof getToolOutput>,
-): Record<string, unknown> {
-    // Check for new structuredContent field first
+export function extractStructuredContent(output: object): Record<string, unknown> {
     if ('structuredContent' in output && typeof output.structuredContent === 'object') {
         return output.structuredContent as Record<string, unknown>
-    }
-
-    // Fall back to checking for JSON content in the content array
-    if ('content' in output && Array.isArray(output.content)) {
-        for (const item of output.content) {
-            if (
-                typeof item === 'object' &&
-                item !== null &&
-                'type' in item &&
-                'text' in item &&
-                item.type === 'text' &&
-                'mimeType' in item &&
-                item.mimeType === 'application/json'
-            ) {
-                return JSON.parse(item.text as string) as Record<string, unknown>
-            }
-        }
     }
 
     throw new Error('Expected tool output to have structured content')

@@ -59,20 +59,20 @@ export {
 const AttachmentSchema = z.looseObject({
     attachmentId: z.string(),
     urlType: z.string(),
-    title: z.string().nullish(),
-    url: z.string().nullish(),
-    fileName: z.string().nullish(),
-    fileSize: z.number().nullish(),
-    underlyingType: z.string().nullish(),
-    description: z.string().nullish(),
-    image: z.string().nullish(),
-    imageWidth: z.number().nullish(),
-    imageHeight: z.number().nullish(),
-    duration: z.string().nullish(),
-    uploadState: z.string().nullish(),
-    video: z.string().nullish(),
-    videoType: z.string().nullish(),
-    videoAutoPlay: z.boolean().nullish(),
+    title: z.string().optional(),
+    url: z.string().optional(),
+    fileName: z.string().optional(),
+    fileSize: z.number().optional(),
+    underlyingType: z.string().optional(),
+    description: z.string().optional(),
+    image: z.string().optional(),
+    imageWidth: z.number().optional(),
+    imageHeight: z.number().optional(),
+    duration: z.string().optional(),
+    uploadState: z.string().optional(),
+    video: z.string().optional(),
+    videoType: z.string().optional(),
+    videoAutoPlay: z.boolean().optional(),
 }) satisfies z.ZodType<Attachment>
 
 /**
@@ -459,7 +459,7 @@ export const UpdateThreadOutputSchema = z.object({
     workspaceId: z.number(),
     content: z.string(),
     threadUrl: z.string(),
-    lastEdited: z.string().nullable().optional(),
+    lastEdited: z.string().optional(),
 })
 
 /**
@@ -474,7 +474,7 @@ export const UpdateCommentOutputSchema = z.object({
     workspaceId: z.number(),
     content: z.string(),
     commentUrl: z.string(),
-    lastEdited: z.string().nullable().optional(),
+    lastEdited: z.string().optional(),
 })
 
 /**
@@ -488,7 +488,7 @@ export const UpdateMessageOutputSchema = z.object({
     workspaceId: z.number(),
     content: z.string(),
     messageUrl: z.string(),
-    lastEdited: z.string().nullable().optional(),
+    lastEdited: z.string().optional(),
 })
 
 /**
@@ -507,7 +507,7 @@ export const UpdateObjectOutputSchema = z.object({
     success: z.boolean(),
     content: z.string(),
     workspaceId: z.number(),
-    lastEdited: z.string().nullable().optional(),
+    lastEdited: z.string().optional(),
     // thread fields
     threadId: z.string().optional(),
     title: z.string().optional(),
@@ -608,6 +608,9 @@ export const ReactOutputSchema = z.object({
 // drift between the tool implementation and this schema.
 export const MARK_DONE_OPS = ['markRead', 'archive'] as const
 export const MarkDoneOpSchema = z.enum(MARK_DONE_OPS)
+/** An attachment as it appears in structured output: the API's fields, minus its nulls. */
+export type OutputAttachment = z.infer<typeof AttachmentSchema>
+
 export type MarkDoneOp = (typeof MARK_DONE_OPS)[number]
 
 const MarkDoneOpErrorSchema = z.object({
@@ -723,6 +726,8 @@ export const ListConversationsOutputSchema = z.object({
         }),
     ),
     totalConversations: z.number(),
+    hasMore: z.boolean().optional(),
+    cursor: z.string().optional(),
 })
 
 /**

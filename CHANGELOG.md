@@ -1,3 +1,41 @@
+## [10.0.1](https://github.com/Doist/comms-mcp/compare/v10.0.0...v10.0.1) (2026-11-09)
+
+### Bug Fixes
+
+* report the package version as the server version ([#85](https://github.com/Doist/comms-mcp/issues/85)) ([8d50087](https://github.com/Doist/comms-mcp/commit/8d500871842474a2e4e882350d16c74e088a0d65))
+
+## [10.0.0](https://github.com/Doist/comms-mcp/compare/v9.0.0...v10.0.0) (2026-11-09)
+
+### ⚠ BREAKING CHANGES
+
+* share the host contract from @doist/mcp-core/host (#83)
+
+### Features
+
+* share the host contract from @doist/mcp-core/host ([#83](https://github.com/Doist/comms-mcp/issues/83)) ([b2c83e0](https://github.com/Doist/comms-mcp/commit/b2c83e051d20409600d1a312dabd0aa9e7701229))
+
+## [9.0.0](https://github.com/Doist/comms-mcp/compare/v8.2.1...v9.0.0) (2026-11-08)
+
+### ⚠ BREAKING CHANGES
+
+* build tool registration on @doist/mcp-core (#82)
+
+### Features
+
+* build tool registration on @doist/mcp-core ([#82](https://github.com/Doist/comms-mcp/issues/82)) ([3e42378](https://github.com/Doist/comms-mcp/commit/3e4237814dbd78c99fa8c5a408a99572589655a7))
+
+## [8.2.1](https://github.com/Doist/comms-mcp/compare/v8.2.0...v8.2.1) (2026-11-08)
+
+### Bug Fixes
+
+* keep tool arguments out of the error log ([#81](https://github.com/Doist/comms-mcp/issues/81)) ([6a19abc](https://github.com/Doist/comms-mcp/commit/6a19abc6feb6ae52d31811fa8c92ffdd5335f124))
+
+## [8.2.0](https://github.com/Doist/comms-mcp/compare/v8.1.2...v8.2.0) (2026-11-05)
+
+### Features
+
+* **list-conversations:** Find group chats by title ([#73](https://github.com/Doist/comms-mcp/issues/73)) ([bd57792](https://github.com/Doist/comms-mcp/commit/bd57792c65af55977e69bfa80891089e168d3992))
+
 ## [8.1.2](https://github.com/Doist/comms-mcp/compare/v8.1.1...v8.1.2) (2026-11-02)
 
 ### Performance Improvements

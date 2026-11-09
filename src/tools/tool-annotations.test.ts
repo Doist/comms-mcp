@@ -187,7 +187,7 @@ describe('Tool annotations', () => {
 
     beforeAll(() => {
         const registerToolSpy = vi.spyOn(McpServer.prototype, 'registerTool')
-        getMcpServer({ commsApiKey: 'test-token' })
+        getMcpServer({ token: 'test-token' })
 
         const calls = registerToolSpy.mock.calls as unknown as unknown[][]
         for (const [name, toolSpec] of calls) {

@@ -1,7 +1,6 @@
 import type { Channel, CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { resolveUsersWithLog } from '../utils/degrade.js'
 import { ListChannelsOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
@@ -124,10 +123,10 @@ const listChannels = {
         const { workspaceId, includeArchived = false } = args
         const result = await generateChannelsList(client, workspaceId, includeArchived)
 
-        return getToolOutput({
+        return {
             textContent: result.textContent,
             structuredContent: result.structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof ListChannelsOutputSchema.shape>
 

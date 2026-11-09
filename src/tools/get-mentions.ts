@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { degradeAllWithLog, resolveUsersWithLog } from '../utils/degrade.js'
 import { type GetMentionsOutput, GetMentionsOutputSchema } from '../utils/output-schemas.js'
 import { toRawSearchResults, toSearchResultItems } from '../utils/search-results.js'
@@ -153,10 +152,10 @@ const getMentions = {
             cursor: responseCursor,
         }
 
-        return getToolOutput({
+        return {
             textContent: lines.join('\n'),
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof GetMentionsOutputSchema.shape>
 

@@ -6,7 +6,6 @@ import {
 } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { UserStatusOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
 import { buildUserStatusResult } from '../utils/user-status.js'
@@ -207,7 +206,7 @@ const setUserStatus = {
                     `Comms accepted the clear but still reports a status; use ${ToolNames.GET_USER_STATUS} to see it.`,
                 )
             }
-            return getToolOutput(buildUserStatusResult(null, 'Status cleared'))
+            return buildUserStatusResult(null, 'Status cleared')
         }
 
         // The response carries the status Comms now holds, which is what gets reported.
@@ -222,7 +221,7 @@ const setUserStatus = {
                 `Comms accepted the status but reports a different one; use ${ToolNames.GET_USER_STATUS} to see it.`,
             )
         }
-        return getToolOutput(buildUserStatusResult(user.status, 'Status set'))
+        return buildUserStatusResult(user.status, 'Status set')
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof UserStatusOutputSchema.shape>
 

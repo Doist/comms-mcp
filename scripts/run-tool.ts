@@ -16,6 +16,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { CommsApi } from '@doist/comms-sdk'
+import type { ExecuteResult } from '@doist/mcp-core'
 import { config } from 'dotenv'
 import { buildLink } from '../src/tools/build-link.js'
 import { createChannel } from '../src/tools/create-channel.js'
@@ -50,10 +51,7 @@ type ExecutableTool = {
         // oxlint-disable-next-line @typescript-eslint/no-explicit-any -- tools have varying parameter schemas
         args: any,
         client: CommsApi,
-    ) => Promise<{
-        content?: Array<{ type: string; text: string }>
-        structuredContent?: unknown
-    }>
+    ) => ExecuteResult
 }
 
 const tools: Record<string, ExecutableTool> = {
@@ -167,9 +165,9 @@ async function main() {
     try {
         const result = await tool.execute(parsedArgs, client)
 
-        if (result.content?.[0]?.text) {
+        if (result.textContent) {
             console.log('\nText output:')
-            console.log(result.content[0].text)
+            console.log(result.textContent)
         }
 
         if (result.structuredContent) {

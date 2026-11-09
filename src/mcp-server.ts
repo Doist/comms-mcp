@@ -1,30 +1,13 @@
+import { createRequire } from 'node:module'
 import { CommsApi } from '@doist/comms-sdk'
+import type { McpServerOptions } from '@doist/mcp-core/host'
 import { McpServer } from '@modelcontextprotocol/server'
-import { registerTool } from './mcp-helpers.js'
-import { buildLink } from './tools/build-link.js'
-import { createChannel } from './tools/create-channel.js'
-import { createConversation } from './tools/create-conversation.js'
-import { createThread } from './tools/create-thread.js'
-import { deleteObject } from './tools/delete-object.js'
-import { fetchInbox } from './tools/fetch-inbox.js'
-import { getGroups } from './tools/get-groups.js'
-import { getMentions } from './tools/get-mentions.js'
-import { getUserStatus } from './tools/get-user-status.js'
-import { getUsers } from './tools/get-users.js'
-import { getWorkspaces } from './tools/get-workspaces.js'
-import { listChannels } from './tools/list-channels.js'
-import { listConversations } from './tools/list-conversations.js'
-import { loadConversation } from './tools/load-conversation.js'
-import { loadThread } from './tools/load-thread.js'
-import { markDone } from './tools/mark-done.js'
-import { markRead } from './tools/mark-read.js'
-import { react } from './tools/react.js'
-import { reply } from './tools/reply.js'
-import { searchContent } from './tools/search-content.js'
-import { setUserStatus } from './tools/set-user-status.js'
-import { updateChannel } from './tools/update-channel.js'
-import { updateObject } from './tools/update-object.js'
-import { userInfo } from './tools/user-info.js'
+import { registerTools } from './mcp-helpers.js'
+import { registeredTools } from './tool-registry.js'
+
+// Read at runtime: `tsc` compiles only `src/`, so the manifest can't be imported. From `src/`
+// in tests and from `dist/` once installed, it is one directory up either way.
+const { version } = createRequire(import.meta.url)('../package.json') as { version: string }
 
 const instructions = `
 ## Comms Communication Tools
@@ -41,7 +24,7 @@ You have access to comprehensive Comms management tools for team communication a
 
 - **fetch-inbox**: Use to fetch inbox threads for a workspace, along with unread conversations and counts. Supports archiveFilter values of active, archived, or all; use all when the user needs both open and done threads. Optionally set onlyUnread to focus on unread items.
 - **list-channels**: Use to discover channels in a workspace. Requires a workspace ID. Optionally set includeArchived to true to also list archived channels. Returns channel names, IDs, descriptions, visibility, archive status, and URLs.
-- **list-conversations**: Use to discover conversations (direct messages) in a workspace. Requires a workspace ID. Optionally set includeArchived to true to also list archived conversations. Returns conversation IDs, titles, a partial list of participant user IDs and names, archive status, last-active timestamps, snippets, and URLs.
+- **list-conversations**: Use to discover conversations (direct messages and group chats) in a workspace. Requires a workspace ID. Without searchText, returns the first page of conversations. Set searchText to find a group chat by title: it matches whole words in the titles of titled group chats only, so direct messages, untitled group chats, and participant names do not match. Its results are paged with limit and cursor, and a page can have fewer results than limit, so follow hasMore. Optionally set includeArchived to true to also list archived conversations. Returns conversation IDs, titles, a partial list of participant user IDs and names, archive status, last-active timestamps, snippets, and URLs.
 - **get-groups**: Use to discover group IDs in a workspace before notifying groups from tools that support group notifications. Requires a workspace ID. Optionally filter by group IDs or search text. Returns group IDs, names, and member counts (descriptions are never returned). Set includeMembers to true to also get each member's user ID, name, and email — use that to answer "who is in this group?" or to expand a group into individual recipients; leave it off when you only need IDs, since member lists make the response much longer.
 - **create-channel**: Use to create a channel in a workspace. Pass workspaceId, name, and optional description or public; omitting public creates a private channel. Pass numeric userIds to add initial members.
 - **update-channel**: Use to rename a channel or update its description/visibility. Pass channelId and at least one of name, description, or public. Pass description: null to clear the description.
@@ -85,13 +68,13 @@ Always provide clear context and maintain professional communication standards.
 
 /**
  * Create the MCP server.
- * @param commsApiKey - The API key for the Comms account.
+ * @param token - The user's Comms API token.
  * @param baseUrl - Optional base URL for the Comms API.
  * @returns the MCP server.
  */
-function getMcpServer({ commsApiKey, baseUrl }: { commsApiKey: string; baseUrl?: string }) {
+function getMcpServer({ token, baseUrl }: McpServerOptions) {
     const server = new McpServer(
-        { name: 'comms-mcp-server', version: '0.1.0' },
+        { name: 'comms-mcp-server', version },
         {
             capabilities: {
                 tools: { listChanged: true },
@@ -100,33 +83,9 @@ function getMcpServer({ commsApiKey, baseUrl }: { commsApiKey: string; baseUrl?:
         },
     )
 
-    const comms = new CommsApi(commsApiKey, { baseUrl })
+    const comms = new CommsApi(token, { baseUrl })
 
-    // Register tools
-    registerTool(userInfo, server, comms)
-    registerTool(getUserStatus, server, comms)
-    registerTool(setUserStatus, server, comms)
-    registerTool(getWorkspaces, server, comms)
-    registerTool(getUsers, server, comms)
-    registerTool(getGroups, server, comms)
-    registerTool(fetchInbox, server, comms)
-    registerTool(loadThread, server, comms)
-    registerTool(loadConversation, server, comms)
-    registerTool(searchContent, server, comms)
-    registerTool(getMentions, server, comms)
-    registerTool(buildLink, server, comms)
-    registerTool(createChannel, server, comms)
-    registerTool(updateChannel, server, comms)
-    registerTool(createThread, server, comms)
-    registerTool(createConversation, server, comms)
-    registerTool(updateObject, server, comms)
-    registerTool(deleteObject, server, comms)
-    registerTool(reply, server, comms)
-    registerTool(react, server, comms)
-    registerTool(markDone, server, comms)
-    registerTool(markRead, server, comms)
-    registerTool(listChannels, server, comms)
-    registerTool(listConversations, server, comms)
+    registerTools({ tools: registeredTools, server, client: comms })
 
     return server
 }

@@ -25,6 +25,14 @@ describe('normalizeAttachments', () => {
         expect(normalizeAttachments([1, 'a', null, [], undefined])).toBeUndefined()
     })
 
+    it('drops the null fields the API sends for absent values', () => {
+        expect(
+            normalizeAttachments([
+                { attachmentId: 'a', urlType: 'file', fileName: null, title: 'Notes', image: null },
+            ]),
+        ).toEqual([{ attachmentId: 'a', urlType: 'file', title: 'Notes' }])
+    })
+
     it('drops objects missing the required attachmentId / urlType fields', () => {
         expect(normalizeAttachments([{}])).toBeUndefined()
         expect(normalizeAttachments([new Date()])).toBeUndefined()

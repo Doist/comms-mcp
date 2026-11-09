@@ -1,7 +1,6 @@
 import { getFullCommsURL, type CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import {
     type UpdateCommentOutput,
     type UpdateMessageOutput,
@@ -199,10 +198,10 @@ const updateObject = {
                   ? await updateCommentBranch(args, client)
                   : await updateMessageBranch(args, client)
 
-        return getToolOutput({
+        return {
             textContent: branch.textContent,
             structuredContent: branch.structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof UpdateObjectOutputSchema.shape>
 

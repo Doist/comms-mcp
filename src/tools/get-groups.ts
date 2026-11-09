@@ -1,7 +1,6 @@
 import type { CommsApi } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import { degradeAllWithLog, degradeWithLog } from '../utils/degrade.js'
 import {
     type GetGroupsOutput,
@@ -163,10 +162,10 @@ const getGroups = {
             filteredGroups: filteredGroups.length,
         }
 
-        return getToolOutput({
+        return {
             textContent,
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof GetGroupsOutputSchema.shape>
 

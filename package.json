@@ -1,6 +1,6 @@
 {
     "name": "@doist/comms-mcp",
-    "version": "8.1.2",
+    "version": "10.0.1",
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -45,19 +45,25 @@
         "postbuild": "chmod +x dist/main.js",
         "start": "npm run build && npx @modelcontextprotocol/inspector node dist/main.js",
         "dev": "concurrently \"npx tsc --watch\" \"npx @modelcontextprotocol/inspector npx nodemon --quiet --watch dist --ext js --exec node dist/main.js\"",
-        "type-check": "npx tsc --noEmit",
-        "format:check": "oxlint src scripts *.config.js *.config.ts && oxfmt --check",
-        "format:fix": "oxlint src scripts *.config.js *.config.ts --fix && oxfmt",
-        "prepublishOnly": "npm run build && npm test"
+        "type-check": "npx tsc --noEmit && npx tsc --noEmit -p .agents/scripts",
+        "format:check": "oxlint src scripts .agents/scripts *.config.js *.config.ts && oxfmt --check",
+        "format:fix": "oxlint src scripts .agents/scripts *.config.js *.config.ts --fix && oxfmt",
+        "prepublishOnly": "npm run build && npm test",
+        "prepare": "lefthook install --reset-hooks-path",
+        "verify": "node .agents/scripts/verify.ts",
+        "tool": "tsx scripts/run-tool.ts",
+        "tool:list": "tsx scripts/run-tool.ts --list",
+        "review:worktree": "node .agents/scripts/review-worktree.ts"
     },
     "dependencies": {
-        "@doist/comms-sdk": "3.11.0",
+        "@doist/comms-sdk": "3.12.0",
+        "@doist/mcp-core": "0.3.0",
         "dotenv": "17.4.2",
         "p-limit": "6.2.0",
         "zod": "4.6.7"
     },
     "peerDependencies": {
-        "@modelcontextprotocol/server": "^2.0.0"
+        "@modelcontextprotocol/server": "^2.2.0"
     },
     "devDependencies": {
         "@modelcontextprotocol/client": "2.3.0",
@@ -67,11 +73,14 @@
         "@vitest/coverage-v8": "4.1.12",
         "concurrently": "10.0.6",
         "conventional-changelog-conventionalcommits": "9.3.1",
+        "gpt-tokenizer": "3.4.0",
+        "lefthook": "2.2.2",
         "nodemon": "3.1.14",
         "oxfmt": "0.72.0",
         "oxlint": "1.63.0",
         "rimraf": "6.1.3",
         "semantic-release": "25.0.3",
+        "tsx": "4.22.4",
         "typescript": "6.0.3",
         "vitest": "4.1.12"
     }

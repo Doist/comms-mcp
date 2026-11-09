@@ -1,15 +1,7 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import type {
-    CallToolResult,
-    McpServer,
-    StandardSchemaWithJSON,
-    ToolAnnotations,
-    ToolCallback,
-} from '@modelcontextprotocol/server'
-import { z } from 'zod'
-import type { CommsTool } from './comms-tool.js'
-import { formatToolTitle } from './utils/required-tool-annotations.js'
-import { removeNullFields } from './utils/sanitize-data.js'
+import { createToolRegistrar } from '@doist/mcp-core'
+import type { McpServer } from '@modelcontextprotocol/server'
+import type { AnyCommsTool } from './comms-tool.js'
 
 /**
  * Whether to return the structured content directly, vs. in the `content` part of the output.
@@ -18,8 +10,8 @@ import { removeNullFields } from './utils/sanitize-data.js'
  * supported by all clients. This flag controls whether we return the structured content using this
  * new feature of the MCP protocol or not.
  *
- * If `false`, the `structuredContent` will be returned as stringified JSON in one of the `content`
- * parts.
+ * If `false`, the `structuredContent` is also returned as stringified JSON in one of the `content`
+ * parts, ahead of the summary.
  *
  * Eventually we should be able to remove this, and change the code to always work with the
  * structured content returned directly, once most or all MCP clients support it.
@@ -27,147 +19,35 @@ import { removeNullFields } from './utils/sanitize-data.js'
 const USE_STRUCTURED_CONTENT =
     process.env.USE_STRUCTURED_CONTENT === 'true' || process.env.NODE_ENV === 'test'
 
-type CachedToolSchemas<Params extends z.ZodRawShape, Output extends z.ZodRawShape> = {
-    input: StandardSchemaWithJSON<z.input<z.ZodObject<Params>>, z.output<z.ZodObject<Params>>>
-    output: StandardSchemaWithJSON<z.input<z.ZodObject<Output>>, z.output<z.ZodObject<Output>>>
-}
-
-/** Tool schemas are static, so compile their JSON representation once per process. */
-const TOOL_SCHEMAS = new WeakMap<object, CachedToolSchemas<z.ZodRawShape, z.ZodRawShape>>()
-
-function withCachedJsonSchema<Shape extends z.ZodRawShape>(
-    schema: z.ZodObject<Shape>,
-    io: 'input' | 'output',
-): StandardSchemaWithJSON<z.input<z.ZodObject<Shape>>, z.output<z.ZodObject<Shape>>> {
-    const jsonSchema = z.toJSONSchema(schema, { target: 'draft-2020-12', io })
-    const standard = schema['~standard']
-
-    return {
-        '~standard': {
-            ...standard,
-            jsonSchema: {
-                ...standard.jsonSchema,
-                [io]: (options: Parameters<typeof standard.jsonSchema.input>[0]) =>
-                    options.target === 'draft-2020-12' && options.libraryOptions === undefined
-                        ? jsonSchema
-                        : standard.jsonSchema[io](options),
-            },
-        },
-    }
-}
-
-function getToolSchemas<Params extends z.ZodRawShape, Output extends z.ZodRawShape>(
-    tool: CommsTool<Params, Output>,
-): CachedToolSchemas<Params, Output> {
-    const cached = TOOL_SCHEMAS.get(tool)
-    if (cached) {
-        // The tool object identifies the same parameter and output types on every registration.
-        return cached as CachedToolSchemas<Params, Output>
-    }
-
-    const schemas = {
-        input: withCachedJsonSchema(z.object(tool.parameters), 'input'),
-        output: withCachedJsonSchema(z.object(tool.outputSchema), 'output'),
-    }
-    TOOL_SCHEMAS.set(tool, schemas)
-    return schemas
+function formatError(error: unknown): string {
+    return error instanceof Error ? error.message : 'An unknown error occurred'
 }
 
 /**
- * Get the output payload for a tool, in the correct format expected by MCP client apps.
+ * Registers Comms tools on an MCP server, bound to one Comms API client.
  *
- * @param textContent - The text content to return.
- * @param structuredContent - The structured content to return.
- * @returns The output payload.
- * @see USE_STRUCTURED_CONTENT - Whether to use the structured content feature of the MCP protocol.
+ * Schema caching, annotations, result shaping and turning a thrown error into an error result
+ * come from `@doist/mcp-core`; its default error log names the tool and never its arguments.
  */
-function getToolOutput<StructuredContent extends Record<string, unknown>>({
-    textContent,
-    structuredContent,
+function registerTools({
+    tools,
+    server,
+    client,
 }: {
-    textContent: string
-    structuredContent: StructuredContent
-}): CallToolResult {
-    // Remove null fields from structured content before returning
-    const sanitizedContent = removeNullFields(structuredContent)
+    tools: readonly AnyCommsTool[]
+    server: McpServer
+    client: CommsApi
+}): void {
+    const register = createToolRegistrar<CommsApi>({
+        titlePrefix: 'Comms',
+        createContext: () => client,
+        formatError,
+        structuredContentAsText: !USE_STRUCTURED_CONTENT,
+    })
 
-    // Always include structuredContent when available since all tools have outputSchema
-    const result: CallToolResult = {
-        content: [{ type: 'text' as const, text: textContent }],
-        structuredContent: sanitizedContent,
-    }
-
-    // Legacy support: also include JSON in content when USE_STRUCTURED_CONTENT is false
-    if (!USE_STRUCTURED_CONTENT) {
-        const json = JSON.stringify(sanitizedContent)
-        result.content.push({
-            type: 'text',
-            mimeType: 'application/json',
-            text: json,
-        } as CallToolResult['content'][number])
-    }
-
-    return result
-}
-
-function getErrorOutput(error: string): CallToolResult {
-    return {
-        content: [{ type: 'text' as const, text: error }],
-        isError: true,
+    for (const tool of tools) {
+        register(server, tool)
     }
 }
 
-/**
- * Build MCP ToolAnnotations for a tool.
- * @param tool - The tool information used for annotation generation.
- * @returns MCP annotations.
- */
-function getMcpAnnotations(tool: { name: string; annotations: ToolAnnotations }): ToolAnnotations {
-    const defaultAnnotations: ToolAnnotations = {
-        title: formatToolTitle(tool.name),
-        openWorldHint: false,
-    }
-
-    return { ...defaultAnnotations, ...tool.annotations }
-}
-
-/**
- * Register a Comms tool in an MCP server.
- * @param tool - The tool to register.
- * @param server - The server to register the tool on.
- * @param client - The Comms API client to use to execute the tool.
- */
-function registerTool<Params extends z.ZodRawShape, Output extends z.ZodRawShape = z.ZodRawShape>(
-    tool: CommsTool<Params, Output>,
-    server: McpServer,
-    client: CommsApi,
-) {
-    const { input: inputSchema, output: outputSchema } = getToolSchemas(tool)
-
-    const cb: ToolCallback<typeof inputSchema> = async (args, _context) => {
-        try {
-            const result = await tool.execute(args, client)
-            return result
-        } catch (error) {
-            console.error(`Error executing tool ${tool.name}:`, {
-                args,
-                error,
-            })
-            const message = error instanceof Error ? error.message : 'An unknown error occurred'
-            return getErrorOutput(message)
-        }
-    }
-
-    server.registerTool(
-        tool.name,
-        {
-            description: tool.description,
-            inputSchema,
-            outputSchema,
-            annotations: getMcpAnnotations(tool),
-        },
-        cb,
-    )
-}
-
-export { registerTool, getToolOutput }
+export { registerTools }

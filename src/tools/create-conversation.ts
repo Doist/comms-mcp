@@ -1,7 +1,6 @@
 import { getFullCommsURL } from '@doist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
-import { getToolOutput } from '../mcp-helpers.js'
 import {
     type CreateConversationOutput,
     CreateConversationOutputSchema,
@@ -87,10 +86,10 @@ const createConversation = {
             messageUrl,
         }
 
-        return getToolOutput({
+        return {
             textContent: lines.join('\n'),
             structuredContent,
-        })
+        }
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof CreateConversationOutputSchema.shape>
 
