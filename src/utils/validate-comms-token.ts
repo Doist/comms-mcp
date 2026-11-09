@@ -1,4 +1,4 @@
-import { type ValidateToken, validateBearerToken } from '@doist/mcp-core/host'
+import { type TokenValidationResult, validateBearerToken } from '@doist/mcp-core/host'
 
 /** Production Comms API base URL, used when no explicit base is given. */
 const DEFAULT_BASE_URL = 'https://comms.todoist.com'
@@ -14,5 +14,9 @@ const DEFAULT_BASE_URL = 'https://comms.todoist.com'
  * 5xx or a 404 from a misconfigured base URL, carrying it as `httpStatusCode`. Network and
  * timeout errors propagate unchanged.
  */
-export const validateCommsToken: ValidateToken = (token, baseUrl = DEFAULT_BASE_URL) =>
-    validateBearerToken({ url: `${baseUrl}/api/v1/users/get_session_user`, token })
+export function validateCommsToken(
+    token: string,
+    baseUrl: string = DEFAULT_BASE_URL,
+): Promise<TokenValidationResult> {
+    return validateBearerToken({ url: `${baseUrl}/api/v1/users/get_session_user`, token })
+}
