@@ -1,8 +1,13 @@
+import { createRequire } from 'node:module'
 import { CommsApi } from '@doist/comms-sdk'
 import type { McpServerOptions } from '@doist/mcp-core/host'
 import { McpServer } from '@modelcontextprotocol/server'
 import { registerTools } from './mcp-helpers.js'
 import { registeredTools } from './tool-registry.js'
+
+// Read at runtime: `tsc` compiles only `src/`, so the manifest can't be imported. From `src/`
+// in tests and from `dist/` once installed, it is one directory up either way.
+const { version } = createRequire(import.meta.url)('../package.json') as { version: string }
 
 const instructions = `
 ## Comms Communication Tools
@@ -67,7 +72,7 @@ Always provide clear context and maintain professional communication standards.
  */
 function getMcpServer({ token, baseUrl }: McpServerOptions) {
     const server = new McpServer(
-        { name: 'comms-mcp-server', version: '0.1.0' },
+        { name: 'comms-mcp-server', version },
         {
             capabilities: {
                 tools: { listChanged: true },
