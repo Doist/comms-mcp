@@ -116,8 +116,9 @@ const ALL_SCOPE = { scope: { mode: 'all' } } as const
 function buildStatus(status: StatusArgs, now: Date): SetStatusArgs {
     const { message, emoji, activeUntil, pauseNotifications, pauseActivity } = status
 
-    // The schema checks these, but a caller that skips it can send anything, and a value Comms
-    // accepts but the comparison below cannot read would fail only after the write applied.
+    // The schema checks these, but a caller that skips it can send anything. A message or emoji
+    // Comms accepts but the comparison below cannot read would fail only after the write applied,
+    // and a pause flag of "false" would read as true.
     if (typeof message !== 'string' || !message.trim()) {
         throw new Error(
             'status.message is required to set a status. Pass status: null to remove it.',
@@ -128,6 +129,11 @@ function buildStatus(status: StatusArgs, now: Date): SetStatusArgs {
     }
     if (activeUntil != null && typeof activeUntil !== 'string') {
         throw invalidActiveUntil(String(activeUntil))
+    }
+    for (const [flag, value] of Object.entries({ pauseNotifications, pauseActivity })) {
+        if (value != null && typeof value !== 'boolean') {
+            throw new Error(`status.${flag} must be true or false.`)
+        }
     }
 
     return {
@@ -161,11 +167,15 @@ function buildProfile(args: UpdateUserInfoArgs): UpdateUserArgs | null {
     return Object.keys(profile).length > 0 ? profile : null
 }
 
-// The profile field Comms reports differently from the one sent, if any.
-function differentProfileField(held: User, sent: UpdateUserArgs): ProfileField | undefined {
-    return (Object.keys(PROFILE_FIELDS) as ProfileField[]).find(
-        (field) => sent[field] !== undefined && held[PROFILE_FIELDS[field]] !== sent[field],
-    )
+// Comms may store a value in another form than it was sent, or report one it has not caught up
+// with yet, so a difference is reported beside the result rather than failing a write that applied.
+function profileDifferences(held: User, sent: UpdateUserArgs): string[] {
+    return (Object.keys(PROFILE_FIELDS) as ProfileField[])
+        .filter((field) => sent[field] !== undefined && held[PROFILE_FIELDS[field]] !== sent[field])
+        .map(
+            (field) =>
+                `Comms reports ${field} as "${held[PROFILE_FIELDS[field]]}", not "${sent[field]}"; use ${ToolNames.USER_INFO} to check it.`,
+        )
 }
 
 const SCOPE_HINTS: Record<number, string> = {
@@ -222,24 +232,18 @@ function sameStatus(held: UserStatus, sent: SetStatusArgs): boolean {
     )
 }
 
-/** Updates the profile, then checks the user Comms returns holds what was asked for. */
+/** Updates the profile, and lists any field Comms reports differently from the one sent. */
 async function writeProfile(
     client: CommsApi,
     profile: UpdateUserArgs,
     statusPending: boolean,
-): Promise<User> {
-    // The status is only sent once the profile change is known to have applied.
+): Promise<{ user: User; differences: string[] }> {
+    // The status is only sent once Comms has accepted the profile change.
     const notSent = statusPending ? ' The status change was not sent.' : ''
     const user = await client.users.update(profile).catch((error: unknown) => {
         throw new Error(`${explainWriteFailure(error, 'profile').message}${notSent}`)
     })
-    const field = differentProfileField(user, profile)
-    if (field) {
-        throw new Error(
-            `Comms accepted the profile change but reports a different ${field}; use ${ToolNames.USER_INFO} to see it.${notSent}`,
-        )
-    }
-    return user
+    return { user, differences: profileDifferences(user, profile) }
 }
 
 /** Sets or clears the status, then checks the user Comms returns holds what was asked for. */
@@ -269,9 +273,9 @@ async function writeStatus(client: CommsApi, status: SetStatusArgs | null): Prom
 }
 
 /**
- * The user to report, each part from the write that checked it. After a profile-only update the
- * status is read back when the response leaves it out, because a missing status is not the same
- * as none.
+ * The user to report: the profile from its own write and the status from the status write, which
+ * is the one that checked it. After a profile-only update the status is read back when the
+ * response leaves it out, because a missing status is not the same as none.
  */
 async function reportedUser(
     client: CommsApi,
@@ -279,8 +283,7 @@ async function reportedUser(
     statusUser: User | undefined,
 ): Promise<User> {
     if (profileUser && statusUser) {
-        const { fullName, timezone, lang } = profileUser
-        return { ...statusUser, fullName, timezone, lang }
+        return { ...profileUser, status: statusUser.status }
     }
     if (statusUser) {
         return statusUser
@@ -292,7 +295,7 @@ async function reportedUser(
     const current = await client.users.getSessionUser().catch((error: unknown) => {
         const detail = error instanceof Error ? error.message : String(error)
         throw new Error(
-            `The profile change applied, but reading the status back failed: ${detail}. Use ${ToolNames.USER_INFO} to check it.`,
+            `Comms accepted the profile change, but reading the status back failed: ${detail}. Use ${ToolNames.USER_INFO} to check it.`,
         )
     })
     return { ...user, status: current.status }
@@ -318,7 +321,7 @@ const updateUserInfo = {
             )
         }
 
-        const profileUser = profile
+        const profileWrite = profile
             ? await writeProfile(client, profile, status !== undefined)
             : undefined
         const statusUser =
@@ -330,13 +333,16 @@ const updateUserInfo = {
                       }
                       const message = error instanceof Error ? error.message : String(error)
                       // The status failure may itself be unconfirmed, so this claims nothing about it.
-                      throw new Error(`The profile change applied. ${message}`)
+                      throw new Error(`Comms accepted the profile change. ${message}`)
                   })
 
-        const result = buildUserInfoResult(await reportedUser(client, profileUser, statusUser))
+        const result = buildUserInfoResult(
+            await reportedUser(client, profileWrite?.user, statusUser),
+        )
         const changed = [...Object.keys(profile ?? {}), ...(status !== undefined ? ['status'] : [])]
+        const summary = [`Updated: ${changed.join(', ')}`, ...(profileWrite?.differences ?? [])]
         return {
-            textContent: `Updated: ${changed.join(', ')}\n\n${result.textContent}`,
+            textContent: `${summary.join('\n')}\n\n${result.textContent}`,
             structuredContent: result.structuredContent,
         }
     },

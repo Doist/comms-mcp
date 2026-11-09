@@ -133,37 +133,37 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
             expect(extractStructuredContent(result)).not.toHaveProperty('status')
         })
 
-        it('says the profile applied when reading the status back fails', async () => {
+        it('says Comms accepted the profile when reading the status back fails', async () => {
             mockCommsApi.users.getSessionUser.mockRejectedValue(new Error('fetch failed'))
 
             await expect(updateUserInfo.execute({ name: 'Ada' }, mockCommsApi)).rejects.toThrow(
                 exactly(
-                    `The profile change applied, but reading the status back failed: fetch failed. Use ${USER_INFO} to check it.`,
+                    `Comms accepted the profile change, but reading the status back failed: fetch failed. Use ${USER_INFO} to check it.`,
                 ),
             )
         })
 
-        it('fails when Comms accepts the profile but reports a different field', async () => {
+        it('notes a field Comms reports differently, rather than failing a write it accepted', async () => {
             mockCommsApi.users.update.mockResolvedValue(createMockUser({ lang: 'en' }))
 
-            await expect(updateUserInfo.execute({ lang: 'pt' }, mockCommsApi)).rejects.toThrow(
-                exactly(
-                    `Comms accepted the profile change but reports a different lang; use ${USER_INFO} to see it.`,
-                ),
+            const result = await updateUserInfo.execute({ lang: 'pt' }, mockCommsApi)
+
+            expect(extractTextContent(result)).toMatch(
+                /^Updated: lang\nComms reports lang as "en", not "pt"; use user-info to check it\.\n\n# User Information/,
             )
+            expect(extractStructuredContent(result).lang).toBe('en')
         })
 
-        it('does not send the status after a profile Comms reports differently', async () => {
+        it('still sends the status after a profile Comms reports differently', async () => {
             mockCommsApi.users.update.mockResolvedValue(createMockUser({ fullName: 'Old Name' }))
+            mockCommsApi.users.clearStatus.mockResolvedValue(createMockUser({ status: null }))
 
-            await expect(
-                updateUserInfo.execute({ name: 'Ada', status: null }, mockCommsApi),
-            ).rejects.toThrow(
-                exactly(
-                    `Comms accepted the profile change but reports a different name; use ${USER_INFO} to see it. The status change was not sent.`,
-                ),
+            const result = await updateUserInfo.execute({ name: 'Ada', status: null }, mockCommsApi)
+
+            expect(mockCommsApi.users.clearStatus).toHaveBeenCalledWith()
+            expect(extractTextContent(result)).toMatch(
+                /^Updated: name, status\nComms reports name as "Old Name", not "Ada"; use user-info to check it\.\n\n/,
             )
-            expect(mockCommsApi.users.clearStatus).not.toHaveBeenCalled()
         })
 
         it.each([
@@ -201,6 +201,10 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
         })
 
         it('updates the profile first, then the status, and reports both', async () => {
+            mockCommsApi.users.update.mockResolvedValue(
+                createMockUser({ fullName: 'Ada', shortName: 'Ada' }),
+            )
+
             const result = await updateUserInfo.execute(
                 { name: 'Ada', status: { message: 'Away' } },
                 mockCommsApi,
@@ -211,8 +215,11 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
             )
             expect(extractTextContent(result)).toMatch(/^Updated: name, status\n\n/)
             expect(statusOf(result)).toEqual(expect.objectContaining({ message: 'Away' }))
-            // The status response carries the default name; the profile is taken from its own write.
-            expect(extractStructuredContent(result).name).toBe('Ada')
+            // The status response carries the default user; the profile is taken from its own write,
+            // short name included, so the two never mix.
+            expect(extractStructuredContent(result)).toEqual(
+                expect.objectContaining({ name: 'Ada', shortName: 'Ada' }),
+            )
         })
 
         it('updates the profile and clears the status in one call', async () => {
@@ -235,7 +242,7 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
                 updateUserInfo.execute({ name: 'Ada', status: { message: 'Away' } }, mockCommsApi),
             ).rejects.toThrow(
                 exactly(
-                    `The profile change applied. Comms accepted the status but reports a different one; use ${USER_INFO} to see it.`,
+                    `Comms accepted the profile change. Comms accepted the status but reports a different one; use ${USER_INFO} to see it.`,
                 ),
             )
         })
@@ -269,7 +276,7 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
             await expect(
                 updateUserInfo.execute({ name: 'Ada', status: { message: 'Away' } }, mockCommsApi),
             ).rejects.toThrow(
-                'The profile change applied. Comms refused to change the status (HTTP 403).',
+                'Comms accepted the profile change. Comms refused to change the status (HTTP 403).',
             )
         })
 
@@ -470,6 +477,16 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
         expect(mockCommsApi.users.update).not.toHaveBeenCalled()
         expect(mockCommsApi.users.setStatus).not.toHaveBeenCalled()
     })
+
+    it.each(['pauseNotifications', 'pauseActivity'])(
+        'refuses a %s that is not true or false before writing anything',
+        async (flag) => {
+            await expect(
+                setStatus({ message: 'Away', [flag]: 'false' } as unknown as StatusInput),
+            ).rejects.toThrow(exactly(`status.${flag} must be true or false.`))
+            expect(mockCommsApi.users.setStatus).not.toHaveBeenCalled()
+        },
+    )
 
     it('reads an activeUntil of null as no end, as the SDK does', async () => {
         await setStatus({ message: 'Away', activeUntil: null } as unknown as StatusInput)
