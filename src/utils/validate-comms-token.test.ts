@@ -1,6 +1,13 @@
+import { readFileSync } from 'node:fs'
 import { TokenValidationError } from '@doist/mcp-core/host'
 import { vi } from 'vitest'
 import { validateCommsToken } from './validate-comms-token.js'
+
+const packageVersion = (
+    JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')) as {
+        version: string
+    }
+).version
 
 describe('validateCommsToken', () => {
     afterEach(() => {
@@ -32,6 +39,25 @@ describe('validateCommsToken', () => {
             authorization: 'Bearer tok',
             // validateBearerToken's 5 s AbortSignal.timeout, the bound this validator always had.
             signal: expect.any(AbortSignal),
+        })
+    })
+
+    test('tags the request with the usage-tracking headers, as auth:validate-token', async () => {
+        const fn = stubFetch(200)
+
+        await validateCommsToken('tok', 'https://comms.test')
+        const [, init] = fn.mock.calls[0] as unknown as [string, RequestInit]
+        const headers = new Headers(init.headers)
+        expect({
+            userAgent: headers.get('user-agent'),
+            doistPlatform: headers.get('doist-platform'),
+            doistVersion: headers.get('doist-version'),
+            mcpTool: headers.get('mcp-tool'),
+        }).toEqual({
+            userAgent: `comms-mcp/${packageVersion}`,
+            doistPlatform: 'mcp',
+            doistVersion: packageVersion,
+            mcpTool: 'auth:validate-token',
         })
     })
 
