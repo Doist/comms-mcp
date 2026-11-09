@@ -7,5 +7,5 @@ import { registeredTools } from './tool-registry.js'
 // exercised across servers too.
 describeAdvertisedToolSchemas({
     tools: registeredTools,
-    createServer: () => getMcpServer({ commsApiKey: 'test-token' }),
+    createServer: () => getMcpServer({ token: 'test-token' }),
 })

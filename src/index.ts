@@ -49,9 +49,8 @@ const tools = {
 }
 
 export { tools, getMcpServer, validateCommsToken }
-export type { CommsTokenValidationResult } from './utils/validate-comms-token.js'
-// Re-exported so consumers can catch the documented throw type of
-// validateCommsToken without taking a direct @doist/comms-sdk dependency.
+// Re-exported so consumers of the exported tools can catch the API's errors without taking a
+// direct @doist/comms-sdk dependency.
 export { CommsRequestError } from '@doist/comms-sdk'
 
 export {

@@ -57,7 +57,7 @@
     },
     "dependencies": {
         "@doist/comms-sdk": "3.12.0",
-        "@doist/mcp-core": "0.1.1",
+        "@doist/mcp-core": "0.2.0",
         "dotenv": "17.4.2",
         "p-limit": "6.2.0",
         "zod": "4.6.7"

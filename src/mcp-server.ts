@@ -1,4 +1,5 @@
 import { CommsApi } from '@doist/comms-sdk'
+import type { McpServerOptions } from '@doist/mcp-core/host'
 import { McpServer } from '@modelcontextprotocol/server'
 import { registerTools } from './mcp-helpers.js'
 import { registeredTools } from './tool-registry.js'
@@ -60,11 +61,11 @@ Always provide clear context and maintain professional communication standards.
 
 /**
  * Create the MCP server.
- * @param commsApiKey - The API key for the Comms account.
+ * @param token - The user's Comms API token.
  * @param baseUrl - Optional base URL for the Comms API.
  * @returns the MCP server.
  */
-function getMcpServer({ commsApiKey, baseUrl }: { commsApiKey: string; baseUrl?: string }) {
+function getMcpServer({ token, baseUrl }: McpServerOptions) {
     const server = new McpServer(
         { name: 'comms-mcp-server', version: '0.1.0' },
         {
@@ -75,7 +76,7 @@ function getMcpServer({ commsApiKey, baseUrl }: { commsApiKey: string; baseUrl?:
         },
     )
 
-    const comms = new CommsApi(commsApiKey, { baseUrl })
+    const comms = new CommsApi(token, { baseUrl })
 
     registerTools({ tools: registeredTools, server, client: comms })
 
