@@ -16,6 +16,10 @@ function tokens(text: string): number {
     return encode(text).length
 }
 
+function pad(value: string | number, width: number): string {
+    return String(value).padStart(width)
+}
+
 // What a client receives, read from a running server, so nothing here restates how
 // registration titles a tool or compiles its schemas.
 async function readAdvertisedSurface() {
@@ -25,7 +29,7 @@ async function readAdvertisedSurface() {
     await Promise.all([server.connect(serverTransport), client.connect(clientTransport)])
     try {
         const { tools } = await client.listTools()
-        return { tools, instructions: client.getInstructions() ?? '' }
+        return { tools, instructions: client.getInstructions() }
     } finally {
         await client.close()
         await server.close()
@@ -35,7 +39,9 @@ async function readAdvertisedSurface() {
 describe('token footprint', () => {
     it('keeps the tools/list payload and instructions within the budget', async () => {
         const { tools, instructions } = await readAdvertisedSurface()
+        // Both halves of the fixed cost must be there: a lost block would read as a saving.
         expect(tools).toHaveLength(registeredTools.length)
+        expect(instructions).toEqual(expect.stringMatching(/\S/))
 
         const rows = tools
             .map((tool) => ({
@@ -46,11 +52,11 @@ describe('token footprint', () => {
                 outputSchema: tool.outputSchema ? tokens(JSON.stringify(tool.outputSchema)) : 0,
             }))
             .sort((a, b) => b.total - a.total)
-        const toolsList = rows.reduce((sum, row) => sum + row.total, 0)
-        const instructionsTokens = tokens(instructions)
+        // One JSON array on the wire: the per-tool rows above are only the breakdown.
+        const toolsList = tokens(JSON.stringify(tools))
+        const instructionsTokens = tokens(instructions ?? '')
         const combined = toolsList + instructionsTokens
 
-        const pad = (value: string | number, width: number) => String(value).padStart(width)
         console.log(
             [
                 '',

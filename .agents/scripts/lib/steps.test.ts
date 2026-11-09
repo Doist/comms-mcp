@@ -117,6 +117,7 @@ describe('dropNonCiEnv', () => {
         const env: NodeJS.ProcessEnv = {
             COMMS_API_KEY: 'x',
             USE_STRUCTURED_CONTENT: 'true',
+            MCP_TOKEN_BUDGET: '99999',
             PATH: '/bin',
         }
         const lines: string[] = []
@@ -125,6 +126,7 @@ describe('dropNonCiEnv', () => {
         expect(lines).toEqual([
             'Ignoring COMMS_API_KEY: CI does not set it.',
             'Ignoring USE_STRUCTURED_CONTENT: CI does not set it.',
+            'Ignoring MCP_TOKEN_BUDGET: CI does not set it.',
         ])
     })
 })

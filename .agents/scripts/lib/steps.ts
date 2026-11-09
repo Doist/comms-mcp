@@ -48,6 +48,8 @@ export const NON_CI_ENV = [
     'COMMS_BASE_URL',
     'COMMS_CREATE_THREAD_DISPLAY_IN_INBOX',
     'USE_STRUCTURED_CONTENT',
+    // Overrides the token budget in src/token-footprint.test.ts, which CI always enforces.
+    'MCP_TOKEN_BUDGET',
 ]
 
 /** Removes NON_CI_ENV from `env`, and says which ones it removed. */
