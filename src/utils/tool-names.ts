@@ -1,7 +1,6 @@
 export const ToolNames = {
     USER_INFO: 'user-info',
-    GET_USER_STATUS: 'get-user-status',
-    SET_USER_STATUS: 'set-user-status',
+    UPDATE_USER_INFO: 'update-user-info',
     FETCH_INBOX: 'fetch-inbox',
     LOAD_THREAD: 'load-thread',
     LOAD_CONVERSATION: 'load-conversation',

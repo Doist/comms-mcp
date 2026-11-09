@@ -1,7 +1,7 @@
 import type { UserStatus } from '@doist/comms-sdk'
-import type { UserStatusOutput } from './output-schemas.js'
+import type { UserInfoOutput } from './output-schemas.js'
 
-type StatusOutput = NonNullable<UserStatusOutput['status']>
+type StatusOutput = NonNullable<UserInfoOutput['status']>
 
 // Comms sends RFC 3339, but an end that fails to parse is still worth showing, so it is reported as
 // sent. A set never gets this far with one: it fails the comparison with the end it asked for.
@@ -21,32 +21,22 @@ function toStatusOutput(status: UserStatus): StatusOutput {
     }
 }
 
-function buildUserStatusResult(
-    status: UserStatus | null | undefined,
-    heading: string,
-): { textContent: string; structuredContent: UserStatusOutput } {
+/** The status lines of a user-info text, in the same `**Label:** value` form as the rest. */
+function describeStatus(status: StatusOutput | undefined): string[] {
     if (!status) {
-        return {
-            textContent: `${heading}: none`,
-            structuredContent: { type: 'user_status', hasStatus: false },
-        }
+        return ['**Status:** none']
     }
 
-    const output = toStatusOutput(status)
-    const lines = [`${heading}: ${output.emoji ? `${output.emoji} ` : ''}${output.message}`]
-    lines.push(output.activeUntil ? `Until: ${output.activeUntil}` : 'Until: no end')
+    const lines = [`**Status:** ${status.emoji ? `${status.emoji} ` : ''}${status.message}`]
+    lines.push(`**Status Until:** ${status.activeUntil ?? 'no end'}`)
     const effects = [
-        output.pauseNotifications ? 'Comms notifications paused' : undefined,
-        output.pauseActivity ? 'Karma and streaks paused' : undefined,
+        status.pauseNotifications ? 'Comms notifications paused' : undefined,
+        status.pauseActivity ? 'Karma and streaks paused' : undefined,
     ].filter((effect): effect is string => effect !== undefined)
     if (effects.length > 0) {
-        lines.push(`Effects: ${effects.join(', ')}`)
+        lines.push(`**Status Effects:** ${effects.join(', ')}`)
     }
-
-    return {
-        textContent: lines.join('\n'),
-        structuredContent: { type: 'user_status', hasStatus: true, status: output },
-    }
+    return lines
 }
 
-export { buildUserStatusResult }
+export { describeStatus, toStatusOutput }

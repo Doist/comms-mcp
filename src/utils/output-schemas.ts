@@ -328,7 +328,7 @@ export const GetGroupsOutputSchema = z.object({
 })
 
 /**
- * Schema for user-info tool output. `name` mirrors `User.fullName`.
+ * Schema for user-info and update-user-info tool output. `name` mirrors `User.fullName`.
  */
 export const UserInfoOutputSchema = z.object({
     type: z.literal('user_info'),
@@ -338,14 +338,6 @@ export const UserInfoOutputSchema = z.object({
     email: z.string(),
     timezone: z.string(),
     lang: z.string(),
-})
-
-/**
- * Schema for get-user-status and set-user-status tool output
- */
-export const UserStatusOutputSchema = z.object({
-    type: z.literal('user_status'),
-    hasStatus: z.boolean(),
     status: z
         .object({
             message: z.string(),
@@ -358,7 +350,7 @@ export const UserStatusOutputSchema = z.object({
             pauseActivity: z.boolean().describe('Karma and streaks paused.'),
         })
         .optional()
-        .describe('Omitted when there is no active status.'),
+        .describe('Shared with Todoist. Omitted when there is no active status.'),
 })
 
 /**
@@ -742,7 +734,6 @@ export const StructuredOutputSchema = z.union([
     GetUsersOutputSchema,
     GetGroupsOutputSchema,
     UserInfoOutputSchema,
-    UserStatusOutputSchema,
     BuildLinkOutputSchema,
     CreateChannelOutputSchema,
     UpdateChannelOutputSchema,
@@ -801,7 +792,6 @@ export type GetUsersOutput = z.infer<typeof GetUsersOutputSchema>
 export type GetGroupsOutput = z.infer<typeof GetGroupsOutputSchema>
 export type GroupMember = z.infer<typeof GroupMemberSchema>
 export type UserInfoOutput = z.infer<typeof UserInfoOutputSchema>
-export type UserStatusOutput = z.infer<typeof UserStatusOutputSchema>
 export type BuildLinkOutput = z.infer<typeof BuildLinkOutputSchema>
 export type ReplyOutput = z.infer<typeof ReplyOutputSchema>
 export type ReactOutput = z.infer<typeof ReactOutputSchema>

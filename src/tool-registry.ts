@@ -7,7 +7,6 @@ import { deleteObject } from './tools/delete-object.js'
 import { fetchInbox } from './tools/fetch-inbox.js'
 import { getGroups } from './tools/get-groups.js'
 import { getMentions } from './tools/get-mentions.js'
-import { getUserStatus } from './tools/get-user-status.js'
 import { getUsers } from './tools/get-users.js'
 import { getWorkspaces } from './tools/get-workspaces.js'
 import { listChannels } from './tools/list-channels.js'
@@ -19,16 +18,15 @@ import { markRead } from './tools/mark-read.js'
 import { react } from './tools/react.js'
 import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
-import { setUserStatus } from './tools/set-user-status.js'
 import { updateChannel } from './tools/update-channel.js'
 import { updateObject } from './tools/update-object.js'
+import { updateUserInfo } from './tools/update-user-info.js'
 import { userInfo } from './tools/user-info.js'
 
 /** Every tool the MCP server registers, in registration order. */
 export const registeredTools: readonly AnyCommsTool[] = [
     userInfo,
-    getUserStatus,
-    setUserStatus,
+    updateUserInfo,
     getWorkspaces,
     getUsers,
     getGroups,

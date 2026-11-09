@@ -26,7 +26,6 @@ import { deleteObject } from '../src/tools/delete-object.js'
 import { fetchInbox } from '../src/tools/fetch-inbox.js'
 import { getGroups } from '../src/tools/get-groups.js'
 import { getMentions } from '../src/tools/get-mentions.js'
-import { getUserStatus } from '../src/tools/get-user-status.js'
 import { getUsers } from '../src/tools/get-users.js'
 import { getWorkspaces } from '../src/tools/get-workspaces.js'
 import { listChannels } from '../src/tools/list-channels.js'
@@ -38,9 +37,9 @@ import { markRead } from '../src/tools/mark-read.js'
 import { react } from '../src/tools/react.js'
 import { reply } from '../src/tools/reply.js'
 import { searchContent } from '../src/tools/search-content.js'
-import { setUserStatus } from '../src/tools/set-user-status.js'
 import { updateChannel } from '../src/tools/update-channel.js'
 import { updateObject } from '../src/tools/update-object.js'
+import { updateUserInfo } from '../src/tools/update-user-info.js'
 import { userInfo } from '../src/tools/user-info.js'
 
 // Define a minimal type for tool execution that works with any tool
@@ -56,8 +55,7 @@ type ExecutableTool = {
 
 const tools: Record<string, ExecutableTool> = {
     'user-info': userInfo,
-    'get-user-status': getUserStatus,
-    'set-user-status': setUserStatus,
+    'update-user-info': updateUserInfo,
     'fetch-inbox': fetchInbox,
     'load-thread': loadThread,
     'load-conversation': loadConversation,

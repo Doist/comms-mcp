@@ -1,24 +1,19 @@
-import type { CommsApi } from '@doist/comms-sdk'
+import type { User } from '@doist/comms-sdk'
 import type { CommsTool } from '../comms-tool.js'
-import { UserInfoOutputSchema } from '../utils/output-schemas.js'
+import { UserInfoOutputSchema, type UserInfoOutput } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
+import { describeStatus, toStatusOutput } from '../utils/user-status.js'
 
 const ArgsSchema = {}
 
-type UserInfoStructured = Record<string, unknown> & {
-    type: 'user_info'
-    userId: number
-    name: string
-    shortName: string
-    email: string
-    timezone: string
-    lang: string
-}
+type UserInfoStructured = Record<string, unknown> & UserInfoOutput
 
-async function generateUserInfo(
-    client: CommsApi,
-): Promise<{ textContent: string; structuredContent: UserInfoStructured }> {
-    const user = await client.users.getSessionUser()
+/** The user-info result for a user, shared with update-user-info so both report the same way. */
+function buildUserInfoResult(user: User): {
+    textContent: string
+    structuredContent: UserInfoStructured
+} {
+    const status = user.status ? toStatusOutput(user.status) : undefined
 
     const lines: string[] = [
         '# User Information',
@@ -29,9 +24,8 @@ async function generateUserInfo(
         `**Email:** ${user.email}`,
         `**Timezone:** ${user.timezone}`,
         `**Language:** ${user.lang}`,
+        ...describeStatus(status),
     ]
-
-    const textContent = lines.join('\n')
 
     const structuredContent: UserInfoStructured = {
         type: 'user_info',
@@ -41,26 +35,23 @@ async function generateUserInfo(
         email: user.email,
         timezone: user.timezone,
         lang: user.lang,
+        ...(status ? { status } : {}),
     }
 
-    return { textContent, structuredContent }
+    return { textContent: lines.join('\n'), structuredContent }
 }
 
 const userInfo = {
     name: ToolNames.USER_INFO,
     description:
-        'Get information about the authenticated Comms user: user ID, full name, short name, email, timezone, and language.',
+        'Get information about the authenticated Comms user: user ID, full name, short name, email, timezone, language, and the status shown next to their name in Comms and Todoist.',
     parameters: ArgsSchema,
     outputSchema: UserInfoOutputSchema.shape,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
     async execute(_args, client) {
-        const result = await generateUserInfo(client)
-
-        return {
-            textContent: result.textContent,
-            structuredContent: result.structuredContent,
-        }
+        const user = await client.users.getSessionUser()
+        return buildUserInfoResult(user)
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof UserInfoOutputSchema.shape>
 
-export { userInfo, type UserInfoStructured }
+export { buildUserInfoResult, userInfo, type UserInfoStructured }

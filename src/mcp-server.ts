@@ -35,8 +35,7 @@ You have access to comprehensive Comms management tools for team communication a
 - **get-mentions**: Use to fetch threads, comments, and messages that mention the current user. Prefer this over search-content when no keyword query is needed (search-content requires a non-empty query). Supports filtering by channel, author, and date range, and exposes a cursor for pagination.
 - **update-object**: Use to edit something you previously sent. Pass targetType ("thread", "comment", or "message"), targetId, and the new content. For threads you may also pass title (and may pass title without content). title is only valid for threads.
 - **delete-object**: Use to permanently delete a thread, comment, or conversation message. Pass targetType ("thread", "comment", or "message") and targetId. Deletion is irreversible — confirm with the user before invoking. Deleting a thread also removes all of its comments. Only the object's creator or a workspace admin can delete; the Comms API will reject the call otherwise.
-- **get-user-status**: Use to read the user's status, which is shared with Todoist and shows in both apps. Returns no status when none is set or it has expired.
-- **set-user-status**: Use to set or clear the user's status. It replaces the whole status, so pass every part the user wants to keep, and call get-user-status first when they only want to change one part. Pass clear: true to remove it. pauseNotifications holds back Comms notifications while the status is active, and they are not sent later.
+- **update-user-info**: A status given replaces the whole status, so call user-info first when the user only wants to change part of it. Pass status: null to remove it.
 
 ### Writing Content (threads, comments, and messages):
 

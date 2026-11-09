@@ -1,5 +1,6 @@
 import type { CommsApi } from '@doist/comms-sdk'
 import { vi } from 'vitest'
+import { UserInfoOutputSchema } from '../utils/output-schemas.js'
 import {
     createMockUser,
     extractStructuredContent,
@@ -73,6 +74,63 @@ describe(`${USER_INFO} tool`, () => {
 
         const structuredContent = extractStructuredContent(result)
         expect(structuredContent.timezone).toBe('America/New_York')
+    })
+
+    it('reports the active status with its end and effects', async () => {
+        mockCommsApi.users.getSessionUser.mockResolvedValue(
+            createMockUser({
+                status: {
+                    message: 'On holiday',
+                    emoji: '🏝️',
+                    activeUntil: '2026-11-10T07:00:00Z',
+                    effects: { pauseNotifications: { scope: { mode: 'all' } } },
+                },
+            }),
+        )
+
+        const result = await userInfo.execute({}, mockCommsApi)
+
+        expect(extractTextContent(result)).toMatch(
+            /\*\*Language:\*\* en\n\*\*Status:\*\* 🏝️ On holiday\n\*\*Status Until:\*\* 2026-11-10T07:00:00\.000Z\n\*\*Status Effects:\*\* Comms notifications paused$/,
+        )
+        const structured = extractStructuredContent(result)
+        expect(structured.status).toStrictEqual({
+            message: 'On holiday',
+            emoji: '🏝️',
+            activeUntil: '2026-11-10T07:00:00.000Z',
+            pauseNotifications: true,
+            pauseActivity: false,
+        })
+        expect(UserInfoOutputSchema.safeParse(structured).success).toBe(true)
+    })
+
+    it('reports an end it cannot read as sent, rather than failing', async () => {
+        mockCommsApi.users.getSessionUser.mockResolvedValue(
+            createMockUser({ status: { message: 'Away', activeUntil: 'tomorrow' } }),
+        )
+
+        const result = await userInfo.execute({}, mockCommsApi)
+
+        expect(extractStructuredContent(result).status).toStrictEqual({
+            message: 'Away',
+            activeUntil: 'tomorrow',
+            pauseNotifications: false,
+            pauseActivity: false,
+        })
+    })
+
+    it.each([
+        ['missing', {}],
+        ['null', { status: null }],
+    ])('reports no status when it is %s', async (_label, overrides) => {
+        mockCommsApi.users.getSessionUser.mockResolvedValue(createMockUser(overrides))
+
+        const result = await userInfo.execute({}, mockCommsApi)
+
+        expect(extractTextContent(result)).toMatch(/\*\*Status:\*\* none$/)
+        const structured = extractStructuredContent(result)
+        expect(structured).not.toHaveProperty('status')
+        expect(UserInfoOutputSchema.safeParse(structured).success).toBe(true)
     })
 
     it('should propagate API errors', async () => {
