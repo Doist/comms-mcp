@@ -2,6 +2,7 @@ import type { CommsApi } from '@doist/comms-sdk'
 import { createToolRegistrar } from '@doist/mcp-core'
 import type { McpServer } from '@modelcontextprotocol/server'
 import type { AnyCommsTool } from './comms-tool.js'
+import { runAsTool } from './usage-tracking.js'
 
 /**
  * Whether to return the structured content directly, vs. in the `content` part of the output.
@@ -28,6 +29,8 @@ function formatError(error: unknown): string {
  *
  * Schema caching, annotations, result shaping and turning a thrown error into an error result
  * come from `@doist/mcp-core`; its default error log names the tool and never its arguments.
+ * Each call runs as its tool (`runAsTool`), so the requests it makes carry the tool's name in
+ * their usage-tracking headers.
  */
 function registerTools({
     tools,
@@ -41,6 +44,7 @@ function registerTools({
     const register = createToolRegistrar<CommsApi>({
         titlePrefix: 'Comms',
         createContext: () => client,
+        wrapExecute: (tool, run) => runAsTool(tool.name, run),
         formatError,
         structuredContentAsText: !USE_STRUCTURED_CONTENT,
     })
