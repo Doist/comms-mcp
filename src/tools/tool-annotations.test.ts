@@ -1,230 +1,149 @@
-import { McpServer } from '@modelcontextprotocol/server'
-import { vi } from 'vitest'
+import { describeToolAnnotations } from '@doist/mcp-core/testing'
 import { getMcpServer } from '../mcp-server.js'
 import { ToolNames } from '../utils/tool-names.js'
 
-type ToolExpectation = {
-    name: string
-    title: string
-    readOnlyHint: boolean
-    destructiveHint: boolean
-    idempotentHint: boolean
-}
-
-const TOOL_EXPECTATIONS: ToolExpectation[] = [
-    {
-        name: ToolNames.USER_INFO,
-        title: 'Comms: User Info',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
+// Clients decide from these hints whether a call needs the user's confirmation, so each tool's are
+// pinned here as a client receives them on tools/list.
+describeToolAnnotations({
+    createServer: () => getMcpServer({ token: 'test-token' }),
+    expected: {
+        [ToolNames.USER_INFO]: {
+            title: 'Comms: User Info',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.UPDATE_USER_INFO]: {
+            title: 'Comms: Update User Info',
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: true,
+        },
+        [ToolNames.FETCH_INBOX]: {
+            title: 'Comms: Fetch Inbox',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.LOAD_THREAD]: {
+            title: 'Comms: Load Thread',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.LOAD_CONVERSATION]: {
+            title: 'Comms: Load Conversation',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.SEARCH_CONTENT]: {
+            title: 'Comms: Search Content',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.GET_MENTIONS]: {
+            title: 'Comms: Get Mentions',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.GET_USERS]: {
+            title: 'Comms: Get Users',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.GET_GROUPS]: {
+            title: 'Comms: Get Groups',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.GET_WORKSPACES]: {
+            title: 'Comms: Get Workspaces',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.BUILD_LINK]: {
+            title: 'Comms: Build Link',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.CREATE_CHANNEL]: {
+            title: 'Comms: Create Channel',
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+        },
+        [ToolNames.UPDATE_CHANNEL]: {
+            title: 'Comms: Update Channel',
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.CREATE_THREAD]: {
+            title: 'Comms: Create Thread',
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+        },
+        [ToolNames.CREATE_CONVERSATION]: {
+            title: 'Comms: Create Conversation',
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+        },
+        [ToolNames.UPDATE_OBJECT]: {
+            title: 'Comms: Update Object',
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.DELETE_OBJECT]: {
+            title: 'Comms: Delete Object',
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: true,
+        },
+        [ToolNames.REPLY]: {
+            title: 'Comms: Reply',
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: false,
+        },
+        [ToolNames.REACT]: {
+            title: 'Comms: React',
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: false,
+        },
+        [ToolNames.MARK_DONE]: {
+            title: 'Comms: Mark Done',
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: true,
+        },
+        [ToolNames.MARK_READ]: {
+            title: 'Comms: Mark Read',
+            readOnlyHint: false,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.LIST_CHANNELS]: {
+            title: 'Comms: List Channels',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
+        [ToolNames.LIST_CONVERSATIONS]: {
+            title: 'Comms: List Conversations',
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+        },
     },
-    {
-        name: ToolNames.UPDATE_USER_INFO,
-        title: 'Comms: Update User Info',
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.FETCH_INBOX,
-        title: 'Comms: Fetch Inbox',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.LOAD_THREAD,
-        title: 'Comms: Load Thread',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.LOAD_CONVERSATION,
-        title: 'Comms: Load Conversation',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.SEARCH_CONTENT,
-        title: 'Comms: Search Content',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.GET_MENTIONS,
-        title: 'Comms: Get Mentions',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.GET_USERS,
-        title: 'Comms: Get Users',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.GET_GROUPS,
-        title: 'Comms: Get Groups',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.GET_WORKSPACES,
-        title: 'Comms: Get Workspaces',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.BUILD_LINK,
-        title: 'Comms: Build Link',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.CREATE_CHANNEL,
-        title: 'Comms: Create Channel',
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: false,
-    },
-    {
-        name: ToolNames.UPDATE_CHANNEL,
-        title: 'Comms: Update Channel',
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.CREATE_THREAD,
-        title: 'Comms: Create Thread',
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: false,
-    },
-    {
-        name: ToolNames.CREATE_CONVERSATION,
-        title: 'Comms: Create Conversation',
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: false,
-    },
-    {
-        name: ToolNames.UPDATE_OBJECT,
-        title: 'Comms: Update Object',
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.DELETE_OBJECT,
-        title: 'Comms: Delete Object',
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.REPLY,
-        title: 'Comms: Reply',
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: false,
-    },
-    {
-        name: ToolNames.REACT,
-        title: 'Comms: React',
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: false,
-    },
-    {
-        name: ToolNames.MARK_DONE,
-        title: 'Comms: Mark Done',
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.MARK_READ,
-        title: 'Comms: Mark Read',
-        readOnlyHint: false,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.LIST_CHANNELS,
-        title: 'Comms: List Channels',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-    {
-        name: ToolNames.LIST_CONVERSATIONS,
-        title: 'Comms: List Conversations',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-    },
-]
-
-describe('Tool annotations', () => {
-    const registered: Map<string, { annotations?: unknown }> = new Map()
-
-    beforeAll(() => {
-        const registerToolSpy = vi.spyOn(McpServer.prototype, 'registerTool')
-        getMcpServer({ token: 'test-token' })
-
-        const calls = registerToolSpy.mock.calls as unknown as unknown[][]
-        for (const [name, toolSpec] of calls) {
-            if (typeof name !== 'string') continue
-            if (!toolSpec || typeof toolSpec !== 'object') continue
-
-            registered.set(name, toolSpec as { annotations?: unknown })
-        }
-
-        registerToolSpy.mockRestore()
-    })
-
-    it('should cover all tools', () => {
-        expect(Array.from(registered.keys()).sort()).toEqual(
-            TOOL_EXPECTATIONS.map((t) => t.name).sort(),
-        )
-    })
-
-    describe.each(TOOL_EXPECTATIONS)('$name', (toolExpectation) => {
-        it('should define required MCP ToolAnnotations hints', () => {
-            const toolSpec = registered.get(toolExpectation.name)
-            expect(toolSpec).toBeDefined()
-
-            const annotations = toolSpec?.annotations as Record<string, unknown> | undefined
-            expect(annotations).toBeDefined()
-
-            expect(annotations).toMatchObject({
-                title: toolExpectation.title,
-                openWorldHint: false,
-            })
-        })
-
-        it('should have expected hint values per tool', () => {
-            const toolSpec = registered.get(toolExpectation.name)
-            expect(toolSpec).toBeDefined()
-
-            const annotations = toolSpec?.annotations as Record<string, unknown> | undefined
-            expect(annotations).toBeDefined()
-
-            expect(annotations).toMatchObject({
-                readOnlyHint: toolExpectation.readOnlyHint,
-                destructiveHint: toolExpectation.destructiveHint,
-                idempotentHint: toolExpectation.idempotentHint,
-            })
-        })
-    })
 })
