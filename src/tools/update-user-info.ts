@@ -11,7 +11,7 @@ import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { UserInfoOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { buildUserInfoResult } from './user-info.js'
+import { buildUserInfoResult } from './user-output.js'
 
 const MAX_MESSAGE_LENGTH = 80
 
@@ -116,17 +116,24 @@ const ALL_SCOPE = { scope: { mode: 'all' } } as const
 function buildStatus(status: StatusArgs, now: Date): SetStatusArgs {
     const { message, emoji, activeUntil, pauseNotifications, pauseActivity } = status
 
-    // The schema requires it, but a caller that skips the schema can still leave it out.
-    if (!message) {
+    // The schema checks these, but a caller that skips it can send anything, and a value Comms
+    // accepts but the comparison below cannot read would fail only after the write applied.
+    if (typeof message !== 'string' || !message.trim()) {
         throw new Error(
             'status.message is required to set a status. Pass status: null to remove it.',
         )
+    }
+    if (emoji != null && typeof emoji !== 'string') {
+        throw new Error('status.emoji must be text, such as "🏝️".')
+    }
+    if (activeUntil != null && typeof activeUntil !== 'string') {
+        throw invalidActiveUntil(String(activeUntil))
     }
 
     return {
         message,
         emoji: emoji ?? null,
-        activeUntil: activeUntil !== undefined ? parseActiveUntil(activeUntil, now) : null,
+        activeUntil: activeUntil != null ? parseActiveUntil(activeUntil, now) : null,
         effects: {
             pauseNotifications: pauseNotifications ? ALL_SCOPE : null,
             pauseActivity: pauseActivity ? ALL_SCOPE : null,
@@ -134,13 +141,31 @@ function buildStatus(status: StatusArgs, now: Date): SetStatusArgs {
     }
 }
 
-function buildProfile({ name, timezone, lang }: UpdateUserInfoArgs): UpdateUserArgs | null {
-    const profile: UpdateUserArgs = {
-        ...(name !== undefined ? { name } : {}),
-        ...(timezone !== undefined ? { timezone } : {}),
-        ...(lang !== undefined ? { lang } : {}),
+// Each profile field and where Comms reports it back.
+const PROFILE_FIELDS = { name: 'fullName', timezone: 'timezone', lang: 'lang' } as const
+type ProfileField = keyof typeof PROFILE_FIELDS
+
+function buildProfile(args: UpdateUserInfoArgs): UpdateUserArgs | null {
+    const profile: UpdateUserArgs = {}
+    for (const field of Object.keys(PROFILE_FIELDS) as ProfileField[]) {
+        const value: unknown = args[field]
+        if (value === undefined) {
+            continue
+        }
+        // The schema checks this too, for a caller that skips it.
+        if (typeof value !== 'string' || !value.trim()) {
+            throw new Error(`${field} must be text that is not blank.`)
+        }
+        profile[field] = value.trim()
     }
     return Object.keys(profile).length > 0 ? profile : null
+}
+
+// The profile field Comms reports differently from the one sent, if any.
+function differentProfileField(held: User, sent: UpdateUserArgs): ProfileField | undefined {
+    return (Object.keys(PROFILE_FIELDS) as ProfileField[]).find(
+        (field) => sent[field] !== undefined && held[PROFILE_FIELDS[field]] !== sent[field],
+    )
 }
 
 const SCOPE_HINTS: Record<number, string> = {
@@ -149,9 +174,10 @@ const SCOPE_HINTS: Record<number, string> = {
 }
 
 /**
- * The SDK's message for a refusal is only the status code, and connections made before this tool
- * existed hold no `user:write`, so a refusal says what it needs. No failure claims the change did
- * not apply: the SDK retries a POST after a network error, so an earlier attempt may have.
+ * The SDK's message for a refusal is only the status code, and a connection may not hold
+ * `user:write`, which covers updating the user's settings, so a refusal says what it needs. No
+ * failure claims the change did not apply: the SDK retries a POST after a network error, so an
+ * earlier attempt may have.
  */
 function explainWriteFailure(error: unknown, subject: 'profile' | 'status'): Error {
     const checkIt = `Use ${ToolNames.USER_INFO} to check it.`
@@ -170,7 +196,7 @@ function explainWriteFailure(error: unknown, subject: 'profile' | 'status'): Err
 // drops it has not stored a different status. Nor has one that normalises a message's Unicode form
 // or runs of whitespace, or trims what a caller skipping the schema left padded.
 function normaliseEmoji(emoji: string | null | undefined): string | null {
-    return emoji?.replace(/️/g, '').trim() || null
+    return emoji?.replace(/\uFE0F/g, '').trim() || null
 }
 
 function normaliseMessage(message: string | undefined): string | undefined {
@@ -194,6 +220,26 @@ function sameStatus(held: UserStatus, sent: SetStatusArgs): boolean {
         samePause(held.effects?.pauseNotifications, sent.effects?.pauseNotifications) &&
         samePause(held.effects?.pauseActivity, sent.effects?.pauseActivity)
     )
+}
+
+/** Updates the profile, then checks the user Comms returns holds what was asked for. */
+async function writeProfile(
+    client: CommsApi,
+    profile: UpdateUserArgs,
+    statusPending: boolean,
+): Promise<User> {
+    // The status is only sent once the profile change is known to have applied.
+    const notSent = statusPending ? ' The status change was not sent.' : ''
+    const user = await client.users.update(profile).catch((error: unknown) => {
+        throw new Error(`${explainWriteFailure(error, 'profile').message}${notSent}`)
+    })
+    const field = differentProfileField(user, profile)
+    if (field) {
+        throw new Error(
+            `Comms accepted the profile change but reports a different ${field}; use ${ToolNames.USER_INFO} to see it.${notSent}`,
+        )
+    }
+    return user
 }
 
 /** Sets or clears the status, then checks the user Comms returns holds what was asked for. */
@@ -222,10 +268,40 @@ async function writeStatus(client: CommsApi, status: SetStatusArgs | null): Prom
     return user
 }
 
+/**
+ * The user to report, each part from the write that checked it. After a profile-only update the
+ * status is read back when the response leaves it out, because a missing status is not the same
+ * as none.
+ */
+async function reportedUser(
+    client: CommsApi,
+    profileUser: User | undefined,
+    statusUser: User | undefined,
+): Promise<User> {
+    if (profileUser && statusUser) {
+        const { fullName, timezone, lang } = profileUser
+        return { ...statusUser, fullName, timezone, lang }
+    }
+    if (statusUser) {
+        return statusUser
+    }
+    const user = profileUser as User
+    if (user.status !== undefined) {
+        return user
+    }
+    const current = await client.users.getSessionUser().catch((error: unknown) => {
+        const detail = error instanceof Error ? error.message : String(error)
+        throw new Error(
+            `The profile change applied, but reading the status back failed: ${detail}. Use ${ToolNames.USER_INFO} to check it.`,
+        )
+    })
+    return { ...user, status: current.status }
+}
+
 const updateUserInfo = {
     name: ToolNames.UPDATE_USER_INFO,
     description:
-        "Change the user's name, timezone, language or status. Only the fields given change; the status is shown next to their name in Comms and Todoist. Returns the user as user-info does.",
+        "Change the user's name, timezone, language or status; fields left out are kept. A status given replaces the whole status. The status is shown next to their name in Comms and Todoist. Returns the user as user-info does.",
     parameters: ArgsSchema,
     outputSchema: UserInfoOutputSchema.shape,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
@@ -237,32 +313,27 @@ const updateUserInfo = {
                 ? args.status
                 : buildStatus(args.status, new Date())
         if (!profile && status === undefined) {
-            throw new Error('Pass at least one of name, timezone, lang or status.')
+            throw new Error(
+                'At least one of `name`, `timezone`, `lang`, or `status` must be provided.',
+            )
         }
 
-        let user: User | undefined
-        if (profile) {
-            user = await client.users.update(profile).catch((error: unknown) => {
-                const failure = explainWriteFailure(error, 'profile')
-                // The status is only sent once the profile change is known to have applied.
-                throw status === undefined
-                    ? failure
-                    : new Error(`${failure.message} The status was not sent.`)
-            })
-        }
-        if (status !== undefined) {
-            user = await writeStatus(client, status).catch((error: unknown) => {
-                if (!profile) {
-                    throw error
-                }
-                const message = error instanceof Error ? error.message : String(error)
-                // The status failure may itself be unconfirmed, so this claims nothing about it.
-                throw new Error(`The profile change applied. ${message}`)
-            })
-        }
+        const profileUser = profile
+            ? await writeProfile(client, profile, status !== undefined)
+            : undefined
+        const statusUser =
+            status === undefined
+                ? undefined
+                : await writeStatus(client, status).catch((error: unknown) => {
+                      if (!profile) {
+                          throw error
+                      }
+                      const message = error instanceof Error ? error.message : String(error)
+                      // The status failure may itself be unconfirmed, so this claims nothing about it.
+                      throw new Error(`The profile change applied. ${message}`)
+                  })
 
-        // One of the two writes ran, so a user came back.
-        const result = buildUserInfoResult(user as User)
+        const result = buildUserInfoResult(await reportedUser(client, profileUser, statusUser))
         const changed = [...Object.keys(profile ?? {}), ...(status !== undefined ? ['status'] : [])]
         return {
             textContent: `Updated: ${changed.join(', ')}\n\n${result.textContent}`,

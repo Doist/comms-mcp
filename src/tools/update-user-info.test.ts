@@ -13,6 +13,7 @@ import { updateUserInfo } from './update-user-info.js'
 const mockCommsApi = vi.mocked(
     {
         users: {
+            getSessionUser: vi.fn(),
             update: vi.fn(),
             setStatus: vi.fn(),
             clearStatus: vi.fn(),
@@ -62,6 +63,11 @@ function echoSentProfile() {
     )
 }
 
+// A whole-message match, so a suffix added to an error fails the test.
+function exactly(text: string): RegExp {
+    return new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)
+}
+
 function setStatus(status: StatusInput) {
     return updateUserInfo.execute({ status }, mockCommsApi)
 }
@@ -80,6 +86,9 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
         vi.useFakeTimers({ toFake: ['Date'] }).setSystemTime(NOW)
         echoSentStatus()
         echoSentProfile()
+        mockCommsApi.users.getSessionUser.mockResolvedValue(
+            createMockUser({ status: { message: 'Held' } }),
+        )
     })
 
     afterEach(() => {
@@ -110,7 +119,69 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
                     lang: 'en',
                 }),
             )
+            // The update response leaves the status out, so it is read back rather than shown as none.
+            expect(mockCommsApi.users.getSessionUser).toHaveBeenCalledWith()
+            expect(statusOf(result)).toEqual(expect.objectContaining({ message: 'Held' }))
         })
+
+        it('reports the status from the update response when it carries one', async () => {
+            mockCommsApi.users.update.mockResolvedValue(createMockUser({ status: null }))
+
+            const result = await updateUserInfo.execute({ lang: 'en' }, mockCommsApi)
+
+            expect(mockCommsApi.users.getSessionUser).not.toHaveBeenCalled()
+            expect(extractStructuredContent(result)).not.toHaveProperty('status')
+        })
+
+        it('says the profile applied when reading the status back fails', async () => {
+            mockCommsApi.users.getSessionUser.mockRejectedValue(new Error('fetch failed'))
+
+            await expect(updateUserInfo.execute({ name: 'Ada' }, mockCommsApi)).rejects.toThrow(
+                exactly(
+                    `The profile change applied, but reading the status back failed: fetch failed. Use ${USER_INFO} to check it.`,
+                ),
+            )
+        })
+
+        it('fails when Comms accepts the profile but reports a different field', async () => {
+            mockCommsApi.users.update.mockResolvedValue(createMockUser({ lang: 'en' }))
+
+            await expect(updateUserInfo.execute({ lang: 'pt' }, mockCommsApi)).rejects.toThrow(
+                exactly(
+                    `Comms accepted the profile change but reports a different lang; use ${USER_INFO} to see it.`,
+                ),
+            )
+        })
+
+        it('does not send the status after a profile Comms reports differently', async () => {
+            mockCommsApi.users.update.mockResolvedValue(createMockUser({ fullName: 'Old Name' }))
+
+            await expect(
+                updateUserInfo.execute({ name: 'Ada', status: null }, mockCommsApi),
+            ).rejects.toThrow(
+                exactly(
+                    `Comms accepted the profile change but reports a different name; use ${USER_INFO} to see it. The status change was not sent.`,
+                ),
+            )
+            expect(mockCommsApi.users.clearStatus).not.toHaveBeenCalled()
+        })
+
+        it.each([
+            ['null', null],
+            ['blank', '   '],
+            ['a number', 5],
+        ])(
+            'refuses a name that is %s from a caller that skips the schema',
+            async (_label, name) => {
+                await expect(
+                    updateUserInfo.execute(
+                        { name } as Parameters<typeof updateUserInfo.execute>[0],
+                        mockCommsApi,
+                    ),
+                ).rejects.toThrow(exactly('name must be text that is not blank.'))
+                expect(mockCommsApi.users.update).not.toHaveBeenCalled()
+            },
+        )
 
         it('sends the language', async () => {
             await updateUserInfo.execute({ lang: 'pt' }, mockCommsApi)
@@ -140,6 +211,33 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
             )
             expect(extractTextContent(result)).toMatch(/^Updated: name, status\n\n/)
             expect(statusOf(result)).toEqual(expect.objectContaining({ message: 'Away' }))
+            // The status response carries the default name; the profile is taken from its own write.
+            expect(extractStructuredContent(result).name).toBe('Ada')
+        })
+
+        it('updates the profile and clears the status in one call', async () => {
+            mockCommsApi.users.clearStatus.mockResolvedValue(createMockUser({ status: null }))
+
+            const result = await updateUserInfo.execute({ name: 'Ada', status: null }, mockCommsApi)
+
+            expect(mockCommsApi.users.clearStatus).toHaveBeenCalledWith()
+            expect(extractTextContent(result)).toMatch(/^Updated: name, status\n\n/)
+            expect(extractStructuredContent(result).name).toBe('Ada')
+            expect(extractStructuredContent(result)).not.toHaveProperty('status')
+        })
+
+        it('says the profile change applied when the status after it reads differently', async () => {
+            mockCommsApi.users.setStatus.mockResolvedValue(
+                createMockUser({ status: { message: 'Other' } }),
+            )
+
+            await expect(
+                updateUserInfo.execute({ name: 'Ada', status: { message: 'Away' } }, mockCommsApi),
+            ).rejects.toThrow(
+                exactly(
+                    `The profile change applied. Comms accepted the status but reports a different one; use ${USER_INFO} to see it.`,
+                ),
+            )
         })
 
         it('does not send the status when the profile update is refused', async () => {
@@ -156,7 +254,9 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
                     mockCommsApi,
                 ),
             ).rejects.toThrow(
-                `Comms refused to change the profile (HTTP 400): Invalid timezone. Use ${USER_INFO} to check it. The status was not sent.`,
+                exactly(
+                    `Comms refused to change the profile (HTTP 400): Invalid timezone. Use ${USER_INFO} to check it. The status change was not sent.`,
+                ),
             )
             expect(mockCommsApi.users.setStatus).not.toHaveBeenCalled()
         })
@@ -185,7 +285,9 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
 
         it('requires at least one field', async () => {
             await expect(updateUserInfo.execute({}, mockCommsApi)).rejects.toThrow(
-                'Pass at least one of name, timezone, lang or status.',
+                exactly(
+                    'At least one of `name`, `timezone`, `lang`, or `status` must be provided.',
+                ),
             )
             expect(mockCommsApi.users.update).not.toHaveBeenCalled()
         })
@@ -196,7 +298,9 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
             )
 
             await expect(updateUserInfo.execute({ name: 'Ada' }, mockCommsApi)).rejects.toThrow(
-                `Comms refused to change the profile (HTTP 403). Changing it needs the user:write scope, so the connection may need reconnecting to grant it. Use ${USER_INFO} to check it.`,
+                exactly(
+                    `Comms refused to change the profile (HTTP 403). Changing it needs the user:write scope, so the connection may need reconnecting to grant it. Use ${USER_INFO} to check it.`,
+                ),
             )
         })
 
@@ -206,7 +310,9 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
             )
 
             await expect(updateUserInfo.execute({ lang: 'en' }, mockCommsApi)).rejects.toThrow(
-                `The profile change is unconfirmed: Request failed with status 502. Use ${USER_INFO} to check it.`,
+                exactly(
+                    `The profile change is unconfirmed: Request failed with status 502. Use ${USER_INFO} to check it.`,
+                ),
             )
         })
     })
@@ -265,6 +371,17 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
         await setStatus({ message: 'Focus', [flag]: true })
 
         expect(sentStatus()?.effects).toEqual(effects)
+    })
+
+    it.each([
+        ['pauseNotifications', 'Comms notifications paused'],
+        ['pauseActivity', 'Karma and streaks paused'],
+    ])('reports %s alone with its own label', async (flag, label) => {
+        const result = await setStatus({ message: 'Focus', [flag]: true })
+
+        expect(extractTextContent(result)).toMatch(
+            new RegExp(`\\*\\*Status Effects:\\*\\* ${label}$`),
+        )
     })
 
     it('clears both effects when both pause flags are false', async () => {
@@ -330,6 +447,7 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
     it.each([
         ['missing', { emoji: '🎯' }],
         ['empty', { message: '' }],
+        ['a number', { message: 42 }],
     ])(
         'requires a message for a caller that skips the schema, when it is %s',
         async (_label, status) => {
@@ -339,6 +457,25 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
             expect(mockCommsApi.users.setStatus).not.toHaveBeenCalled()
         },
     )
+
+    it('refuses an emoji that is not text before writing anything', async () => {
+        await expect(
+            updateUserInfo.execute(
+                { name: 'Ada', status: { message: 'Away', emoji: 5 } } as unknown as Parameters<
+                    typeof updateUserInfo.execute
+                >[0],
+                mockCommsApi,
+            ),
+        ).rejects.toThrow(exactly('status.emoji must be text, such as "🏝️".'))
+        expect(mockCommsApi.users.update).not.toHaveBeenCalled()
+        expect(mockCommsApi.users.setStatus).not.toHaveBeenCalled()
+    })
+
+    it('reads an activeUntil of null as no end, as the SDK does', async () => {
+        await setStatus({ message: 'Away', activeUntil: null } as unknown as StatusInput)
+
+        expect(sentStatus()?.activeUntil).toBeNull()
+    })
 
     it('clears the status with clearStatus when status is null', async () => {
         mockCommsApi.users.clearStatus.mockResolvedValue(createMockUser())
@@ -596,12 +733,8 @@ describe(`${UPDATE_USER_INFO} tool`, () => {
         const schema = z.object(updateUserInfo.parameters)
 
         it('has no password field', () => {
-            expect(Object.keys(updateUserInfo.parameters)).toEqual([
-                'name',
-                'timezone',
-                'lang',
-                'status',
-            ])
+            expect(Object.keys(updateUserInfo.parameters)).not.toContain('password')
+            expect(schema.parse({ name: 'Ada', password: 'hunter2' })).toEqual({ name: 'Ada' })
         })
 
         it('trims the message, emoji and activeUntil', () => {

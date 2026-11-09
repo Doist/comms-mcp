@@ -1,45 +1,9 @@
-import type { User } from '@doist/comms-sdk'
 import type { CommsTool } from '../comms-tool.js'
-import { UserInfoOutputSchema, type UserInfoOutput } from '../utils/output-schemas.js'
+import { UserInfoOutputSchema } from '../utils/output-schemas.js'
 import { ToolNames } from '../utils/tool-names.js'
-import { describeStatus, toStatusOutput } from '../utils/user-status.js'
+import { buildUserInfoResult, type UserInfoStructured } from './user-output.js'
 
 const ArgsSchema = {}
-
-type UserInfoStructured = Record<string, unknown> & UserInfoOutput
-
-/** The user-info result for a user, shared with update-user-info so both report the same way. */
-function buildUserInfoResult(user: User): {
-    textContent: string
-    structuredContent: UserInfoStructured
-} {
-    const status = user.status ? toStatusOutput(user.status) : undefined
-
-    const lines: string[] = [
-        '# User Information',
-        '',
-        `**User ID:** ${user.id}`,
-        `**Name:** ${user.fullName}`,
-        `**Short Name:** ${user.shortName}`,
-        `**Email:** ${user.email}`,
-        `**Timezone:** ${user.timezone}`,
-        `**Language:** ${user.lang}`,
-        ...describeStatus(status),
-    ]
-
-    const structuredContent: UserInfoStructured = {
-        type: 'user_info',
-        userId: user.id,
-        name: user.fullName,
-        shortName: user.shortName,
-        email: user.email,
-        timezone: user.timezone,
-        lang: user.lang,
-        ...(status ? { status } : {}),
-    }
-
-    return { textContent: lines.join('\n'), structuredContent }
-}
 
 const userInfo = {
     name: ToolNames.USER_INFO,
@@ -54,4 +18,4 @@ const userInfo = {
     },
 } satisfies CommsTool<typeof ArgsSchema, typeof UserInfoOutputSchema.shape>
 
-export { buildUserInfoResult, userInfo, type UserInfoStructured }
+export { userInfo, type UserInfoStructured }
