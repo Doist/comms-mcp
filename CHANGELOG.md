@@ -1,3 +1,9 @@
+## [10.0.2](https://github.com/Doist/comms-mcp/compare/v10.0.1...v10.0.2) (2026-11-09)
+
+### Bug Fixes
+
+* **deps:** move to @doist/mcp-core 0.4.0, and run its shared suites ([#86](https://github.com/Doist/comms-mcp/issues/86)) ([430db3c](https://github.com/Doist/comms-mcp/commit/430db3ce0305b30636484100c83961829654526d))
+
 ## [10.0.1](https://github.com/Doist/comms-mcp/compare/v10.0.0...v10.0.1) (2026-11-09)
 
 ### Bug Fixes
