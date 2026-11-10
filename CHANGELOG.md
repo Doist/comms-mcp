@@ -1,3 +1,9 @@
+## [10.2.0](https://github.com/Doist/comms-mcp/compare/v10.1.0...v10.2.0) (2026-11-10)
+
+### Features
+
+* add update-user-info and report the status in user-info ([#72](https://github.com/Doist/comms-mcp/issues/72)) ([8340c00](https://github.com/Doist/comms-mcp/commit/8340c00a2a44260b6b90f6e7feac2a99dd3b4713))
+
 ## [10.1.0](https://github.com/Doist/comms-mcp/compare/v10.0.2...v10.1.0) (2026-11-09)
 
 ### Features
