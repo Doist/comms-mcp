@@ -39,6 +39,7 @@ import { reply } from '../src/tools/reply.js'
 import { searchContent } from '../src/tools/search-content.js'
 import { updateChannel } from '../src/tools/update-channel.js'
 import { updateObject } from '../src/tools/update-object.js'
+import { updateUserInfo } from '../src/tools/update-user-info.js'
 import { userInfo } from '../src/tools/user-info.js'
 
 // Define a minimal type for tool execution that works with any tool
@@ -54,6 +55,7 @@ type ExecutableTool = {
 
 const tools: Record<string, ExecutableTool> = {
     'user-info': userInfo,
+    'update-user-info': updateUserInfo,
     'fetch-inbox': fetchInbox,
     'load-thread': loadThread,
     'load-conversation': loadConversation,

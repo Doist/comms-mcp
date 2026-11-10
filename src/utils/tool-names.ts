@@ -1,5 +1,6 @@
 export const ToolNames = {
     USER_INFO: 'user-info',
+    UPDATE_USER_INFO: 'update-user-info',
     FETCH_INBOX: 'fetch-inbox',
     LOAD_THREAD: 'load-thread',
     LOAD_CONVERSATION: 'load-conversation',

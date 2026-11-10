@@ -20,11 +20,13 @@ import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
 import { updateChannel } from './tools/update-channel.js'
 import { updateObject } from './tools/update-object.js'
+import { updateUserInfo } from './tools/update-user-info.js'
 import { userInfo } from './tools/user-info.js'
 
 /** Every tool the MCP server registers, in registration order. */
 export const registeredTools: readonly AnyCommsTool[] = [
     userInfo,
+    updateUserInfo,
     getWorkspaces,
     getUsers,
     getGroups,

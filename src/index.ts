@@ -20,11 +20,13 @@ import { reply } from './tools/reply.js'
 import { searchContent } from './tools/search-content.js'
 import { updateChannel } from './tools/update-channel.js'
 import { updateObject } from './tools/update-object.js'
+import { updateUserInfo } from './tools/update-user-info.js'
 import { userInfo } from './tools/user-info.js'
 import { validateCommsToken } from './utils/validate-comms-token.js'
 
 const tools = {
     userInfo,
+    updateUserInfo,
     fetchInbox,
     loadThread,
     loadConversation,
@@ -55,6 +57,7 @@ export { CommsRequestError } from '@doist/comms-sdk'
 
 export {
     userInfo,
+    updateUserInfo,
     fetchInbox,
     loadThread,
     loadConversation,

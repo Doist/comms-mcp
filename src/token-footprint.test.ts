@@ -8,7 +8,7 @@ import { getMcpServer } from './mcp-server.js'
  * over time, and a rise needs justifying in the PR that causes it. Override it with
  * `MCP_TOKEN_BUDGET=NNNN` to experiment without editing the source; `npm run verify` ignores it.
  */
-const DEFAULT_TOKEN_BUDGET = 13_250
+const DEFAULT_TOKEN_BUDGET = 14_000
 
 describeTokenFootprint({
     createServer: () => getMcpServer({ token: 'test-token' }),

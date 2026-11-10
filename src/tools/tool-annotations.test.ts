@@ -13,6 +13,12 @@ describeToolAnnotations({
             destructiveHint: false,
             idempotentHint: true,
         },
+        [ToolNames.UPDATE_USER_INFO]: {
+            title: 'Comms: Update User Info',
+            readOnlyHint: false,
+            destructiveHint: true,
+            idempotentHint: true,
+        },
         [ToolNames.FETCH_INBOX]: {
             title: 'Comms: Fetch Inbox',
             readOnlyHint: true,

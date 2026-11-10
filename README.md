@@ -130,7 +130,8 @@ small number of calls.
 
 ### Available tools
 
-- **userInfo** — Information about the current user and their workspaces
+- **userInfo** — Information about the current user, including their status
+- **updateUserInfo** — Change the user's name, timezone, language or status. The status is shared with Todoist (message, emoji, end, paused notifications or Karma). Over an OAuth connection this needs the `user:write` scope
 - **fetchInbox** — Threads and conversations from the inbox
 - **loadThread** — Load a thread with its comments
 - **loadConversation** — Load a conversation with its messages

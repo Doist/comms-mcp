@@ -328,7 +328,7 @@ export const GetGroupsOutputSchema = z.object({
 })
 
 /**
- * Schema for user-info tool output. `name` mirrors `User.fullName`.
+ * Schema for user-info and update-user-info tool output. `name` mirrors `User.fullName`.
  */
 export const UserInfoOutputSchema = z.object({
     type: z.literal('user_info'),
@@ -338,6 +338,19 @@ export const UserInfoOutputSchema = z.object({
     email: z.string(),
     timezone: z.string(),
     lang: z.string(),
+    status: z
+        .object({
+            message: z.string(),
+            emoji: z.string().optional(),
+            activeUntil: z
+                .string()
+                .optional()
+                .describe('ISO 8601 end. Omitted when it has no end.'),
+            pauseNotifications: z.boolean().describe('Comms notifications held back.'),
+            pauseActivity: z.boolean().describe('Karma and streaks paused.'),
+        })
+        .optional()
+        .describe('Shared with Todoist. Omitted when there is no active status.'),
 })
 
 /**
