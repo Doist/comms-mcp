@@ -82,7 +82,7 @@ describeToolAnnotations({
         [ToolNames.UPDATE_CHANNEL]: {
             title: 'Comms: Update Channel',
             readOnlyHint: false,
-            destructiveHint: false,
+            destructiveHint: true,
             idempotentHint: true,
         },
         [ToolNames.CREATE_THREAD]: {
@@ -100,7 +100,7 @@ describeToolAnnotations({
         [ToolNames.UPDATE_OBJECT]: {
             title: 'Comms: Update Object',
             readOnlyHint: false,
-            destructiveHint: false,
+            destructiveHint: true,
             idempotentHint: true,
         },
         [ToolNames.DELETE_OBJECT]: {
