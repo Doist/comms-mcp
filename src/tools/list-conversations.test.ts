@@ -1,4 +1,4 @@
-import { type CommsApi, CommsRequestError, type SearchResult } from '@doist/comms-sdk'
+import { type CommsApi, CommsRequestError, type SearchResult } from '@todoist/comms-sdk'
 import { vi } from 'vitest'
 import {
     createMockConversation,

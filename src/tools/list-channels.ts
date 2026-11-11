@@ -1,4 +1,4 @@
-import type { Channel, CommsApi } from '@doist/comms-sdk'
+import type { Channel, CommsApi } from '@todoist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { resolveUsersWithLog } from '../utils/degrade.js'

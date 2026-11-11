@@ -13,7 +13,7 @@ import {
     UserSchema,
     WorkspaceSchema,
     WorkspaceUserSchema,
-} from '@doist/comms-sdk'
+} from '@todoist/comms-sdk'
 import { z } from 'zod'
 import { MarkReadItemTypeSchema } from './target-types.js'
 

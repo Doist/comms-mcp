@@ -1,4 +1,4 @@
-import type { User } from '@doist/comms-sdk'
+import type { User } from '@todoist/comms-sdk'
 import type { UserInfoOutput } from '../utils/output-schemas.js'
 import { describeStatus, toStatusOutput } from '../utils/user-status.js'
 

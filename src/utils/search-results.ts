@@ -1,4 +1,4 @@
-import { getFullCommsURL, type SearchResult } from '@doist/comms-sdk'
+import { getFullCommsURL, type SearchResult } from '@todoist/comms-sdk'
 import type { SearchResultItem } from './output-schemas.js'
 
 // Search result before URL/name enrichment, discriminated the same way as the output.

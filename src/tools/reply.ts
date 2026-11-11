@@ -1,4 +1,4 @@
-import { getFullCommsURL, NOTIFY_AUDIENCES, type NotifyAudience } from '@doist/comms-sdk'
+import { getFullCommsURL, NOTIFY_AUDIENCES, type NotifyAudience } from '@todoist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { type ReplyOutput, ReplyOutputSchema } from '../utils/output-schemas.js'

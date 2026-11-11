@@ -6,7 +6,7 @@ import type {
     Thread,
     User,
     Workspace,
-} from '@doist/comms-sdk'
+} from '@todoist/comms-sdk'
 
 /**
  * Creates a mock Channel with all required properties and sensible defaults.

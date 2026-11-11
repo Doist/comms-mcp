@@ -1,4 +1,4 @@
-import type { UserStatus } from '@doist/comms-sdk'
+import type { UserStatus } from '@todoist/comms-sdk'
 import type { UserInfoOutput } from './output-schemas.js'
 
 type StatusOutput = NonNullable<UserInfoOutput['status']>

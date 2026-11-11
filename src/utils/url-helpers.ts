@@ -1,4 +1,4 @@
-import { getFullCommsURL } from '@doist/comms-sdk'
+import { getFullCommsURL } from '@todoist/comms-sdk'
 
 export function getWorkspaceUrl(workspaceId: number): string {
     return getFullCommsURL({ workspaceId })

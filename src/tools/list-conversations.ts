@@ -1,4 +1,4 @@
-import { type CommsApi, type Conversation, isNotFound } from '@doist/comms-sdk'
+import { type CommsApi, type Conversation, isNotFound } from '@todoist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { limitedAll } from '../utils/concurrency.js'

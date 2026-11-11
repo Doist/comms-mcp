@@ -1,4 +1,4 @@
-import { type CommsApi, CommsRequestError, type UserStatus } from '@doist/comms-sdk'
+import { type CommsApi, CommsRequestError, type UserStatus } from '@todoist/comms-sdk'
 import { vi } from 'vitest'
 import { z } from 'zod'
 import { UserInfoOutputSchema } from '../utils/output-schemas.js'

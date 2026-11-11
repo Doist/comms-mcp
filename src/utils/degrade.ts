@@ -5,7 +5,7 @@
  * an expired token, so record what was dropped and why.
  */
 
-import type { CommsApi, VisibleWorkspaceUser } from '@doist/comms-sdk'
+import type { CommsApi, VisibleWorkspaceUser } from '@todoist/comms-sdk'
 
 /** Failed identifiers reported per batch before the rest are counted only. */
 export const SAMPLE_LIMIT = 5

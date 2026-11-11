@@ -1,4 +1,4 @@
-import type { CommsApi, Thread } from '@doist/comms-sdk'
+import type { CommsApi, Thread } from '@todoist/comms-sdk'
 
 /**
  * Returns the objIndex of the last comment in a thread, which is the read

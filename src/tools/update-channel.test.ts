@@ -1,4 +1,4 @@
-import type { CommsApi } from '@doist/comms-sdk'
+import type { CommsApi } from '@todoist/comms-sdk'
 import { vi } from 'vitest'
 import {
     createMockChannel,

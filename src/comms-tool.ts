@@ -1,4 +1,4 @@
-import type { CommsApi } from '@doist/comms-sdk'
+import type { CommsApi } from '@todoist/comms-sdk'
 import type { AnyMcpTool, McpTool } from '@todoist/mcp-core'
 import type { z } from 'zod'
 

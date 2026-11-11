@@ -1,4 +1,4 @@
-import type { Channel } from '@doist/comms-sdk'
+import type { Channel } from '@todoist/comms-sdk'
 import type { ChannelOutputFields } from '../utils/output-schemas.js'
 import { getChannelUrl } from '../utils/url-helpers.js'
 

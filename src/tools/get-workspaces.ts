@@ -1,4 +1,4 @@
-import type { CommsApi, WorkspacePlan } from '@doist/comms-sdk'
+import type { CommsApi, WorkspacePlan } from '@todoist/comms-sdk'
 import type { CommsTool } from '../comms-tool.js'
 import { degradeAllWithLog } from '../utils/degrade.js'
 import { GetWorkspacesOutputSchema } from '../utils/output-schemas.js'

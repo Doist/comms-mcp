@@ -15,7 +15,7 @@
  * Requires COMMS_API_KEY in .env file (and optionally COMMS_BASE_URL).
  */
 import { readFileSync } from 'node:fs'
-import { CommsApi } from '@doist/comms-sdk'
+import { CommsApi } from '@todoist/comms-sdk'
 import type { ExecuteResult } from '@todoist/mcp-core'
 import { config } from 'dotenv'
 import { buildLink } from '../src/tools/build-link.js'

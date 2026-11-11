@@ -1,4 +1,4 @@
-import { getFullCommsURL, NOTIFY_AUDIENCES } from '@doist/comms-sdk'
+import { getFullCommsURL, NOTIFY_AUDIENCES } from '@todoist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { type CreateThreadOutput, CreateThreadOutputSchema } from '../utils/output-schemas.js'
