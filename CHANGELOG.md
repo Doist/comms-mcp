@@ -1,3 +1,13 @@
+## [11.0.0](https://github.com/todoist/comms-mcp/compare/v10.2.1...v11.0.0) (2026-11-11)
+
+### ⚠ BREAKING CHANGES
+
+* the package is now published as @todoist/comms-mcp; replace @doist/comms-mcp with @todoist/comms-mcp in dependencies and imports.
+
+### Features
+
+* publish as @todoist/comms-mcp ([#89](https://github.com/todoist/comms-mcp/issues/89)) ([c505ba4](https://github.com/todoist/comms-mcp/commit/c505ba441300ce43871bd972e03f7f5cbe0d0691))
+
 ## [10.2.1](https://github.com/todoist/comms-mcp/compare/v10.2.0...v10.2.1) (2026-11-11)
 
 ### Bug Fixes

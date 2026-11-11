@@ -1,6 +1,6 @@
 {
     "name": "@todoist/comms-mcp",
-    "version": "10.2.1",
+    "version": "11.0.0",
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
