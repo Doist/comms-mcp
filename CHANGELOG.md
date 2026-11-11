@@ -1,3 +1,9 @@
+## [10.2.1](https://github.com/todoist/comms-mcp/compare/v10.2.0...v10.2.1) (2026-11-11)
+
+### Bug Fixes
+
+* **ci:** use the todoist GitHub org after the rename ([#88](https://github.com/todoist/comms-mcp/issues/88)) ([20cec5d](https://github.com/todoist/comms-mcp/commit/20cec5d5b4d96ef3790cecb5ab2d48ad01f96ea4))
+
 ## [10.2.0](https://github.com/Doist/comms-mcp/compare/v10.1.0...v10.2.0) (2026-11-10)
 
 ### Features
