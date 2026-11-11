@@ -6,7 +6,7 @@ This repository is public, and the npm package ships `dist/`.
 
 - A secret, API key, token or password, even an expired one.
 - Real user data in fixtures, snapshots or docs: real names, emails, message or thread content, workspace, channel or user IDs copied from an account.
-- Internal details: private hostnames, internal URLs, Doist-internal tools or documents, internal workspace or thread IDs.
+- Internal details: private hostnames, internal URLs, Todoist-internal tools or documents, internal workspace or thread IDs.
 - A new path in package.json `files` that should not be published.
 - Untracked files the change doesn't need (`.env`, logs, `.tmp/`).
 

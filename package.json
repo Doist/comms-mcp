@@ -19,7 +19,7 @@
     "author": "Doist",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Doist/comms-mcp.git"
+        "url": "git+https://github.com/todoist/comms-mcp.git"
     },
     "keywords": [
         "comms",
