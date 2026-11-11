@@ -52,8 +52,8 @@ const tools = {
 
 export { tools, getMcpServer, validateCommsToken }
 // Re-exported so consumers of the exported tools can catch the API's errors without taking a
-// direct @doist/comms-sdk dependency.
-export { CommsRequestError } from '@doist/comms-sdk'
+// direct @todoist/comms-sdk dependency.
+export { CommsRequestError } from '@todoist/comms-sdk'
 
 export {
     userInfo,

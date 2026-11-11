@@ -1,5 +1,5 @@
-import type { CommsApi } from '@doist/comms-sdk'
 import type { McpServer } from '@modelcontextprotocol/server'
+import type { CommsApi } from '@todoist/comms-sdk'
 import { vi } from 'vitest'
 import { z } from 'zod'
 import type { CommsTool } from './comms-tool.js'

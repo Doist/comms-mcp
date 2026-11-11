@@ -4,8 +4,8 @@ import type {
     InboxThread,
     UnreadConversation,
     VisibleWorkspaceUser,
-} from '@doist/comms-sdk'
-import { ARCHIVE_FILTER_VALUES, getFullCommsURL } from '@doist/comms-sdk'
+} from '@todoist/comms-sdk'
+import { ARCHIVE_FILTER_VALUES, getFullCommsURL } from '@todoist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { limitedAll } from '../utils/concurrency.js'

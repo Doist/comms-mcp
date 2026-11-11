@@ -1,4 +1,4 @@
-import { getFullCommsURL } from '@doist/comms-sdk'
+import { getFullCommsURL } from '@todoist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import {

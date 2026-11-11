@@ -1,4 +1,4 @@
-import { getCommentURL, getCommsURL, getFullCommsURL, getMessageURL } from '@doist/comms-sdk'
+import { getCommentURL, getCommsURL, getFullCommsURL, getMessageURL } from '@todoist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { BuildLinkOutputSchema } from '../utils/output-schemas.js'

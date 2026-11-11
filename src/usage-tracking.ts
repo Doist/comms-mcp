@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { createRequire } from 'node:module'
-import { CommsApi } from '@doist/comms-sdk'
+import { CommsApi } from '@todoist/comms-sdk'
 import type { McpServerOptions } from '@todoist/mcp-core/host'
 
 // Read at runtime: `tsc` compiles only `src/`, so the manifest can't be imported. From `src/`

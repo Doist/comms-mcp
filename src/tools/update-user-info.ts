@@ -6,7 +6,7 @@ import {
     type UpdateUserArgs,
     type User,
     type UserStatus,
-} from '@doist/comms-sdk'
+} from '@todoist/comms-sdk'
 import { z } from 'zod'
 import type { CommsTool } from '../comms-tool.js'
 import { UserInfoOutputSchema } from '../utils/output-schemas.js'

@@ -1,4 +1,4 @@
-import type { Group, CommsApi } from '@doist/comms-sdk'
+import type { Group, CommsApi } from '@todoist/comms-sdk'
 import { vi } from 'vitest'
 import {
     createMockUser,

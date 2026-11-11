@@ -1,5 +1,5 @@
-import type { CommsApi } from '@doist/comms-sdk'
 import type { McpServer } from '@modelcontextprotocol/server'
+import type { CommsApi } from '@todoist/comms-sdk'
 import { createToolRegistrar } from '@todoist/mcp-core'
 import type { AnyCommsTool } from './comms-tool.js'
 import { runAsTool } from './usage-tracking.js'
