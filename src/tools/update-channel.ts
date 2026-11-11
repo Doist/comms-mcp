@@ -28,7 +28,7 @@ const updateChannel = {
         'Update a workspace channel. Pass channelId and at least one of name, description, or public. Pass description: null to clear the description.',
     parameters: ArgsSchema,
     outputSchema: UpdateChannelOutputSchema.shape,
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     async execute(args, client) {
         const { channelId, name, description, public: isPublic } = args
 

@@ -183,7 +183,7 @@ const updateObject = {
         'Update an existing Comms object. `targetType: "thread"` updates a thread\'s title and/or body; `"comment"` updates a thread comment\'s body; `"message"` updates a direct/group conversation message\'s body. Always pass `targetId`. `content` is required for `"comment"` and `"message"`; for `"thread"` it is optional as long as `title` is provided (i.e. a thread can be renamed without re-sending the body). `title` is only valid when `targetType` is `"thread"`.',
     parameters: ArgsSchema,
     outputSchema: UpdateObjectOutputSchema.shape,
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     async execute(args, client) {
         const { targetType, title } = args
 
