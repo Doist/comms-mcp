@@ -1,6 +1,6 @@
 # Comms MCP & AI Tools
 
-MCP server and importable AI tools for the Doist Comms API. Use the
+MCP server and importable AI tools for the Todoist Comms API. Use the
 tools through an MCP server, or import them directly to plug Comms into
 your own AI conversational interface.
 
@@ -172,7 +172,7 @@ For details, see [src/tools](src/tools).
 ### Setup
 
 ```bash
-git clone https://github.com/Doist/comms-mcp.git
+git clone https://github.com/todoist/comms-mcp.git
 cd comms-mcp
 npm install
 cp .env.example .env  # then add your COMMS_API_KEY
