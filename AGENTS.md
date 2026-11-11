@@ -39,7 +39,7 @@ Reviewers, Doistbot included, apply these to every change:
 
 ## Adding a New Tool
 
-A tool's `execute` returns `{ textContent, structuredContent }`. Registration, result shaping, null stripping and the schema contract suites come from [`@doist/mcp-core`](https://github.com/Doist/mcp-core), which todoist-mcp and automations-mcp share; change shared behaviour there, not in a local copy.
+A tool's `execute` returns `{ textContent, structuredContent }`. Registration, result shaping, null stripping and the schema contract suites come from [`@todoist/mcp-core`](https://github.com/todoist/mcp-core), which todoist-mcp and automations-mcp share; change shared behaviour there, not in a local copy.
 
 When adding a new tool, it must be registered in **all** of these locations:
 

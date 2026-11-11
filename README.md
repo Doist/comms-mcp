@@ -9,15 +9,17 @@ your own AI conversational interface.
 ### 1. Install
 
 ```sh
-npm install @doist/comms-mcp
+npm install @todoist/comms-mcp
 ```
+
+This package was previously published as `@doist/comms-mcp`.
 
 ### 2. Plug them into an AI
 
 Example with [Vercel's AI SDK](https://ai-sdk.dev/docs/ai-sdk-core/generating-text#streamtext):
 
 ```js
-import { fetchInbox, reply, markDone } from '@doist/comms-mcp'
+import { fetchInbox, reply, markDone } from '@todoist/comms-mcp'
 import { streamText } from 'ai'
 
 const result = streamText({
@@ -36,7 +38,7 @@ const result = streamText({
 ### Quick start
 
 ```bash
-npx @doist/comms-mcp
+npx @todoist/comms-mcp
 ```
 
 ### Setup
@@ -50,7 +52,7 @@ Add to `claude_desktop_config.json`:
     "mcpServers": {
         "comms": {
             "command": "npx",
-            "args": ["-y", "@doist/comms-mcp"],
+            "args": ["-y", "@todoist/comms-mcp"],
             "env": {
                 "COMMS_API_KEY": "your-comms-api-key-here"
             }
@@ -68,7 +70,7 @@ Add to `claude_desktop_config.json`:
     "mcpServers": {
         "comms": {
             "command": "npx",
-            "args": ["-y", "@doist/comms-mcp"],
+            "args": ["-y", "@todoist/comms-mcp"],
             "env": {
                 "COMMS_API_KEY": "your-comms-api-key-here"
             }
@@ -80,7 +82,7 @@ Add to `claude_desktop_config.json`:
 #### Claude Code (CLI)
 
 ```bash
-claude mcp add comms npx @doist/comms-mcp
+claude mcp add comms npx @todoist/comms-mcp
 export COMMS_API_KEY=your-comms-api-key-here
 ```
 
@@ -94,7 +96,7 @@ export COMMS_API_KEY=your-comms-api-key-here
     "servers": {
         "comms": {
             "command": "npx",
-            "args": ["-y", "@doist/comms-mcp"],
+            "args": ["-y", "@todoist/comms-mcp"],
             "env": {
                 "COMMS_API_KEY": "your-comms-api-key-here"
             }

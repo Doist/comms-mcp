@@ -1,6 +1,6 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import { createToolRegistrar } from '@doist/mcp-core'
 import type { McpServer } from '@modelcontextprotocol/server'
+import { createToolRegistrar } from '@todoist/mcp-core'
 import type { AnyCommsTool } from './comms-tool.js'
 import { runAsTool } from './usage-tracking.js'
 
@@ -28,7 +28,7 @@ function formatError(error: unknown): string {
  * Registers Comms tools on an MCP server, bound to one Comms API client.
  *
  * Schema caching, annotations, result shaping and turning a thrown error into an error result
- * come from `@doist/mcp-core`; its default error log names the tool and never its arguments.
+ * come from `@todoist/mcp-core`; its default error log names the tool and never its arguments.
  * Each call runs as its tool (`runAsTool`), so the requests it makes carry the tool's name in
  * their usage-tracking headers.
  */

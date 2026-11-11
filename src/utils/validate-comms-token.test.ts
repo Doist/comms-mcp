@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { TokenValidationError } from '@doist/mcp-core/host'
+import { TokenValidationError } from '@todoist/mcp-core/host'
 import { vi } from 'vitest'
 import { validateCommsToken } from './validate-comms-token.js'
 
