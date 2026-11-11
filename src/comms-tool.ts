@@ -1,10 +1,10 @@
 import type { CommsApi } from '@doist/comms-sdk'
-import type { AnyMcpTool, McpTool } from '@doist/mcp-core'
+import type { AnyMcpTool, McpTool } from '@todoist/mcp-core'
 import type { z } from 'zod'
 
 /**
  * A Comms tool that can be used in an MCP server or other conversational AI interfaces: an
- * `McpTool` from `@doist/mcp-core` whose `execute` receives the Comms API client.
+ * `McpTool` from `@todoist/mcp-core` whose `execute` receives the Comms API client.
  *
  * `execute` returns `{ textContent, structuredContent }`; registration shapes that into the MCP
  * result, so a tool never builds one itself.

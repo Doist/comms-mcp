@@ -1,4 +1,4 @@
-import { describeToolAnnotations } from '@doist/mcp-core/testing'
+import { describeToolAnnotations } from '@todoist/mcp-core/testing'
 import { getMcpServer } from '../mcp-server.js'
 import { ToolNames } from '../utils/tool-names.js'
 

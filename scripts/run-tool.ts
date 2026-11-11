@@ -16,7 +16,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { CommsApi } from '@doist/comms-sdk'
-import type { ExecuteResult } from '@doist/mcp-core'
+import type { ExecuteResult } from '@todoist/mcp-core'
 import { config } from 'dotenv'
 import { buildLink } from '../src/tools/build-link.js'
 import { createChannel } from '../src/tools/create-channel.js'

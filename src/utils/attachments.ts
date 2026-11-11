@@ -1,5 +1,5 @@
 import { type Attachment } from '@doist/comms-sdk'
-import { removeNullFields } from '@doist/mcp-core'
+import { removeNullFields } from '@todoist/mcp-core'
 import type { OutputAttachment } from './output-schemas.js'
 
 export type { Attachment }
