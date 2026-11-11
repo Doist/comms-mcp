@@ -56,7 +56,7 @@
         "review:worktree": "node .agents/scripts/review-worktree.ts"
     },
     "dependencies": {
-        "@todoist/comms-sdk": "5.0.0",
+        "@todoist/comms-sdk": "5.0.1",
         "@todoist/mcp-core": "1.0.0",
         "dotenv": "17.4.2",
         "p-limit": "6.2.0",
