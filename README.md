@@ -9,7 +9,7 @@ your own AI conversational interface.
 **MCP server URL (Streamable HTTP):** `https://ai.todoist.net/mcp/comms`
 
 Add it to your AI client and sign in with your Todoist account. You
-don't need an API key or a local install.
+don't need an API key or to run the server yourself.
 
 ### Claude Desktop
 
@@ -43,8 +43,8 @@ authenticate.
 
 ### Visual Studio Code
 
-1. Command Palette → MCP: Add Server
-2. Select HTTP transport and use:
+Run **MCP: Add Server** from the Command Palette, pick HTTP, and enter
+the URL. Or add it to `.vscode/mcp.json`:
 
 ```json
 {
