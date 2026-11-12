@@ -4,6 +4,110 @@ MCP server and importable AI tools for the Todoist Comms API. Use the
 tools through an MCP server, or import them directly to plug Comms into
 your own AI conversational interface.
 
+## Using as an MCP server
+
+**MCP server URL (Streamable HTTP):** `https://ai.todoist.net/mcp/comms`
+
+Add it to your AI client and sign in with your Todoist account. You
+don't need an API key or to run the server yourself.
+
+### Claude Desktop
+
+1. Open Settings → Connectors → Add custom connector
+2. Enter `https://ai.todoist.net/mcp/comms` and complete OAuth
+   authentication
+
+### Claude Code (CLI)
+
+```bash
+claude mcp add --transport http comms https://ai.todoist.net/mcp/comms
+```
+
+Then launch `claude`, run `/mcp`, and select the `comms` server to
+authenticate.
+
+### Cursor
+
+`~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (per-project):
+
+```json
+{
+    "mcpServers": {
+        "comms": {
+            "command": "npx",
+            "args": ["-y", "mcp-remote", "https://ai.todoist.net/mcp/comms"]
+        }
+    }
+}
+```
+
+### Visual Studio Code
+
+Run **MCP: Add Server** from the Command Palette, pick HTTP, and enter
+the URL. Or add it to `.vscode/mcp.json`:
+
+```json
+{
+    "servers": {
+        "comms": {
+            "type": "http",
+            "url": "https://ai.todoist.net/mcp/comms"
+        }
+    }
+}
+```
+
+### Other MCP clients
+
+```bash
+npx -y mcp-remote https://ai.todoist.net/mcp/comms
+```
+
+### Running it locally
+
+To run the server yourself over stdio, pass it a
+[Comms API key](#getting-a-comms-api-key):
+
+```json
+{
+    "mcpServers": {
+        "comms": {
+            "command": "npx",
+            "args": ["-y", "@todoist/comms-mcp"],
+            "env": {
+                "COMMS_API_KEY": "your-comms-api-key-here"
+            }
+        }
+    }
+}
+```
+
+VS Code uses `servers` instead of `mcpServers`. In Claude Code:
+
+```bash
+claude mcp add comms npx @todoist/comms-mcp
+export COMMS_API_KEY=your-comms-api-key-here
+```
+
+#### Targeting a non-production deployment
+
+By default the server talks to `https://comms.todoist.com`. To point at
+staging or a custom deployment, also set `COMMS_BASE_URL`:
+
+```json
+"env": {
+    "COMMS_API_KEY": "your-comms-api-key-here",
+    "COMMS_BASE_URL": "https://comms.staging.todoist.com"
+}
+```
+
+#### Getting a Comms API key
+
+Comms accepts your Todoist API token. In Todoist, open **Settings →
+Integrations → Developer** and copy the API token, then export it as
+`COMMS_API_KEY` (or paste it into the MCP client config above). It has
+full access to your account, so keep it secret.
+
 ## Using the tools
 
 ### 1. Install
@@ -32,97 +136,6 @@ const result = streamText({
     },
 })
 ```
-
-## Using as an MCP server
-
-### Quick start
-
-```bash
-npx @todoist/comms-mcp
-```
-
-### Setup
-
-#### Claude Desktop
-
-Add to `claude_desktop_config.json`:
-
-```json
-{
-    "mcpServers": {
-        "comms": {
-            "command": "npx",
-            "args": ["-y", "@todoist/comms-mcp"],
-            "env": {
-                "COMMS_API_KEY": "your-comms-api-key-here"
-            }
-        }
-    }
-}
-```
-
-#### Cursor
-
-`~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (per-project):
-
-```json
-{
-    "mcpServers": {
-        "comms": {
-            "command": "npx",
-            "args": ["-y", "@todoist/comms-mcp"],
-            "env": {
-                "COMMS_API_KEY": "your-comms-api-key-here"
-            }
-        }
-    }
-}
-```
-
-#### Claude Code (CLI)
-
-```bash
-claude mcp add comms npx @todoist/comms-mcp
-export COMMS_API_KEY=your-comms-api-key-here
-```
-
-#### Visual Studio Code
-
-1. Command Palette → MCP: Add Server
-2. Configure:
-
-```json
-{
-    "servers": {
-        "comms": {
-            "command": "npx",
-            "args": ["-y", "@todoist/comms-mcp"],
-            "env": {
-                "COMMS_API_KEY": "your-comms-api-key-here"
-            }
-        }
-    }
-}
-```
-
-### Targeting a non-production deployment
-
-By default the server talks to `https://comms.todoist.com`. To point at
-staging or a custom deployment, also set `COMMS_BASE_URL`:
-
-```json
-"env": {
-    "COMMS_API_KEY": "your-comms-api-key-here",
-    "COMMS_BASE_URL": "https://comms.staging.todoist.com"
-}
-```
-
-### Getting a Comms API key
-
-Comms accepts your Todoist API token. In Todoist, open **Settings →
-Integrations → Developer** and copy the API token, then export it as
-`COMMS_API_KEY` (or paste it into the MCP client config above). It has
-full access to your account, so keep it secret.
 
 ## Features
 
