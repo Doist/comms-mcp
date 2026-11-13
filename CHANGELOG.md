@@ -1,3 +1,9 @@
+## [11.0.4](https://github.com/todoist/comms-mcp/compare/v11.0.3...v11.0.4) (2026-11-13)
+
+### Bug Fixes
+
+* **deps:** update @todoist/comms-sdk to 5.0.2 ([#94](https://github.com/todoist/comms-mcp/issues/94)) ([07dc660](https://github.com/todoist/comms-mcp/commit/07dc660e4b3068d6beb925c785042ede3344f129))
+
 ## [11.0.3](https://github.com/todoist/comms-mcp/compare/v11.0.2...v11.0.3) (2026-11-11)
 
 ### Bug Fixes
